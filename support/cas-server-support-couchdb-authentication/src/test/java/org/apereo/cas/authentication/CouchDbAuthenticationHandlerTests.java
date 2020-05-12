@@ -7,10 +7,12 @@ import org.apereo.cas.config.CasCoreAuthenticationMetadataConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationPolicyConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationPrincipalConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationSupportConfiguration;
+import org.apereo.cas.config.CasCoreConfiguration;
 import org.apereo.cas.config.CasCoreHttpConfiguration;
 import org.apereo.cas.config.CasCoreServicesAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
+import org.apereo.cas.config.CasCoreTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasCoreTicketsConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CasCoreWebConfiguration;
@@ -20,7 +22,9 @@ import org.apereo.cas.config.CouchDbAuthenticationConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
 import org.apereo.cas.couchdb.core.CouchDbConnectorFactory;
 import org.apereo.cas.couchdb.core.ProfileCouchDbRepository;
+import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.util.CollectionUtils;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -37,7 +41,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -51,36 +54,39 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @Getter
 @SpringBootTest(classes = {
-        CasCouchDbCoreConfiguration.class,
-        CouchDbAuthenticationConfiguration.class,
-        CasCoreAuthenticationConfiguration.class,
-        CasCoreServicesAuthenticationConfiguration.class,
-        CasCoreUtilConfiguration.class,
-        CasCoreAuthenticationPrincipalConfiguration.class,
-        CasCoreAuthenticationPolicyConfiguration.class,
-        CasCoreAuthenticationMetadataConfiguration.class,
-        CasCoreAuthenticationSupportConfiguration.class,
-        CasCoreAuthenticationHandlersConfiguration.class,
-        CasCoreHttpConfiguration.class,
-        CasCoreTicketCatalogConfiguration.class,
-        CasCoreTicketsConfiguration.class,
-        CasCoreServicesConfiguration.class,
-        CasWebApplicationServiceFactoryConfiguration.class,
-        CasPersonDirectoryConfiguration.class,
-        CasCoreWebConfiguration.class,
-        CasWebApplicationServiceFactoryConfiguration.class,
-        RefreshAutoConfiguration.class
+    CasCouchDbCoreConfiguration.class,
+    CouchDbAuthenticationConfiguration.class,
+    CasCoreAuthenticationConfiguration.class,
+    CasCoreServicesAuthenticationConfiguration.class,
+    CasCoreUtilConfiguration.class,
+    CasCoreAuthenticationPrincipalConfiguration.class,
+    CasCoreAuthenticationPolicyConfiguration.class,
+    CasCoreAuthenticationMetadataConfiguration.class,
+    CasCoreAuthenticationSupportConfiguration.class,
+    CasCoreAuthenticationHandlersConfiguration.class,
+    CasCoreTicketIdGeneratorsConfiguration.class,
+    CasCoreHttpConfiguration.class,
+    CasCoreTicketCatalogConfiguration.class,
+    CasCoreTicketsConfiguration.class,
+    CasCoreServicesConfiguration.class,
+    CasWebApplicationServiceFactoryConfiguration.class,
+    CasPersonDirectoryConfiguration.class,
+    CasCoreWebConfiguration.class,
+    CasCoreLogoutConfiguration.class,
+    CasCoreConfiguration.class,
+    RefreshAutoConfiguration.class
+},
+    properties = {
+        "cas.authn.couch-db.dbName=authentication",
+        "cas.authn.couch-db.attributes=loc,state",
+        "cas.authn.couch-db.usernameAttribute=username",
+        "cas.authn.couch-db.passwordAttribute=password",
+        "cas.authn.couch-db.username=cas",
+        "cas.authn.couchdb.password=password",
+        "cas.authn.pac4j.typedIdUsed=false"
     })
-@TestPropertySource(properties = {
-    "cas.authn.couchDb.dbName=authentication",
-    "cas.authn.couchDb.attributes=loc,state",
-    "cas.authn.couchDb.usernameAttribute=username",
-    "cas.authn.couchDb.passwordAttribute=password",
-    "cas.authn.couchDb.username=cas",
-    "cas.authn.couchdb.password=password",
-    "cas.authn.pac4j.typedIdUsed=false"
-})
 @Tag("CouchDb")
+@EnabledIfPortOpen(port = 5984)
 public class CouchDbAuthenticationHandlerTests {
     @Autowired
     @Qualifier("authenticationCouchDbFactory")

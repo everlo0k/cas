@@ -8,7 +8,6 @@ import org.apereo.cas.interrupt.webflow.actions.FinalizeInterruptFlowAction;
 import org.apereo.cas.interrupt.webflow.actions.InquireInterruptAction;
 import org.apereo.cas.interrupt.webflow.actions.PrepareInterruptViewAction;
 import org.apereo.cas.web.flow.CasWebflowConfigurer;
-import org.apereo.cas.web.flow.CasWebflowExecutionPlan;
 import org.apereo.cas.web.flow.CasWebflowExecutionPlanConfigurer;
 import org.apereo.cas.web.flow.SingleSignOnParticipationStrategy;
 import org.apereo.cas.web.flow.SingleSignOnParticipationStrategyConfigurer;
@@ -19,7 +18,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -48,23 +47,24 @@ public class CasInterruptWebflowConfiguration {
     private ObjectProvider<FlowDefinitionRegistry> loginFlowDefinitionRegistry;
 
     @Autowired
-    private FlowBuilderServices flowBuilderServices;
+    private ObjectProvider<FlowBuilderServices> flowBuilderServices;
 
     @Autowired
-    private ApplicationContext applicationContext;
+    private ConfigurableApplicationContext applicationContext;
 
     @ConditionalOnMissingBean(name = "interruptWebflowConfigurer")
     @Bean
     @DependsOn("defaultWebflowConfigurer")
     public CasWebflowConfigurer interruptWebflowConfigurer() {
-        return new InterruptWebflowConfigurer(flowBuilderServices, loginFlowDefinitionRegistry.getIfAvailable(), applicationContext, casProperties);
+        return new InterruptWebflowConfigurer(flowBuilderServices.getObject(),
+            loginFlowDefinitionRegistry.getObject(), applicationContext, casProperties);
     }
 
     @ConditionalOnMissingBean(name = "inquireInterruptAction")
     @Bean
     @RefreshScope
     public Action inquireInterruptAction() {
-        return new InquireInterruptAction(interruptInquirer.getIfAvailable().getInterruptInquirers());
+        return new InquireInterruptAction(interruptInquirer.getObject().getInterruptInquirers());
     }
 
     @ConditionalOnMissingBean(name = "prepareInterruptViewAction")
@@ -98,11 +98,6 @@ public class CasInterruptWebflowConfiguration {
     @Bean
     @ConditionalOnMissingBean(name = "interruptCasWebflowExecutionPlanConfigurer")
     public CasWebflowExecutionPlanConfigurer interruptCasWebflowExecutionPlanConfigurer() {
-        return new CasWebflowExecutionPlanConfigurer() {
-            @Override
-            public void configureWebflowExecutionPlan(final CasWebflowExecutionPlan plan) {
-                plan.registerWebflowConfigurer(interruptWebflowConfigurer());
-            }
-        };
+        return plan -> plan.registerWebflowConfigurer(interruptWebflowConfigurer());
     }
 }

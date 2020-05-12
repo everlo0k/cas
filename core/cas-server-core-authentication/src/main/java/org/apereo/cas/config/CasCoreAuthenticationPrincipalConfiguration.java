@@ -1,14 +1,15 @@
 package org.apereo.cas.config;
 
 import org.apereo.cas.authentication.CoreAuthenticationUtils;
-import org.apereo.cas.authentication.DefaultPrincipalElectionStrategy;
 import org.apereo.cas.authentication.PrincipalElectionStrategy;
+import org.apereo.cas.authentication.principal.ChainingPrincipalElectionStrategy;
 import org.apereo.cas.authentication.principal.DefaultPrincipalAttributesRepository;
+import org.apereo.cas.authentication.principal.DefaultPrincipalElectionStrategy;
 import org.apereo.cas.authentication.principal.DefaultPrincipalResolutionExecutionPlan;
 import org.apereo.cas.authentication.principal.PrincipalAttributesRepository;
+import org.apereo.cas.authentication.principal.PrincipalElectionStrategyConfigurer;
 import org.apereo.cas.authentication.principal.PrincipalFactory;
 import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
-import org.apereo.cas.authentication.principal.PrincipalResolutionExecutionPlan;
 import org.apereo.cas.authentication.principal.PrincipalResolutionExecutionPlanConfigurer;
 import org.apereo.cas.authentication.principal.PrincipalResolver;
 import org.apereo.cas.authentication.principal.cache.CachingPrincipalAttributesRepository;
@@ -31,7 +32,6 @@ import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * This is {@link CasCoreAuthenticationPrincipalConfiguration}.
@@ -42,7 +42,7 @@ import java.util.Objects;
 @Configuration("casCoreAuthenticationPrincipalConfiguration")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @Slf4j
-public class CasCoreAuthenticationPrincipalConfiguration implements PrincipalResolutionExecutionPlanConfigurer {
+public class CasCoreAuthenticationPrincipalConfiguration {
 
     @Autowired
     private CasConfigurationProperties casProperties;
@@ -58,8 +58,23 @@ public class CasCoreAuthenticationPrincipalConfiguration implements PrincipalRes
     @ConditionalOnMissingBean(name = "principalElectionStrategy")
     @Bean
     @RefreshScope
-    public PrincipalElectionStrategy principalElectionStrategy() {
-        return new DefaultPrincipalElectionStrategy(principalFactory());
+    @Autowired
+    public PrincipalElectionStrategy principalElectionStrategy(final List<PrincipalElectionStrategyConfigurer> configurers) {
+        LOGGER.trace("building principal election strategies from [{}]", configurers);
+        val chain = new ChainingPrincipalElectionStrategy();
+        AnnotationAwareOrderComparator.sortIfNecessary(configurers);
+
+        configurers.forEach(c -> {
+            LOGGER.trace("Configuring principal selection strategy: [{}]", c);
+            c.configurePrincipalElectionStrategy(chain);
+        });
+        return chain;
+    }
+
+    @ConditionalOnMissingBean(name = "defaultPrincipalElectionStrategyConfigurer")
+    @Bean
+    public PrincipalElectionStrategyConfigurer defaultPrincipalElectionStrategyConfigurer() {
+        return chain -> chain.registerElectionStrategy(new DefaultPrincipalElectionStrategy(principalFactory()));
     }
 
     @ConditionalOnMissingBean(name = "principalFactory")
@@ -88,14 +103,17 @@ public class CasCoreAuthenticationPrincipalConfiguration implements PrincipalRes
     public PrincipalResolver personDirectoryAttributeRepositoryPrincipalResolver() {
         val personDirectory = casProperties.getPersonDirectory();
         return CoreAuthenticationUtils.newPersonDirectoryPrincipalResolver(principalFactory(),
-            attributeRepository.getIfAvailable(),
+            attributeRepository.getObject(),
             personDirectory);
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "defaultPrincipalResolver")
     @RefreshScope
-    public PrincipalResolver defaultPrincipalResolver(final List<PrincipalResolutionExecutionPlanConfigurer> configurers) {
+    @Autowired
+    public PrincipalResolver defaultPrincipalResolver(final List<PrincipalResolutionExecutionPlanConfigurer> configurers,
+                                                      @Qualifier("principalElectionStrategy")
+                                                      final PrincipalElectionStrategy principalElectionStrategy) {
         val plan = new DefaultPrincipalResolutionExecutionPlan();
         val sortedConfigurers = new ArrayList<PrincipalResolutionExecutionPlanConfigurer>(configurers);
         AnnotationAwareOrderComparator.sortIfNecessary(sortedConfigurers);
@@ -106,18 +124,22 @@ public class CasCoreAuthenticationPrincipalConfiguration implements PrincipalRes
         });
         plan.registerPrincipalResolver(new EchoingPrincipalResolver());
 
-        val resolver = new ChainingPrincipalResolver();
-        resolver.setChain(plan.getRegisteredPrincipalResolvers());
+        val registeredPrincipalResolvers = plan.getRegisteredPrincipalResolvers();
+        val resolver = new ChainingPrincipalResolver(principalElectionStrategy);
+        resolver.setChain(registeredPrincipalResolvers);
         return resolver;
     }
 
-    @Override
-    public void configurePrincipalResolutionExecutionPlan(final PrincipalResolutionExecutionPlan plan) {
-        if (!Objects.requireNonNull(attributeRepositories.getIfAvailable()).isEmpty()) {
-            LOGGER.trace("Attribute repository sources are defined and available for person-directory principal resolution chain. ");
-            plan.registerPrincipalResolver(personDirectoryAttributeRepositoryPrincipalResolver());
-        } else {
-            LOGGER.debug("Attribute repository sources are not available for person-directory principal resolution");
-        }
+    @ConditionalOnMissingBean(name = "casCorePrincipalResolutionExecutionPlanConfigurer")
+    @Bean
+    public PrincipalResolutionExecutionPlanConfigurer casCorePrincipalResolutionExecutionPlanConfigurer() {
+        return plan -> {
+            if (attributeRepositories.getObject().isEmpty()) {
+                LOGGER.debug("Attribute repository sources are not available for person-directory principal resolution");
+            } else {
+                LOGGER.trace("Attribute repository sources are defined and available for person-directory principal resolution chain. ");
+                plan.registerPrincipalResolver(personDirectoryAttributeRepositoryPrincipalResolver());
+            }
+        };
     }
 }

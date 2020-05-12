@@ -9,7 +9,6 @@ import org.apereo.cas.support.saml.mdui.MetadataResolverAdapter;
 import org.apereo.cas.support.saml.mdui.web.flow.SamlMetadataUIParserAction;
 import org.apereo.cas.support.saml.mdui.web.flow.SamlMetadataUIWebflowConfigurer;
 import org.apereo.cas.web.flow.CasWebflowConfigurer;
-import org.apereo.cas.web.flow.CasWebflowExecutionPlan;
 import org.apereo.cas.web.flow.CasWebflowExecutionPlanConfigurer;
 
 import lombok.val;
@@ -19,7 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -56,7 +55,7 @@ public class SamlMetadataUIWebflowConfiguration {
     private ServiceFactory<WebApplicationService> serviceFactory;
 
     @Autowired
-    private ApplicationContext applicationContext;
+    private ConfigurableApplicationContext applicationContext;
 
     @Autowired
     @Qualifier("chainingSamlMetadataUIMetadataResolverAdapter")
@@ -66,8 +65,8 @@ public class SamlMetadataUIWebflowConfiguration {
     @Bean
     @DependsOn("defaultWebflowConfigurer")
     public CasWebflowConfigurer samlMetadataUIWebConfigurer() {
-        return new SamlMetadataUIWebflowConfigurer(flowBuilderServices.getIfAvailable(),
-            loginFlowDefinitionRegistry.getIfAvailable(), samlMetadataUIParserAction(),
+        return new SamlMetadataUIWebflowConfigurer(flowBuilderServices.getObject(),
+            loginFlowDefinitionRegistry.getObject(), samlMetadataUIParserAction(),
             applicationContext, casProperties);
     }
 
@@ -75,17 +74,12 @@ public class SamlMetadataUIWebflowConfiguration {
     @Bean
     public Action samlMetadataUIParserAction() {
         val parameter = StringUtils.defaultIfEmpty(casProperties.getSamlMetadataUi().getParameter(), SamlProtocolConstants.PARAMETER_ENTITY_ID);
-        return new SamlMetadataUIParserAction(parameter, chainingSamlMetadataUIMetadataResolverAdapter.getIfAvailable(), serviceFactory, servicesManager.getIfAvailable());
+        return new SamlMetadataUIParserAction(parameter, chainingSamlMetadataUIMetadataResolverAdapter.getObject(), serviceFactory, servicesManager.getObject());
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "samlMetadataUICasWebflowExecutionPlanConfigurer")
     public CasWebflowExecutionPlanConfigurer samlMetadataUICasWebflowExecutionPlanConfigurer() {
-        return new CasWebflowExecutionPlanConfigurer() {
-            @Override
-            public void configureWebflowExecutionPlan(final CasWebflowExecutionPlan plan) {
-                plan.registerWebflowConfigurer(samlMetadataUIWebConfigurer());
-            }
-        };
+        return plan -> plan.registerWebflowConfigurer(samlMetadataUIWebConfigurer());
     }
 }

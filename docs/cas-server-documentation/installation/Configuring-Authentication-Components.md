@@ -31,7 +31,7 @@ To see the relevant list of CAS properties, please [review this guide](../config
 
 ## Authentication Handlers
 
-There are a variety of authentication handlers and schemes supported by CAS. Use the menu to navigate around the site and choose.
+There are a variety of authentication handlers and methods supported by CAS. Use the menu to navigate around the site and choose.
 
 <div class="alert alert-warning"><strong>Default Credentials</strong><p>To test the default authentication scheme in CAS,
 use <strong>casuser</strong> and <strong>Mellon</strong> as the username and password respectively. These are automatically
@@ -39,6 +39,58 @@ configured via the static authencation handler, and <strong>MUST</strong> be rem
 prior to production rollouts.</p></div>
 
 To see the relevant list of CAS properties, please [review this guide](../configuration/Configuration-Properties.html#accept-users-authentication).
+
+### Resolution Strategy
+
+Authentication handlers are typically defined globally and then executed and tried by the authentication engine. 
+The collection of handlers can be narrowed down using a selection criteria that defines an eligibility criteria
+for the handler based on the current authentication transaction, provided credentials, service definition policy
+and many other controls. 
+
+To see the relevant list of CAS properties, please [review this guide](../configuration/Configuration-Properties.html#authentication-engine).
+
+#### Per Registered Service
+
+Each registered application in the registry may be assigned a set of identifiers/names for the required authentication 
+handlers available and configured in CAS. These names can be used to enforce a service definition to only use the 
+authentication strategy carrying that name when an authentication request is submitted to CAS.
+
+Please [review this guide](../services/Configuring-Service-AuthN-Policy.html) to learn more.
+
+#### Groovy Script
+
+The global collection of authentication handlers can also pass through a Groovy script as a filter
+to narrow down the list of candidates for the current transaction. The outline of the script may be designed as:
+
+```groovy
+def run(Object[] args) {
+    def handlers = args[0]
+    def transaction = args[1]
+    def servicesManager = args[2]
+    def logger = args[3]
+
+    return handlers
+}
+
+def supports(Object[] args) {
+    def handlers = args[0]
+    def transaction = args[1]
+    def servicesManager = args[2]
+    def logger = args[3]
+    true
+}
+```
+
+The following parameters are passed to the script:
+
+| Parameter        | Description
+|------------------|--------------------------------------------------------------------------------------------
+| `handlers`       | Collection of available and candidate `AuthenticationHandler`s.
+| `transaction`    | The authentication transaction currently in progress.
+| `servicesManager`  | The `ServicesManager` object responsible for locating service definitions attached to this transaction.
+| `logger`           | The object responsible for issuing log messages such as `logger.info(...)`.
+
+The outcome of the script should be the collection of selected handlers with the type `Set<AuthenticationHandler>`.
 
 ### Authentication Sequence
 
@@ -54,7 +106,7 @@ collection and controlling its execution sequence.
 
 Each authentication handler in CAS can be named via CAS settings and if left undefined, the short name of 
 the handler component itself is used (i.e. `LdapAuthenticationHandler`). The name itself can be any arbitrary string and typically is used
-to identify and refer to the handler components in areas such as [required authentication for a service](../services/Configuring-Service-Required-AuthN.html), etc.
+to identify and refer to the handler components in areas such as [required authentication for a service](../services/Configuring-Service-AuthN-Policy.html), etc.
 In the event that multiple authentication handlers *of the same type* are defined, it is **RECOMMENDED** that each be given a unique name so as to avoid conflicts.
 Authentication failures are typically collected in CAS by the name of each authentication handler. Leaving the name undefined will likely result in subsequent components
 in the authentication chain overriding previous results.

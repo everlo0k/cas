@@ -7,19 +7,19 @@ import org.apereo.cas.services.RegisteredServiceAccessStrategyUtils;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.support.oauth.OAuth20Constants;
 import org.apereo.cas.support.oauth.util.OAuth20Utils;
+import org.apereo.cas.util.crypto.CipherExecutor;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.credentials.UsernamePasswordCredentials;
 import org.pac4j.core.credentials.authenticator.Authenticator;
-import org.pac4j.core.credentials.extractor.BasicAuthExtractor;
 import org.pac4j.core.exception.CredentialsException;
 import org.pac4j.core.profile.CommonProfile;
 
+import java.io.Serializable;
 import java.util.Map;
 
 /**
@@ -34,12 +34,13 @@ public class OAuth20UsernamePasswordAuthenticator implements Authenticator<Usern
     private final AuthenticationSystemSupport authenticationSystemSupport;
     private final ServicesManager servicesManager;
     private final ServiceFactory webApplicationServiceFactory;
+    private final CipherExecutor<Serializable, String> registeredServiceCipherExecutor;
 
     @Override
     public void validate(final UsernamePasswordCredentials credentials, final WebContext context) throws CredentialsException {
         val casCredential = new UsernamePasswordCredential(credentials.getUsername(), credentials.getPassword());
         try {
-            val clientIdAndSecret = getClientIdAndClientSecret(context);
+            val clientIdAndSecret = OAuth20Utils.getClientIdAndClientSecret(context);
             if (clientIdAndSecret == null || StringUtils.isBlank(clientIdAndSecret.getKey())) {
                 throw new CredentialsException("No client credentials could be identified in this request");
             }
@@ -49,8 +50,8 @@ public class OAuth20UsernamePasswordAuthenticator implements Authenticator<Usern
             RegisteredServiceAccessStrategyUtils.ensureServiceAccessIsAllowed(registeredService);
 
             val clientSecret = clientIdAndSecret.getRight();
-            if (StringUtils.isNotBlank(clientSecret) && !OAuth20Utils.checkClientSecret(registeredService, clientSecret)) {
-                throw new CredentialsException("Bad secret for client identifier: " + clientId);
+            if (!OAuth20Utils.checkClientSecret(registeredService, clientSecret, registeredServiceCipherExecutor)) {
+                throw new CredentialsException("Client Credentials provided is not valid for registered service: " + registeredService.getName());
             }
 
             val redirectUri = context.getRequestParameter(OAuth20Constants.REDIRECT_URI)
@@ -58,7 +59,7 @@ public class OAuth20UsernamePasswordAuthenticator implements Authenticator<Usern
             val service = StringUtils.isNotBlank(redirectUri)
                 ? this.webApplicationServiceFactory.createService(redirectUri)
                 : null;
-            
+
             val authenticationResult = authenticationSystemSupport.handleAndFinalizeSingleAuthenticationTransaction(service, casCredential);
             if (authenticationResult == null) {
                 throw new CredentialsException("Could not authenticate the provided credentials");
@@ -78,25 +79,5 @@ public class OAuth20UsernamePasswordAuthenticator implements Authenticator<Usern
         } catch (final Exception e) {
             throw new CredentialsException("Cannot login user using CAS internal authentication", e);
         }
-    }
-
-    /**
-     * Gets client id and client secret.
-     *
-     * @param context the context
-     * @return the client id and client secret
-     */
-    protected Pair<String, String> getClientIdAndClientSecret(final WebContext context) {
-        val extractor = new BasicAuthExtractor();
-        val upcResult = extractor.extract(context);
-        if (upcResult.isPresent()) {
-            val upc = upcResult.get();
-            return Pair.of(upc.getUsername(), upc.getPassword());
-        }
-        val clientId = context.getRequestParameter(OAuth20Constants.CLIENT_ID)
-            .map(String::valueOf).orElse(StringUtils.EMPTY);
-        val clientSecret = context.getRequestParameter(OAuth20Constants.CLIENT_SECRET)
-            .map(String::valueOf).orElse(StringUtils.EMPTY);
-        return Pair.of(clientId, clientSecret);
     }
 }

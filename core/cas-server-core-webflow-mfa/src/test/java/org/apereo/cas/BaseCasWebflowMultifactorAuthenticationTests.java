@@ -1,5 +1,7 @@
 package org.apereo.cas;
 
+import org.apereo.cas.authentication.AcceptUsersAuthenticationHandler;
+import org.apereo.cas.authentication.AuthenticationEventExecutionPlanConfigurer;
 import org.apereo.cas.config.CasAuthenticationEventExecutionPlanTestConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationHandlersConfiguration;
@@ -10,6 +12,7 @@ import org.apereo.cas.config.CasCoreAuthenticationServiceSelectionStrategyConfig
 import org.apereo.cas.config.CasCoreAuthenticationSupportConfiguration;
 import org.apereo.cas.config.CasCoreConfiguration;
 import org.apereo.cas.config.CasCoreHttpConfiguration;
+import org.apereo.cas.config.CasCoreMultifactorAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
@@ -23,17 +26,22 @@ import org.apereo.cas.config.CasRegisteredServicesTestConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
+import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.validation.config.CasCoreValidationConfiguration;
 import org.apereo.cas.web.config.CasCookieConfiguration;
 import org.apereo.cas.web.flow.config.CasCoreWebflowConfiguration;
 import org.apereo.cas.web.flow.config.CasMultifactorAuthenticationWebflowConfiguration;
 import org.apereo.cas.web.flow.config.CasWebflowContextConfiguration;
 
+import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
+import org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.test.annotation.DirtiesContext;
@@ -46,8 +54,10 @@ import org.springframework.test.annotation.DirtiesContext;
  */
 @SpringBootTest(classes = {
     AbstractCentralAuthenticationServiceTests.CasTestConfiguration.class,
+    BaseCasWebflowMultifactorAuthenticationTests.TestAuthenticationConfiguration.class,
     CasAuthenticationEventExecutionPlanTestConfiguration.class,
     CasCoreServicesConfiguration.class,
+    CasCoreMultifactorAuthenticationConfiguration.class,
     CasWebApplicationServiceFactoryConfiguration.class,
     CasDefaultServiceTicketIdGeneratorsConfiguration.class,
     CasCoreTicketIdGeneratorsConfiguration.class,
@@ -70,8 +80,7 @@ import org.springframework.test.annotation.DirtiesContext;
     CasCoreLogoutConfiguration.class,
     CasCookieConfiguration.class,
     RefreshAutoConfiguration.class,
-    CasCoreAuthenticationConfiguration.class,
-    CasCoreServicesAuthenticationConfiguration.class,
+    MailSenderAutoConfiguration.class,
     AopAutoConfiguration.class,
     CasPersonDirectoryTestConfiguration.class,
     CasCoreWebflowConfiguration.class,
@@ -82,10 +91,19 @@ import org.springframework.test.annotation.DirtiesContext;
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 @DirtiesContext
 @EnableScheduling
+@Tag("Webflow")
 public abstract class BaseCasWebflowMultifactorAuthenticationTests {
     @Autowired
     protected CasConfigurationProperties casProperties;
 
     @Autowired
     protected ConfigurableApplicationContext applicationContext;
+
+    @TestConfiguration("TestAuthenticationConfiguration")
+    public static class TestAuthenticationConfiguration {
+        @Bean
+        public AuthenticationEventExecutionPlanConfigurer surrogateAuthenticationEventExecutionPlanConfigurer() {
+            return plan -> plan.registerAuthenticationHandler(new AcceptUsersAuthenticationHandler(CollectionUtils.wrap("casuser", "Mellon")));
+        }
+    }
 }

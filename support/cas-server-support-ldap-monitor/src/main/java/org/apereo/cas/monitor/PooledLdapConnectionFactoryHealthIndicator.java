@@ -1,10 +1,10 @@
 package org.apereo.cas.monitor;
 
 import lombok.val;
-import org.ldaptive.Connection;
-import org.ldaptive.pool.PooledConnectionFactory;
-import org.ldaptive.pool.Validator;
+import org.ldaptive.ConnectionValidator;
+import org.ldaptive.PooledConnectionFactory;
 import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.actuate.health.HealthContributor;
 
 import java.util.concurrent.ExecutorService;
 
@@ -14,7 +14,7 @@ import java.util.concurrent.ExecutorService;
  * @author Marvin S. Addison
  * @since 4.0.0
  */
-public class PooledLdapConnectionFactoryHealthIndicator extends AbstractPoolHealthIndicator {
+public class PooledLdapConnectionFactoryHealthIndicator extends AbstractPoolHealthIndicator implements HealthContributor {
 
     /**
      * Source of connections to validate.
@@ -24,12 +24,12 @@ public class PooledLdapConnectionFactoryHealthIndicator extends AbstractPoolHeal
     /**
      * Connection validator.
      */
-    private final Validator<Connection> validator;
+    private final ConnectionValidator validator;
 
     public PooledLdapConnectionFactoryHealthIndicator(final long maxWait,
                                                       final PooledConnectionFactory factory,
                                                       final ExecutorService executor,
-                                                      final Validator<Connection> validator) {
+                                                      final ConnectionValidator validator) {
         super(maxWait, executor);
         this.connectionFactory = factory;
         this.validator = validator;
@@ -39,7 +39,7 @@ public class PooledLdapConnectionFactoryHealthIndicator extends AbstractPoolHeal
     protected Health.Builder checkPool(final Health.Builder builder) throws Exception {
         if (this.connectionFactory != null && this.validator != null) {
             try (val conn = this.connectionFactory.getConnection()) {
-                return this.validator.validate(conn) ? builder.up() : builder.down();
+                return this.validator.apply(conn) ? builder.up() : builder.down();
             }
         }
         return builder.unknown();
@@ -47,11 +47,11 @@ public class PooledLdapConnectionFactoryHealthIndicator extends AbstractPoolHeal
 
     @Override
     protected int getIdleCount() {
-        return this.connectionFactory.getConnectionPool().availableCount();
+        return this.connectionFactory.availableCount();
     }
 
     @Override
     protected int getActiveCount() {
-        return this.connectionFactory.getConnectionPool().activeCount();
+        return this.connectionFactory.activeCount();
     }
 }

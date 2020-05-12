@@ -13,6 +13,7 @@ import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.gauth.GoogleAuthenticatorAuthenticationHandler;
 import org.apereo.cas.gauth.GoogleAuthenticatorMultifactorAuthenticationProvider;
+import org.apereo.cas.gauth.GoogleAuthenticatorService;
 import org.apereo.cas.gauth.credential.GoogleAuthenticatorTokenCredential;
 import org.apereo.cas.gauth.credential.GoogleAuthenticatorTokenCredentialRepositoryEndpoint;
 import org.apereo.cas.gauth.credential.InMemoryGoogleAuthenticatorTokenCredentialRepository;
@@ -25,6 +26,7 @@ import org.apereo.cas.otp.repository.token.OneTimeTokenRepositoryCleaner;
 import org.apereo.cas.otp.web.flow.OneTimeTokenAccountCheckRegistrationAction;
 import org.apereo.cas.otp.web.flow.OneTimeTokenAccountSaveRegistrationAction;
 import org.apereo.cas.services.ServicesManager;
+import org.apereo.cas.util.cipher.CipherExecutorUtils;
 import org.apereo.cas.util.crypto.CipherExecutor;
 
 import com.warrenstrange.googleauth.GoogleAuthenticator;
@@ -46,7 +48,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.webflow.execution.Action;
 
 import java.util.concurrent.TimeUnit;
@@ -88,16 +89,17 @@ public class GoogleAuthenticatorAuthenticationEventExecutionPlanConfiguration {
     @Qualifier("failureModeEvaluator")
     private ObjectProvider<MultifactorAuthenticationFailureModeEvaluator> failureModeEvaluator;
 
+    @RefreshScope
     @Bean
+    @ConditionalOnMissingBean(name = "googleAuthenticatorInstance")
     public IGoogleAuthenticator googleAuthenticatorInstance() {
         val gauth = casProperties.getAuthn().getMfa().getGauth();
         val bldr = new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder();
-
         bldr.setCodeDigits(gauth.getCodeDigits());
         bldr.setTimeStepSizeInMillis(TimeUnit.SECONDS.toMillis(gauth.getTimeStepSize()));
         bldr.setWindowSize(gauth.getWindowSize());
         bldr.setKeyRepresentation(KeyRepresentation.BASE32);
-        return new GoogleAuthenticator(bldr.build());
+        return new GoogleAuthenticatorService(new GoogleAuthenticator(bldr.build()));
     }
 
     @ConditionalOnMissingBean(name = "googleAuthenticatorAuthenticationHandler")
@@ -106,22 +108,23 @@ public class GoogleAuthenticatorAuthenticationEventExecutionPlanConfiguration {
     public AuthenticationHandler googleAuthenticatorAuthenticationHandler() {
         val gauth = casProperties.getAuthn().getMfa().getGauth();
         return new GoogleAuthenticatorAuthenticationHandler(gauth.getName(),
-            servicesManager.getIfAvailable(),
+            servicesManager.getObject(),
             googlePrincipalFactory(),
             googleAuthenticatorInstance(),
-            oneTimeTokenAuthenticatorTokenRepository.getIfAvailable(),
-            googleAuthenticatorAccountRegistry.getIfAvailable(),
+            oneTimeTokenAuthenticatorTokenRepository.getObject(),
+            googleAuthenticatorAccountRegistry.getObject(),
             gauth.getOrder());
     }
 
     @Bean
     @RefreshScope
+    @ConditionalOnMissingBean(name = "googleAuthenticatorMultifactorAuthenticationProvider")
     public MultifactorAuthenticationProvider googleAuthenticatorMultifactorAuthenticationProvider() {
         val gauth = casProperties.getAuthn().getMfa().getGauth();
         val p = new GoogleAuthenticatorMultifactorAuthenticationProvider();
-        p.setBypassEvaluator(googleAuthenticatorBypassEvaluator.getIfAvailable());
+        p.setBypassEvaluator(googleAuthenticatorBypassEvaluator.getObject());
         p.setFailureMode(gauth.getFailureMode());
-        p.setFailureModeEvaluator(failureModeEvaluator.getIfAvailable());
+        p.setFailureModeEvaluator(failureModeEvaluator.getObject());
         p.setOrder(gauth.getRank());
         p.setId(gauth.getId());
         return p;
@@ -129,6 +132,7 @@ public class GoogleAuthenticatorAuthenticationEventExecutionPlanConfiguration {
 
     @Bean
     @RefreshScope
+    @ConditionalOnMissingBean(name = "googleAuthenticatorAuthenticationMetaDataPopulator")
     public AuthenticationMetaDataPopulator googleAuthenticatorAuthenticationMetaDataPopulator() {
         return new AuthenticationContextAttributeMetaDataPopulator(
             casProperties.getAuthn().getMfa().getAuthenticationContextAttribute(),
@@ -139,14 +143,15 @@ public class GoogleAuthenticatorAuthenticationEventExecutionPlanConfiguration {
 
     @Bean
     @RefreshScope
+    @ConditionalOnMissingBean(name = "googleAccountRegistrationAction")
     public Action googleAccountRegistrationAction() {
         val gauth = casProperties.getAuthn().getMfa().getGauth();
-        return new OneTimeTokenAccountCheckRegistrationAction(googleAuthenticatorAccountRegistry.getIfAvailable(),
+        return new OneTimeTokenAccountCheckRegistrationAction(googleAuthenticatorAccountRegistry.getObject(),
             gauth.getLabel(),
             gauth.getIssuer());
     }
 
-    @ConditionalOnProperty(prefix = "cas.authn.mfa.gauth.cleaner", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "cas.authn.mfa.gauth.cleaner.schedule", name = "enabled", havingValue = "true", matchIfMissing = true)
     @Bean
     @Autowired
     public OneTimeTokenRepositoryCleaner googleAuthenticatorTokenRepositoryCleaner(@Qualifier("oneTimeTokenAuthenticatorTokenRepository")
@@ -165,7 +170,7 @@ public class GoogleAuthenticatorAuthenticationEventExecutionPlanConfiguration {
         }
         if (StringUtils.isNotBlank(gauth.getRest().getEndpointUrl())) {
             return new RestGoogleAuthenticatorTokenCredentialRepository(googleAuthenticatorInstance(),
-                new RestTemplate(), gauth, googleAuthenticatorAccountCipherExecutor());
+                gauth, googleAuthenticatorAccountCipherExecutor());
         }
         return new InMemoryGoogleAuthenticatorTokenCredentialRepository(googleAuthenticatorAccountCipherExecutor(), googleAuthenticatorInstance());
     }
@@ -182,12 +187,7 @@ public class GoogleAuthenticatorAuthenticationEventExecutionPlanConfiguration {
     public CipherExecutor googleAuthenticatorAccountCipherExecutor() {
         val crypto = casProperties.getAuthn().getMfa().getGauth().getCrypto();
         if (crypto.isEnabled()) {
-            return new OneTimeTokenAccountCipherExecutor(
-                crypto.getEncryption().getKey(),
-                crypto.getSigning().getKey(),
-                crypto.getAlg(),
-                crypto.getSigning().getKeySize(),
-                crypto.getEncryption().getKeySize());
+            return CipherExecutorUtils.newStringCipherExecutor(crypto, OneTimeTokenAccountCipherExecutor.class);
         }
         LOGGER.warn("Google Authenticator one-time token account encryption/signing is turned off. "
             + "Consider turning on encryption, signing to securely and safely store one-time token accounts.");
@@ -197,7 +197,7 @@ public class GoogleAuthenticatorAuthenticationEventExecutionPlanConfiguration {
     @Bean
     @RefreshScope
     public Action googleSaveAccountRegistrationAction() {
-        return new OneTimeTokenAccountSaveRegistrationAction(googleAuthenticatorAccountRegistry.getIfAvailable());
+        return new OneTimeTokenAccountSaveRegistrationAction(googleAuthenticatorAccountRegistry.getObject());
     }
 
     @ConditionalOnMissingBean(name = "googlePrincipalFactory")

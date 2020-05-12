@@ -13,14 +13,18 @@ import org.apereo.cas.web.support.WebUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.hjson.JsonValue;
 
 import javax.security.auth.login.AccountExpiredException;
 import javax.security.auth.login.AccountLockedException;
 import javax.security.auth.login.AccountNotFoundException;
 import javax.security.auth.login.FailedLoginException;
+
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.List;
@@ -77,10 +81,10 @@ public class AccepttoMultifactorAuthenticationHandler extends AbstractPreAndPost
                 if (response != null) {
                     val status = response.getStatusLine().getStatusCode();
                     if (status == HttpStatus.SC_OK) {
-                        val results = MAPPER.readValue(response.getEntity().getContent(), Map.class);
+                        val result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+                        val results = MAPPER.readValue(JsonValue.readHjson(result).toString(), Map.class);
                         LOGGER.debug("Received results as [{}]", results);
 
-                        val deviceId = results.get("device_id").toString();
                         val channelStatus = results.get("status").toString();
 
                         if ("expired".equalsIgnoreCase(channelStatus)) {
@@ -91,6 +95,7 @@ public class AccepttoMultifactorAuthenticationHandler extends AbstractPreAndPost
                         }
 
                         if ("approved".equalsIgnoreCase(channelStatus)) {
+                            val deviceId = results.get("device_id").toString();
                             val attr = CollectionUtils.<String, List<Object>>wrap(
                                 "accepttoChannel", CollectionUtils.wrapList(tokenCredential.getId()),
                                 "accepttoDeviceId", CollectionUtils.wrapList(deviceId),

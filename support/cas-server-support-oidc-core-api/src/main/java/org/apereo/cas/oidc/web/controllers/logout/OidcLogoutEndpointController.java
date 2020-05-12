@@ -8,7 +8,6 @@ import org.apereo.cas.support.oauth.web.endpoints.BaseOAuth20Controller;
 import org.apereo.cas.support.oauth.web.endpoints.OAuth20ConfigurationContext;
 
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
@@ -29,7 +28,6 @@ import java.util.Optional;
  * @author Misagh Moayyed
  * @since 6.0.0
  */
-@Slf4j
 public class OidcLogoutEndpointController extends BaseOAuth20Controller {
     public OidcLogoutEndpointController(final OAuth20ConfigurationContext oAuthConfigurationContext) {
         super(oAuthConfigurationContext);
@@ -79,7 +77,7 @@ public class OidcLogoutEndpointController extends BaseOAuth20Controller {
             if (urls.isEmpty()) {
                 return getLogoutRedirectView(state, null);
             }
-            return getLogoutRedirectView(state, urls.toArray()[0].toString());
+            return getLogoutRedirectView(state, urls.iterator().next().getUrl());
         }
 
         return getLogoutRedirectView(state, null);
@@ -91,7 +89,7 @@ public class OidcLogoutEndpointController extends BaseOAuth20Controller {
             builder.queryParam(getOAuthConfigurationContext().getCasProperties().getLogout().getRedirectParameter(), redirectUrl);
         }
         if (StringUtils.isNotBlank(state)) {
-            builder.queryParam(OAuth20Constants.STATE, redirectUrl);
+            builder.queryParam(OAuth20Constants.STATE, state);
         }
         val logoutUrl = builder.build().toUriString();
         return new RedirectView(logoutUrl);

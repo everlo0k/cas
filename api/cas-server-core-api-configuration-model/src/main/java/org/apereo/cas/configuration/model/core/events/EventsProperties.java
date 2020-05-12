@@ -8,6 +8,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 
@@ -20,9 +21,15 @@ import java.io.Serializable;
 @RequiresModule(name = "cas-server-core-events", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class EventsProperties implements Serializable {
 
     private static final long serialVersionUID = 1734523424737956370L;
+
+    /**
+     * Whether event tracking and recording functionality should be enabled.
+     */
+    private boolean enabled = true;
 
     /**
      * Whether geolocation should be tracked as part of collected authentication events.

@@ -26,10 +26,12 @@ import org.springframework.context.annotation.Configuration;
  *
  * @author Misagh Moayyed
  * @author Dmitriy Kopylenko
+ * @deprecated 6.2
  * @since 5.1.0
  */
 @Configuration("openIdAuthenticationEventExecutionPlanConfiguration")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
+@Deprecated(since = "6.2.0")
 public class OpenIdAuthenticationEventExecutionPlanConfiguration {
     @Autowired
     @Qualifier("servicesManager")
@@ -49,8 +51,8 @@ public class OpenIdAuthenticationEventExecutionPlanConfiguration {
     @Bean
     public AuthenticationHandler openIdCredentialsAuthenticationHandler() {
         val openid = casProperties.getAuthn().getOpenid();
-        return new OpenIdCredentialsAuthenticationHandler(openid.getName(), servicesManager.getIfAvailable(),
-            openidPrincipalFactory(), ticketRegistry.getIfAvailable(),
+        return new OpenIdCredentialsAuthenticationHandler(openid.getName(), servicesManager.getObject(),
+            openidPrincipalFactory(), ticketRegistry.getObject(),
             openid.getOrder());
     }
 
@@ -59,7 +61,7 @@ public class OpenIdAuthenticationEventExecutionPlanConfiguration {
         val personDirectory = casProperties.getPersonDirectory();
         val principal = casProperties.getAuthn().getOpenid().getPrincipal();
         val principalAttribute = StringUtils.defaultIfBlank(principal.getPrincipalAttribute(), personDirectory.getPrincipalAttribute());
-        return new OpenIdPrincipalResolver(attributeRepository.getIfAvailable(),
+        return new OpenIdPrincipalResolver(attributeRepository.getObject(),
             openidPrincipalFactory(),
             principal.isReturnNull() || personDirectory.isReturnNull(),
             principalAttribute,

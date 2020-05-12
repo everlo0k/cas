@@ -4,6 +4,7 @@ import org.apereo.cas.authentication.RememberMeCredential;
 import org.apereo.cas.web.cookie.CasCookieBuilder;
 import org.apereo.cas.web.cookie.CookieGenerationContext;
 import org.apereo.cas.web.cookie.CookieValueManager;
+import org.apereo.cas.web.support.InvalidCookieException;
 import org.apereo.cas.web.support.WebUtils;
 import org.apereo.cas.web.support.mgmr.NoOpCookieValueManager;
 
@@ -17,8 +18,10 @@ import org.springframework.webflow.execution.RequestContext;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.Optional;
 
 
 /**
@@ -59,65 +62,13 @@ public class CookieRetrievingCookieGenerator extends CookieGenerator implements 
         this.casCookieValueManager = casCookieValueManager;
     }
 
-    @Override
-    public void addCookie(final RequestContext requestContext, final String cookieValue) {
-        val request = WebUtils.getHttpServletRequestFromExternalWebflowContext(requestContext);
-        val response = WebUtils.getHttpServletResponseFromExternalWebflowContext(requestContext);
-        val theCookieValue = this.casCookieValueManager.buildCookieValue(cookieValue, request);
-        if (isRememberMeAuthentication(requestContext)) {
-            LOGGER.trace("Creating cookie [{}] for remember-me authentication", getCookieName());
-            val cookie = createCookie(theCookieValue);
-
-            cookie.setMaxAge(cookieGenerationContext.getRememberMeMaxAge());
-            cookie.setSecure(isCookieSecure());
-            cookie.setHttpOnly(isCookieHttpOnly());
-            cookie.setComment("CAS Cookie w/ Remember-Me");
-
-            response.addCookie(cookie);
-        } else {
-            LOGGER.trace("Creating cookie [{}]", getCookieName());
-            super.addCookie(response, theCookieValue);
-        }
-    }
-
-    @Override
-    public void addCookie(final HttpServletRequest request, final HttpServletResponse response, final String cookieValue) {
-        val theCookieValue = this.casCookieValueManager.buildCookieValue(cookieValue, request);
-        LOGGER.trace("Creating cookie [{}]", getCookieName());
-        super.addCookie(response, theCookieValue);
-    }
-
-    @Override
-    public String retrieveCookieValue(final HttpServletRequest request) {
-        try {
-            var cookie = org.springframework.web.util.WebUtils.getCookie(request, Objects.requireNonNull(getCookieName()));
-            if (cookie == null) {
-                val cookieValue = request.getHeader(getCookieName());
-                if (StringUtils.isNotBlank(cookieValue)) {
-                    LOGGER.trace("Found cookie [{}] under header name [{}]", cookieValue, getCookieName());
-                    cookie = createCookie(cookieValue);
-                }
-            }
-            if (cookie == null) {
-                val cookieValue = request.getParameter(getCookieName());
-                if (StringUtils.isNotBlank(cookieValue)) {
-                    LOGGER.trace("Found cookie [{}] under request parameter name [{}]", cookieValue, getCookieName());
-                    cookie = createCookie(cookieValue);
-                }
-            }
-            return cookie == null ? null : this.casCookieValueManager.obtainCookieValue(cookie, request);
-        } catch (final Exception e) {
-            LOGGER.debug(e.getMessage(), e);
-        }
-        return null;
-    }
-
-    @Override
-    public void setCookieDomain(final String cookieDomain) {
-        super.setCookieDomain(StringUtils.defaultIfEmpty(cookieDomain, null));
-    }
-
-    private static Boolean isRememberMeAuthentication(final RequestContext requestContext) {
+    /**
+     * Is remember me authentication ?
+     *
+     * @param requestContext the request context
+     * @return true/false
+     */
+    public static Boolean isRememberMeAuthentication(final RequestContext requestContext) {
         if (isRememberMeProvidedInRequest(requestContext)) {
             LOGGER.debug("This request is from a remember-me authentication event");
             return Boolean.TRUE;
@@ -127,13 +78,6 @@ public class CookieRetrievingCookieGenerator extends CookieGenerator implements 
             return Boolean.TRUE;
         }
         return Boolean.FALSE;
-    }
-
-    @Override
-    protected Cookie createCookie(final String cookieValue) {
-        val c = super.createCookie(cookieValue);
-        c.setComment("CAS Cookie");
-        return c;
     }
 
     private static Boolean isRememberMeRecordedInAuthentication(final RequestContext requestContext) {
@@ -158,5 +102,113 @@ public class CookieRetrievingCookieGenerator extends CookieGenerator implements 
         val value = request.getParameter(RememberMeCredential.REQUEST_PARAMETER_REMEMBER_ME);
         LOGGER.trace("Locating request parameter [{}] with value [{}]", RememberMeCredential.REQUEST_PARAMETER_REMEMBER_ME, value);
         return StringUtils.isNotBlank(value) && WebUtils.isRememberMeAuthenticationEnabled(requestContext);
+    }
+
+    @Override
+    public void setCookieDomain(final String cookieDomain) {
+        super.setCookieDomain(StringUtils.defaultIfEmpty(cookieDomain, null));
+    }
+
+    @Override
+    protected Cookie createCookie(final String cookieValue) {
+        val c = super.createCookie(cookieValue);
+        c.setComment(cookieGenerationContext.getComment());
+        return c;
+    }
+
+    @Override
+    public void addCookie(final HttpServletRequest request, final HttpServletResponse response,
+                          final boolean rememberMe, final String cookieValue) {
+        val theCookieValue = this.casCookieValueManager.buildCookieValue(cookieValue, request);
+        val cookie = createCookie(theCookieValue);
+
+        if (rememberMe) {
+            LOGGER.trace("Creating CAS cookie [{}] for remember-me authentication", getCookieName());
+            cookie.setMaxAge(cookieGenerationContext.getRememberMeMaxAge());
+            cookie.setComment(String.format("%s Remember-Me", cookieGenerationContext.getComment()));
+        } else {
+            LOGGER.trace("Creating CAS cookie [{}]", getCookieName());
+            if (getCookieMaxAge() != null) {
+                cookie.setMaxAge(getCookieMaxAge());
+            }
+        }
+        cookie.setSecure(isCookieSecure());
+        cookie.setHttpOnly(isCookieHttpOnly());
+
+        addCookieHeaderToResponse(cookie, response);
+    }
+
+    @Override
+    public void addCookie(final HttpServletRequest request, final HttpServletResponse response, final String cookieValue) {
+        addCookie(request, response, false, cookieValue);
+    }
+
+    @Override
+    public String retrieveCookieValue(final HttpServletRequest request) {
+        try {
+            var cookie = org.springframework.web.util.WebUtils.getCookie(request, Objects.requireNonNull(getCookieName()));
+            if (cookie == null) {
+                val cookieValue = request.getHeader(getCookieName());
+                if (StringUtils.isNotBlank(cookieValue)) {
+                    LOGGER.trace("Found cookie [{}] under header name [{}]", cookieValue, getCookieName());
+                    cookie = createCookie(cookieValue);
+                }
+            }
+            if (cookie == null) {
+                val cookieValue = request.getParameter(getCookieName());
+                if (StringUtils.isNotBlank(cookieValue)) {
+                    LOGGER.trace("Found cookie [{}] under request parameter name [{}]", cookieValue, getCookieName());
+                    cookie = createCookie(cookieValue);
+                }
+            }
+            return Optional.ofNullable(cookie)
+                .map(ck -> this.casCookieValueManager.obtainCookieValue(ck, request))
+                .orElse(null);
+        } catch (final InvalidCookieException e) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.warn(e.getMessage(), e);
+            } else {
+                LOGGER.warn(e.getMessage());
+            }
+        } catch (final Exception e) {
+            LOGGER.warn(e.getMessage(), e);
+        }
+        return null;
+    }
+
+    private void addCookieHeaderToResponse(final Cookie cookie, final HttpServletResponse response) {
+        val builder = new StringBuilder();
+        builder.append(String.format("%s=%s;", cookie.getName(), cookie.getValue()));
+
+        if (cookie.getMaxAge() > -1) {
+            builder.append(String.format(" Max-Age=%s;", cookie.getMaxAge()));
+        }
+        if (StringUtils.isNotBlank(cookie.getDomain())) {
+            builder.append(String.format(" Domain=%s;", cookie.getDomain()));
+        }
+        builder.append(String.format(" Path=%s;", StringUtils.defaultIfBlank(cookie.getPath(), DEFAULT_COOKIE_PATH)));
+
+        val sameSitePolicy = cookieGenerationContext.getSameSitePolicy().toLowerCase();
+        switch (sameSitePolicy) {
+            case "strict":
+                builder.append(" SameSite=Strict;");
+                break;
+            case "lax":
+                builder.append(" SameSite=Lax;");
+                break;
+            case "none":
+            default:
+                builder.append(" SameSite=None;");
+                break;
+        }
+        if (cookie.getSecure() || StringUtils.equalsIgnoreCase(sameSitePolicy, "none")) {
+            builder.append(" Secure;");
+        }
+        if (cookie.isHttpOnly()) {
+            builder.append(" HttpOnly;");
+        }
+        val value = StringUtils.removeEndIgnoreCase(builder.toString(), ";");
+        LOGGER.trace("Adding cookie header as [{}]", value);
+        response.addHeader("Set-Cookie", value);
     }
 }

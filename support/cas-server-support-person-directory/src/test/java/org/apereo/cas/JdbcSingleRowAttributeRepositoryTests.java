@@ -3,10 +3,13 @@ package org.apereo.cas;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.apereo.services.persondir.IPersonAttributeDaoFilter;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
 
 import java.sql.Statement;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
     "cas.authn.attributeRepository.jdbc[0].sql=SELECT * FROM table_users WHERE {0}",
     "cas.authn.attributeRepository.jdbc[0].username=uid"
 })
+@Tag("JDBC")
 public class JdbcSingleRowAttributeRepositoryTests extends BaseJdbcAttributeRepositoryTests {
 
     @Test
@@ -39,6 +43,20 @@ public class JdbcSingleRowAttributeRepositoryTests extends BaseJdbcAttributeRepo
         assertTrue(person.getAttributeValue("commonName").equals("CAS Common Name"));
     }
 
+
+    @Test
+    public void verifyPeopleSingleRowAttributeRepository() {
+        assertNotNull(attributeRepository);
+        val people = attributeRepository.getPeople(Map.of("username", List.of("casuser")));
+        val person = people.iterator().next();
+        assertNotNull(person);
+        assertNotNull(person.getAttributes());
+        assertFalse(person.getAttributes().isEmpty());
+        assertEquals("casuser", person.getAttributeValue("uid"));
+        assertFalse(person.getAttributeValues("displayName").isEmpty());
+        assertFalse(person.getAttributeValues("commonName").isEmpty());
+    }
+    
     @Override
     @SneakyThrows
     public void prepareDatabaseTable(final Statement s) {

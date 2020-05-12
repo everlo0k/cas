@@ -3,6 +3,7 @@ package org.apereo.cas.services;
 import org.apereo.cas.authentication.principal.Principal;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.util.scripting.ScriptingUtils;
+import org.apereo.cas.util.spring.SpringExpressionLanguageValueResolver;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
@@ -18,6 +19,7 @@ import lombok.val;
  *
  * @author Misagh Moayyed
  * @since 5.2.0
+ * @deprecated Since 6.2
  */
 @Slf4j
 @Getter
@@ -26,6 +28,7 @@ import lombok.val;
 @EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Deprecated(since = "6.2.0")
 public class ScriptedRegisteredServiceUsernameProvider extends BaseRegisteredServiceUsernameAttributeProvider {
 
     private static final long serialVersionUID = -678554831202936052L;
@@ -37,7 +40,7 @@ public class ScriptedRegisteredServiceUsernameProvider extends BaseRegisteredSer
         try {
             LOGGER.debug("Found groovy script to execute");
             var args = new Object[]{principal.getAttributes(), principal.getId(), LOGGER};
-            val result = ScriptingUtils.executeScriptEngine(this.script, args, Object.class);
+            val result = ScriptingUtils.executeScriptEngine(SpringExpressionLanguageValueResolver.getInstance().resolve(this.script), args, Object.class);
             if (result != null) {
                 LOGGER.debug("Found username [{}] from script [{}]", result, this.script);
                 return result.toString();

@@ -14,10 +14,19 @@ public interface SmsSender {
      * @param from    the from
      * @param to      the to
      * @param message the message
-     * @return the boolean
+     * @return true/false
      */
     default boolean send(final String from, final String to, final String message) {
         return false;
+    }
+
+    /**
+     * Whether it can send an SMS.
+     *
+     * @return whether it can send an SMS
+     */
+    default boolean canSend() {
+        return true;
     }
 
     /**
@@ -27,6 +36,11 @@ public interface SmsSender {
      */
     static SmsSender noOp() {
         return new SmsSender() {
+
+            @Override
+            public boolean canSend() {
+                return false;
+            }
         };
     }
 }

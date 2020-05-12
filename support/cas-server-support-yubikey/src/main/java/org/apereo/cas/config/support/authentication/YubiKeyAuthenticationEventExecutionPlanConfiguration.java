@@ -24,6 +24,7 @@ import org.apereo.cas.authentication.principal.PrincipalFactory;
 import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.services.ServicesManager;
+import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.crypto.CipherExecutor;
 import org.apereo.cas.util.http.HttpClient;
 
@@ -123,7 +124,7 @@ public class YubiKeyAuthenticationEventExecutionPlanConfiguration {
     public AuthenticationHandler yubikeyAuthenticationHandler() {
         val yubi = this.casProperties.getAuthn().getMfa().getYubikey();
         return new YubiKeyAuthenticationHandler(yubi.getName(),
-            servicesManager.getIfAvailable(), yubikeyPrincipalFactory(),
+            servicesManager.getObject(), yubikeyPrincipalFactory(),
             yubicoClient(), yubiKeyAccountRegistry(),
             yubi.getOrder());
     }
@@ -155,7 +156,7 @@ public class YubiKeyAuthenticationEventExecutionPlanConfiguration {
     public YubiKeyAccountRegistry yubiKeyAccountRegistry() {
         val yubi = casProperties.getAuthn().getMfa().getYubikey();
 
-        val cipher = yubikeyAccountCipherExecutor.getIfAvailable();
+        val cipher = yubikeyAccountCipherExecutor.getObject();
         if (yubi.getJsonFile() != null) {
             LOGGER.debug("Using JSON resource [{}] as the YubiKey account registry", yubi.getJsonFile());
             val registry = new JsonYubiKeyAccountRegistry(yubi.getJsonFile(), yubiKeyAccountValidator());
@@ -165,7 +166,8 @@ public class YubiKeyAuthenticationEventExecutionPlanConfiguration {
         if (yubi.getAllowedDevices() != null) {
             LOGGER.debug("Using statically-defined devices for [{}] as the YubiKey account registry",
                 yubi.getAllowedDevices().keySet());
-            val registry = new WhitelistYubiKeyAccountRegistry(yubi.getAllowedDevices(), yubiKeyAccountValidator());
+            val map = CollectionUtils.asMultiValueMap(yubi.getAllowedDevices());
+            val registry = new WhitelistYubiKeyAccountRegistry(map, yubiKeyAccountValidator());
             registry.setCipherExecutor(cipher);
             return registry;
         }
@@ -188,10 +190,10 @@ public class YubiKeyAuthenticationEventExecutionPlanConfiguration {
     @RefreshScope
     public MultifactorAuthenticationProvider yubikeyMultifactorAuthenticationProvider() {
         val yubi = casProperties.getAuthn().getMfa().getYubikey();
-        val p = new YubiKeyMultifactorAuthenticationProvider(yubicoClient(), httpClient.getIfAvailable());
-        p.setBypassEvaluator(yubikeyBypassEvaluator.getIfAvailable());
+        val p = new YubiKeyMultifactorAuthenticationProvider(yubicoClient(), httpClient.getObject());
+        p.setBypassEvaluator(yubikeyBypassEvaluator.getObject());
         p.setFailureMode(yubi.getFailureMode());
-        p.setFailureModeEvaluator(failureModeEvaluator.getIfAvailable());
+        p.setFailureModeEvaluator(failureModeEvaluator.getObject());
         p.setOrder(yubi.getRank());
         p.setId(yubi.getId());
         return p;

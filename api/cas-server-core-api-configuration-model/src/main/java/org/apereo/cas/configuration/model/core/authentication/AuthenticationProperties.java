@@ -1,6 +1,7 @@
 package org.apereo.cas.configuration.model.core.authentication;
 
 import org.apereo.cas.configuration.model.core.authentication.passwordsync.PasswordSynchronizationProperties;
+import org.apereo.cas.configuration.model.support.azuread.AzureActiveDirectoryAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.cassandra.authentication.CassandraAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.clouddirectory.CloudDirectoryProperties;
 import org.apereo.cas.configuration.model.support.cognito.AmazonCognitoAuthenticationProperties;
@@ -20,10 +21,11 @@ import org.apereo.cas.configuration.model.support.jaas.JaasAuthenticationPropert
 import org.apereo.cas.configuration.model.support.jdbc.JdbcAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.ldap.LdapAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.mfa.MultifactorAuthenticationProperties;
-import org.apereo.cas.configuration.model.support.mongo.MongoAuthenticationProperties;
+import org.apereo.cas.configuration.model.support.mongo.MongoDbAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.ntlm.NtlmProperties;
 import org.apereo.cas.configuration.model.support.oauth.OAuthProperties;
 import org.apereo.cas.configuration.model.support.oidc.OidcProperties;
+import org.apereo.cas.configuration.model.support.okta.OktaAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.openid.OpenIdProperties;
 import org.apereo.cas.configuration.model.support.pac4j.Pac4jDelegatedAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.passwordless.PasswordlessAuthenticationProperties;
@@ -48,6 +50,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
@@ -63,9 +66,16 @@ import java.util.List;
 @RequiresModule(name = "cas-server-core-authentication", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class AuthenticationProperties implements Serializable {
 
     private static final long serialVersionUID = -1233126985007049516L;
+
+    /**
+     * Core authentication settings.
+     */
+    @NestedConfigurationProperty
+    private CoreAuthenticationProperties core = new CoreAuthenticationProperties();
 
     /**
      * Passwordless authentication settings.
@@ -96,6 +106,18 @@ public class AuthenticationProperties implements Serializable {
      */
     @NestedConfigurationProperty
     private SyncopeAuthenticationProperties syncope = new SyncopeAuthenticationProperties();
+
+    /**
+     * Azure AD authentication settings.
+     */
+    @NestedConfigurationProperty
+    private AzureActiveDirectoryAuthenticationProperties azureActiveDirectory = new AzureActiveDirectoryAuthenticationProperties();
+
+    /**
+     * Okta authentication settings.
+     */
+    @NestedConfigurationProperty
+    private OktaAuthenticationProperties okta = new OktaAuthenticationProperties();
 
     /**
      * Couchbase authentication settings.
@@ -179,7 +201,7 @@ public class AuthenticationProperties implements Serializable {
      * Collection of settings related to LDAP authentication.
      * These settings are required to be indexed (i.e. ldap[0].xyz).
      */
-    private List<LdapAuthenticationProperties> ldap = new ArrayList<>();
+    private List<LdapAuthenticationProperties> ldap = new ArrayList<>(0);
 
     /**
      * Authentication throttling settings.
@@ -199,11 +221,6 @@ public class AuthenticationProperties implements Serializable {
     @NestedConfigurationProperty
     private AuthenticationExceptionsProperties errors = new AuthenticationExceptionsProperties();
 
-    /**
-     * Customization of authentication engine and pre/post processing.
-     */
-    @NestedConfigurationProperty
-    private AuthenticationEngineProperties engine = new AuthenticationEngineProperties();
 
     /**
      * Authentication policy settings.
@@ -257,7 +274,7 @@ public class AuthenticationProperties implements Serializable {
      * Collection of settings related to JAAS authentication.
      * These settings are required to be indexed (i.e. jaas[0].xyz).
      */
-    private List<JaasAuthenticationProperties> jaas = new ArrayList<>();
+    private List<JaasAuthenticationProperties> jaas = new ArrayList<>(0);
 
     /**
      * JDBC authentication settings.
@@ -275,7 +292,7 @@ public class AuthenticationProperties implements Serializable {
      * MongoDb authentication settings.
      */
     @NestedConfigurationProperty
-    private MongoAuthenticationProperties mongo = new MongoAuthenticationProperties();
+    private MongoDbAuthenticationProperties mongo = new MongoDbAuthenticationProperties();
 
     /**
      * CouchDb authentication settings.
@@ -309,8 +326,10 @@ public class AuthenticationProperties implements Serializable {
 
     /**
      * OpenID authentication settings.
+     * @deprecated 6.2
      */
     @NestedConfigurationProperty
+    @Deprecated(since = "6.2.0")
     private OpenIdProperties openid = new OpenIdProperties();
 
     /**
@@ -335,7 +354,7 @@ public class AuthenticationProperties implements Serializable {
      * Collection of settings related to WsFed delegated authentication.
      * These settings are required to be indexed (i.e. wsfed[0].xyz).
      */
-    private List<WsFederationDelegationProperties> wsfed = new ArrayList<>();
+    private List<WsFederationDelegationProperties> wsfed = new ArrayList<>(0);
 
     /**
      * WS-FED IdP authentication settings.

@@ -1,10 +1,13 @@
 package org.apereo.cas.oidc.web;
 
 import org.apereo.cas.oidc.OidcConstants;
+import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.support.oauth.web.OAuth20HandlerInterceptorAdapter;
 import org.apereo.cas.support.oauth.web.response.accesstoken.ext.AccessTokenGrantRequestExtractor;
 
 import lombok.extern.slf4j.Slf4j;
+import org.pac4j.core.context.JEEContext;
+import org.pac4j.core.context.session.SessionStore;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
 import javax.servlet.http.HttpServletRequest;
@@ -20,20 +23,22 @@ import java.util.Collection;
 @Slf4j
 public class OidcHandlerInterceptorAdapter extends OAuth20HandlerInterceptorAdapter {
     private final HandlerInterceptorAdapter requiresAuthenticationDynamicRegistrationInterceptor;
+
     private final HandlerInterceptorAdapter requiresAuthenticationClientConfigurationInterceptor;
+
     private final OidcConstants.DynamicClientRegistrationMode dynamicClientRegistrationMode;
-    private final Collection<AccessTokenGrantRequestExtractor> accessTokenGrantRequestExtractors;
 
     public OidcHandlerInterceptorAdapter(final HandlerInterceptorAdapter requiresAuthenticationAccessTokenInterceptor,
                                          final HandlerInterceptorAdapter requiresAuthenticationAuthorizeInterceptor,
                                          final HandlerInterceptorAdapter requiresAuthenticationDynamicRegistrationInterceptor,
                                          final HandlerInterceptorAdapter requiresAuthenticationClientConfigurationInterceptor,
                                          final OidcConstants.DynamicClientRegistrationMode dynamicClientRegistrationMode,
-                                         final Collection<AccessTokenGrantRequestExtractor> accessTokenGrantRequestExtractors) {
-        super(requiresAuthenticationAccessTokenInterceptor, requiresAuthenticationAuthorizeInterceptor, accessTokenGrantRequestExtractors);
+                                         final Collection<AccessTokenGrantRequestExtractor> accessTokenGrantRequestExtractors,
+                                         final ServicesManager servicesManager,
+                                         final SessionStore<JEEContext> sessionStore) {
+        super(requiresAuthenticationAccessTokenInterceptor, requiresAuthenticationAuthorizeInterceptor, accessTokenGrantRequestExtractors, servicesManager, sessionStore);
         this.requiresAuthenticationDynamicRegistrationInterceptor = requiresAuthenticationDynamicRegistrationInterceptor;
         this.dynamicClientRegistrationMode = dynamicClientRegistrationMode;
-        this.accessTokenGrantRequestExtractors = accessTokenGrantRequestExtractors;
         this.requiresAuthenticationClientConfigurationInterceptor = requiresAuthenticationClientConfigurationInterceptor;
     }
 
@@ -63,7 +68,7 @@ public class OidcHandlerInterceptorAdapter extends OAuth20HandlerInterceptorAdap
     /**
      * Is dynamic client registration request protected boolean.
      *
-     * @return the boolean
+     * @return true/false
      */
     private boolean isDynamicClientRegistrationRequestProtected() {
         return this.dynamicClientRegistrationMode == OidcConstants.DynamicClientRegistrationMode.PROTECTED;
@@ -73,7 +78,7 @@ public class OidcHandlerInterceptorAdapter extends OAuth20HandlerInterceptorAdap
      * Is dynamic client registration request.
      *
      * @param requestPath the request path
-     * @return the boolean
+     * @return true/false
      */
     protected boolean isDynamicClientRegistrationRequest(final String requestPath) {
         return doesUriMatchPattern(requestPath, OidcConstants.REGISTRATION_URL);
@@ -83,7 +88,7 @@ public class OidcHandlerInterceptorAdapter extends OAuth20HandlerInterceptorAdap
      * Is client configuration request.
      *
      * @param requestPath the request path
-     * @return the boolean
+     * @return true/false
      */
     protected boolean isClientConfigurationRequest(final String requestPath) {
         return doesUriMatchPattern(requestPath, OidcConstants.CLIENT_CONFIGURATION_URL);

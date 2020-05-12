@@ -9,7 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -39,6 +38,7 @@ public class DuoSecurityCredential extends AbstractCredential implements Multifa
         return this.username;
     }
 
+    @Override
     public boolean isValid() {
         return StringUtils.isNotBlank(this.username) && StringUtils.isNotBlank(this.signedDuoResponse);
     }

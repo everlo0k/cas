@@ -3,6 +3,7 @@ package org.apereo.cas.util;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collection;
 import java.util.regex.Matcher;
@@ -78,8 +79,8 @@ public class RegexUtils {
      * @return the compiled pattern or {@link RegexUtils#MATCH_NOTHING_PATTERN} if pattern is null or invalid.
      */
     public static Pattern createPattern(final String pattern, final int flags) {
-        if (pattern == null) {
-            LOGGER.debug("Pattern cannot be null");
+        if (StringUtils.isBlank(pattern)) {
+            LOGGER.warn("Pattern cannot be null/blank");
             return MATCH_NOTHING_PATTERN;
         }
         try {
@@ -108,7 +109,7 @@ public class RegexUtils {
      * @param pattern       the pattern
      * @param value         the value
      * @param completeMatch the complete match
-     * @return the boolean
+     * @return true/false
      */
     public static boolean matches(final Pattern pattern, final String value, final boolean completeMatch) {
         val matcher = pattern.matcher(value);
@@ -136,7 +137,7 @@ public class RegexUtils {
      *
      * @param pattern the pattern
      * @param string  the string
-     * @return the boolean
+     * @return true/false
      */
     public static boolean find(final String pattern, final String string) {
         return createPattern(pattern, Pattern.CASE_INSENSITIVE).matcher(string).find();

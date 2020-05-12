@@ -18,7 +18,7 @@ import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.web.flow.CasWebflowConstants;
 
 import lombok.val;
-import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.webflow.definition.registry.FlowDefinitionRegistry;
 import org.springframework.webflow.engine.Flow;
 import org.springframework.webflow.engine.History;
@@ -51,7 +51,7 @@ public class DefaultLoginWebflowConfigurer extends AbstractCasWebflowConfigurer 
      */
     public DefaultLoginWebflowConfigurer(final FlowBuilderServices flowBuilderServices,
                                          final FlowDefinitionRegistry flowDefinitionRegistry,
-                                         final ApplicationContext applicationContext,
+                                         final ConfigurableApplicationContext applicationContext,
                                          final CasConfigurationProperties casProperties) {
         super(flowBuilderServices, flowDefinitionRegistry, applicationContext, casProperties);
     }
@@ -80,7 +80,7 @@ public class DefaultLoginWebflowConfigurer extends AbstractCasWebflowConfigurer 
      */
     protected void createInitialFlowActions(final Flow flow) {
         val startActionList = flow.getStartActionList();
-        startActionList.add(createEvaluateAction(CasWebflowConstants.ACTION_ID_INIT_FLOW_SETUP));
+        startActionList.add(createEvaluateAction(CasWebflowConstants.ACTION_ID_INITIAL_FLOW_SETUP));
         startActionList.add(createEvaluateAction(CasWebflowConstants.ACTION_ID_VERIFY_REQUIRED_SERVICE));
     }
 
@@ -186,6 +186,7 @@ public class DefaultLoginWebflowConfigurer extends AbstractCasWebflowConfigurer 
         createTransitionForState(state, CasWebflowConstants.TRANSITION_ID_AUTHENTICATION_FAILURE, CasWebflowConstants.STATE_ID_HANDLE_AUTHN_FAILURE);
         createTransitionForState(state, CasWebflowConstants.TRANSITION_ID_ERROR, CasWebflowConstants.STATE_ID_INIT_LOGIN_FORM);
         createTransitionForState(state, CasWebflowConstants.TRANSITION_ID_TICKET_GRANTING_TICKET_VALID, CasWebflowConstants.STATE_ID_SERVICE_CHECK);
+        createTransitionForState(state, CasWebflowConstants.TRANSITION_ID_GENERATE_SERVICE_TICKET, CasWebflowConstants.STATE_ID_GENERATE_SERVICE_TICKET);
     }
 
     /**
@@ -311,6 +312,7 @@ public class DefaultLoginWebflowConfigurer extends AbstractCasWebflowConfigurer 
         createTransitionForState(redirectToView, Response.ResponseType.POST.name().toLowerCase(), CasWebflowConstants.STATE_ID_POST_VIEW);
         createTransitionForState(redirectToView, Response.ResponseType.HEADER.name().toLowerCase(), CasWebflowConstants.STATE_ID_HEADER_VIEW);
         createTransitionForState(redirectToView, Response.ResponseType.REDIRECT.name().toLowerCase(), CasWebflowConstants.STATE_ID_REDIRECT_VIEW);
+        redirectToView.getExitActionList().add(createEvaluateAction(CasWebflowConstants.ACTION_ID_CLEAR_WEBFLOW_CREDENTIALS));
     }
 
     /**

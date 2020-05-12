@@ -1,16 +1,16 @@
 #!/bin/bash
+source ./ci/functions.sh
 
-prepCommand="echo 'Running command...'; "
 gradle="./gradlew $@"
 gradleBuild=""
-gradleBuildOptions="--stacktrace --build-cache --configure-on-demand --no-daemon -DtestCategoryType=SIMPLE "
+gradleBuildOptions="--build-cache --configure-on-demand --no-daemon -DtestCategoryType=SIMPLE "
 
 echo -e "***********************************************"
 echo -e "Gradle build started at `date`"
 echo -e "***********************************************"
 
-gradleBuild="$gradleBuild test jacocoRootReport --parallel -x javadoc -x check \
-    -DskipGradleLint=true -DskipNestedConfigMetadataGen=true -DshowStandardStreams=true "
+gradleBuild="$gradleBuild assemble test jacocoRootReport --parallel -x javadoc -x check \
+    -DskipNestedConfigMetadataGen=true -DshowStandardStreams=true "
 
 if [[ "${TRAVIS_COMMIT_MESSAGE}" == *"[rerun tasks]"* ]]; then
     gradleBuild="$gradleBuild --rerun-tasks "
@@ -25,15 +25,14 @@ if [ -z "$gradleBuild" ]; then
 else
     tasks="$gradle $gradleBuildOptions $gradleBuild"
     echo -e "***************************************************************************************"
-    echo $prepCommand
+
     echo $tasks
     echo -e "***************************************************************************************"
 
     waitloop="while sleep 9m; do echo -e '\n=====[ Gradle build is still running ]====='; done &"
     eval $waitloop
     waitRetVal=$?
-
-    eval $prepCommand
+    
     eval $tasks
     retVal=$?
 
@@ -43,7 +42,7 @@ else
 
     if [ $retVal == 0 ]; then
         echo "Uploading test coverage results..."
-        bash <(curl -s https://codecov.io/bash)
+        bash <(curl -s https://codecov.io/bash) -F Simple
         echo "Gradle build finished successfully."
     else
         echo "Gradle build did NOT finish successfully."

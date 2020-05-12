@@ -1,8 +1,8 @@
 package org.apereo.cas.oidc.token;
 
-import org.apereo.cas.services.OidcRegisteredService;
 import org.apereo.cas.support.oauth.services.OAuthRegisteredService;
 import org.apereo.cas.ticket.BaseTokenSigningAndEncryptionService;
+import org.apereo.cas.token.JwtBuilder;
 import org.apereo.cas.util.EncodingUtils;
 
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -12,8 +12,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jose4j.jwk.PublicJsonWebKey;
-import org.jose4j.jwk.RsaJsonWebKey;
-import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.jwt.JwtClaims;
 
 import java.util.Objects;
@@ -30,14 +28,15 @@ public abstract class BaseOidcJsonWebKeyTokenSigningAndEncryptionService extends
     /**
      * The default keystore for OIDC tokens.
      */
-    protected final LoadingCache<String, Optional<RsaJsonWebKey>> defaultJsonWebKeystoreCache;
+    protected final LoadingCache<String, Optional<PublicJsonWebKey>> defaultJsonWebKeystoreCache;
+
     /**
      * The service keystore for OIDC tokens.
      */
-    protected final LoadingCache<OAuthRegisteredService, Optional<RsaJsonWebKey>> serviceJsonWebKeystoreCache;
+    protected final LoadingCache<OAuthRegisteredService, Optional<PublicJsonWebKey>> serviceJsonWebKeystoreCache;
 
-    public BaseOidcJsonWebKeyTokenSigningAndEncryptionService(final LoadingCache<String, Optional<RsaJsonWebKey>> defaultJsonWebKeystoreCache,
-                                                              final LoadingCache<OAuthRegisteredService, Optional<RsaJsonWebKey>> serviceJsonWebKeystoreCache,
+    public BaseOidcJsonWebKeyTokenSigningAndEncryptionService(final LoadingCache<String, Optional<PublicJsonWebKey>> defaultJsonWebKeystoreCache,
+                                                              final LoadingCache<OAuthRegisteredService, Optional<PublicJsonWebKey>> serviceJsonWebKeystoreCache,
                                                               final String issuer) {
         super(issuer);
         this.defaultJsonWebKeystoreCache = defaultJsonWebKeystoreCache;
@@ -47,29 +46,37 @@ public abstract class BaseOidcJsonWebKeyTokenSigningAndEncryptionService extends
     @Override
     @SneakyThrows
     public String encode(final OAuthRegisteredService service, final JwtClaims claims) {
-        val svc = (OidcRegisteredService) service;
-        LOGGER.trace("Attempting to produce token generated for service [{}]", svc);
-
-        val jws = createJsonWebSignature(claims);
-        LOGGER.debug("Generated claims to put into token are [{}]", claims.toJson());
-
-        var innerJwt = shouldSignToken(svc) ? signToken(svc, jws) : jws.getCompactSerialization();
-        if (shouldEncryptToken(svc)) {
-            innerJwt = encryptToken(svc, jws, innerJwt);
+        LOGGER.trace("Attempting to produce token generated for service [{}] with claims [{}]", service, claims.toJson());
+        var innerJwt = signTokenIfNecessary(claims, service);
+        if (shouldEncryptToken(service)) {
+            innerJwt = encryptToken(service, innerJwt);
         }
 
         return innerJwt;
     }
 
+    private String signTokenIfNecessary(final JwtClaims claims, final OAuthRegisteredService svc) {
+        if (shouldSignToken(svc)) {
+            LOGGER.debug("Fetching JSON web key to sign the token for : [{}]", svc.getClientId());
+            val jsonWebKey = getJsonWebKeySigningKey();
+            LOGGER.debug("Found JSON web key to sign the token: [{}]", jsonWebKey);
+            if (jsonWebKey.getPrivateKey() == null) {
+                throw new IllegalArgumentException("JSON web key used to sign the token has no associated private key");
+            }
+            return signToken(svc, claims, jsonWebKey);
+        }
+        val claimSet = JwtBuilder.parse(claims.toJson());
+        return JwtBuilder.buildPlain(claimSet, Optional.of(svc));
+    }
+
     /**
      * Encrypt token.
      *
-     * @param svc      the svc
-     * @param jws      the jws
-     * @param innerJwt the inner jwt
+     * @param svc   the svc
+     * @param token the inner jwt
      * @return the string
      */
-    protected abstract String encryptToken(OidcRegisteredService svc, JsonWebSignature jws, String innerJwt);
+    protected abstract String encryptToken(OAuthRegisteredService svc, String token);
 
     @Override
     protected PublicJsonWebKey getJsonWebKeySigningKey() {
@@ -80,37 +87,21 @@ public abstract class BaseOidcJsonWebKeyTokenSigningAndEncryptionService extends
         return jwks.get();
     }
 
-    /**
-     * Sign token.
-     *
-     * @param svc the svc
-     * @param jws the jws
-     * @return the string
-     * @throws Exception the exception
-     */
-    protected String signToken(final OidcRegisteredService svc, final JsonWebSignature jws) throws Exception {
-        LOGGER.debug("Fetching JSON web key to sign the token for : [{}]", svc.getClientId());
-        val jsonWebKey = getJsonWebKeySigningKey();
-        LOGGER.debug("Found JSON web key to sign the token: [{}]", jsonWebKey);
-        if (jsonWebKey.getPrivateKey() == null) {
-            throw new IllegalArgumentException("JSON web key used to sign the token has no associated private key");
-        }
-        configureJsonWebSignatureForTokenSigning(svc, jws, jsonWebKey);
-        return jws.getCompactSerialization();
-    }
-
-    @SneakyThrows
     @Override
     public JwtClaims decode(final String token, final Optional<OAuthRegisteredService> service) {
-        if (service.isPresent()) {
-            var jwt = JWTParser.parse(token);
-            if (jwt instanceof EncryptedJWT) {
-                val encryptionKey = getJsonWebKeyForEncryption(service.get());
-                val decoded = EncodingUtils.decryptJwtValue(encryptionKey.getPrivateKey(), token);
-                return super.decode(decoded, service);
+        try {
+            if (service.isPresent()) {
+                val jwt = JWTParser.parse(token);
+                if (jwt instanceof EncryptedJWT) {
+                    val encryptionKey = getJsonWebKeyForEncryption(service.get());
+                    val decoded = EncodingUtils.decryptJwtValue(encryptionKey.getPrivateKey(), token);
+                    return super.decode(decoded, service);
+                }
             }
+            return super.decode(token, service);
+        } catch (final Exception e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
         }
-        return super.decode(token, service);
     }
 
     /**

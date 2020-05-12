@@ -2,12 +2,12 @@ package org.apereo.cas.config;
 
 import org.apereo.cas.CentralAuthenticationService;
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.configuration.model.support.jpa.JpaConfigDataHolder;
+import org.apereo.cas.configuration.model.support.jpa.JpaConfigurationContext;
 import org.apereo.cas.configuration.support.JpaBeans;
+import org.apereo.cas.jpa.JpaBeanFactory;
 import org.apereo.cas.services.AbstractRegisteredService;
 import org.apereo.cas.services.JpaServiceRegistry;
 import org.apereo.cas.services.ServiceRegistry;
-import org.apereo.cas.services.ServiceRegistryExecutionPlan;
 import org.apereo.cas.services.ServiceRegistryExecutionPlanConfigurer;
 import org.apereo.cas.services.ServiceRegistryListener;
 
@@ -22,18 +22,19 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
-import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -54,16 +55,20 @@ public class JpaServiceRegistryConfiguration {
     private CasConfigurationProperties casProperties;
 
     @Autowired
-    private ApplicationEventPublisher eventPublisher;
+    @Qualifier("jpaBeanFactory")
+    private ObjectProvider<JpaBeanFactory> jpaBeanFactory;
 
     @Autowired
     @Qualifier("serviceRegistryListeners")
     private ObjectProvider<Collection<ServiceRegistryListener>> serviceRegistryListeners;
 
+    @Autowired
+    private ConfigurableApplicationContext applicationContext;
+
     @RefreshScope
     @Bean
-    public HibernateJpaVendorAdapter jpaServiceVendorAdapter() {
-        return JpaBeans.newHibernateJpaVendorAdapter(casProperties.getJdbc());
+    public JpaVendorAdapter jpaServiceVendorAdapter() {
+        return jpaBeanFactory.getObject().newJpaVendorAdapter(casProperties.getJdbc());
     }
 
     @Bean
@@ -79,13 +84,14 @@ public class JpaServiceRegistryConfiguration {
     @Lazy
     @Bean
     public LocalContainerEntityManagerFactoryBean serviceEntityManagerFactory() {
-        return JpaBeans.newHibernateEntityManagerFactoryBean(
-            new JpaConfigDataHolder(
-                jpaServiceVendorAdapter(),
-                "jpaServiceRegistryContext",
-                jpaServicePackagesToScan(),
-                dataSourceService()),
-            casProperties.getServiceRegistry().getJpa());
+
+        val factory = jpaBeanFactory.getObject();
+        val ctx = new JpaConfigurationContext(
+            jpaServiceVendorAdapter(),
+            "jpaServiceRegistryContext",
+            jpaServicePackagesToScan(),
+            dataSourceService());
+        return factory.newEntityManagerFactoryBean(ctx, casProperties.getServiceRegistry().getJpa());
     }
 
     @Autowired
@@ -97,6 +103,8 @@ public class JpaServiceRegistryConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "dataSourceService")
+    @RefreshScope
     public DataSource dataSourceService() {
         return JpaBeans.newDataSource(casProperties.getServiceRegistry().getJpa());
     }
@@ -104,17 +112,12 @@ public class JpaServiceRegistryConfiguration {
     @Bean
     @RefreshScope
     public ServiceRegistry jpaServiceRegistry() {
-        return new JpaServiceRegistry(eventPublisher, serviceRegistryListeners.getIfAvailable());
+        return new JpaServiceRegistry(applicationContext, serviceRegistryListeners.getObject());
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "jpaServiceRegistryExecutionPlanConfigurer")
     public ServiceRegistryExecutionPlanConfigurer jpaServiceRegistryExecutionPlanConfigurer() {
-        return new ServiceRegistryExecutionPlanConfigurer() {
-            @Override
-            public void configureServiceRegistry(final ServiceRegistryExecutionPlan plan) {
-                plan.registerServiceRegistry(jpaServiceRegistry());
-            }
-        };
+        return plan -> plan.registerServiceRegistry(jpaServiceRegistry());
     }
 }

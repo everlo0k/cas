@@ -5,8 +5,10 @@ import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.support.oauth.OAuth20GrantTypes;
 import org.apereo.cas.support.oauth.OAuth20ResponseTypes;
 import org.apereo.cas.support.oauth.services.OAuthRegisteredService;
-import org.apereo.cas.ticket.OAuthToken;
+import org.apereo.cas.ticket.OAuth20Token;
 import org.apereo.cas.ticket.TicketGrantingTicket;
+import org.apereo.cas.ticket.code.OAuth20Code;
+import org.apereo.cas.ticket.refreshtoken.OAuth20RefreshToken;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -32,9 +34,11 @@ public class AccessTokenRequestDataHolder {
 
     private final Authentication authentication;
 
-    private final OAuthToken token;
+    private final OAuth20Token token;
 
     private final boolean generateRefreshToken;
+
+    private final boolean expireOldRefreshToken;
 
     private final OAuthRegisteredService registeredService;
 
@@ -44,10 +48,10 @@ public class AccessTokenRequestDataHolder {
     private final OAuth20GrantTypes grantType = OAuth20GrantTypes.NONE;
 
     @Builder.Default
-    private final Set<String> scopes = new LinkedHashSet<>();
+    private final Set<String> scopes = new LinkedHashSet<>(0);
 
     @Builder.Default
-    private final Map<String, Map<String, Object>> claims = new HashMap<>();
+    private final Map<String, Map<String, Object>> claims = new HashMap<>(0);
 
     @Builder.Default
     private final OAuth20ResponseTypes responseType = OAuth20ResponseTypes.NONE;
@@ -62,4 +66,12 @@ public class AccessTokenRequestDataHolder {
     private final String codeVerifier;
 
     private final String clientId;
+
+    public boolean isCodeToken() {
+        return token instanceof OAuth20Code;
+    }
+
+    public boolean isRefreshToken() {
+        return token instanceof OAuth20RefreshToken;
+    }
 }

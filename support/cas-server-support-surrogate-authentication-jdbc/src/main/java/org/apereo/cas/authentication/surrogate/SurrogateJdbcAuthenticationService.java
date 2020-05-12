@@ -18,7 +18,8 @@ import javax.persistence.NoResultException;
 import javax.sql.DataSource;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -46,7 +47,7 @@ public class SurrogateJdbcAuthenticationService extends BaseSurrogateAuthenticat
     }
 
     @Override
-    public boolean canAuthenticateAsInternal(final String username, final Principal surrogate, final Service service) {
+    public boolean canAuthenticateAsInternal(final String username, final Principal surrogate, final Optional<Service> service) {
         try {
             if (username.equalsIgnoreCase(surrogate.getId())) {
                 return true;
@@ -63,7 +64,7 @@ public class SurrogateJdbcAuthenticationService extends BaseSurrogateAuthenticat
     }
 
     @Override
-    public List<String> getEligibleAccountsForSurrogateToProxy(final String username) {
+    public Collection<String> getEligibleAccountsForSurrogateToProxy(final String username) {
         try {
             val results = this.jdbcTemplate.query(this.surrogateAccountQuery,
                 new BeanPropertyRowMapper<>(SurrogateAccount.class), username);

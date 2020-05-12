@@ -13,9 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.pac4j.core.context.JEEContext;
-import org.pac4j.core.context.Pac4jConstants;
 import org.pac4j.core.context.session.JEESessionStore;
 import org.pac4j.core.profile.ProfileManager;
+import org.pac4j.core.util.Pac4jConstants;
 import org.springframework.webflow.action.AbstractAction;
 import org.springframework.webflow.action.EventFactorySupport;
 import org.springframework.webflow.execution.Event;
@@ -117,9 +117,9 @@ public class TerminateSessionAction extends AbstractAction {
     }
 
     private String getTicketGrantingTicket(final RequestContext context) {
-        val request = WebUtils.getHttpServletRequestFromExternalWebflowContext(context);
         val tgtId = WebUtils.getTicketGrantingTicketId(context);
         if (StringUtils.isBlank(tgtId)) {
+            val request = WebUtils.getHttpServletRequestFromExternalWebflowContext(context);
             return this.ticketGrantingTicketCookieGenerator.retrieveCookieValue(request);
         }
         return tgtId;
@@ -132,6 +132,7 @@ public class TerminateSessionAction extends AbstractAction {
      * @param request  the request
      * @param response the response
      */
+    @SuppressWarnings("java:S2441")
     protected void destroyApplicationSession(final HttpServletRequest request, final HttpServletResponse response) {
         LOGGER.trace("Destroying application session");
         val context = new JEEContext(request, response, new JEESessionStore());

@@ -1,17 +1,14 @@
 package org.apereo.cas.mfa.accepto.web.flow.qr;
 
 import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
-import org.apereo.cas.config.CasCoreServicesConfiguration;
-import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
 import org.apereo.cas.mfa.accepto.AccepttoEmailCredential;
+import org.apereo.cas.mfa.accepto.BaseAcceptoMultifactorAuthenticationTests;
 import org.apereo.cas.services.ServicesManager;
-import org.apereo.cas.web.flow.config.CasCoreWebflowConfiguration;
-import org.apereo.cas.web.flow.config.CasWebflowContextConfiguration;
 
 import lombok.val;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -22,14 +19,18 @@ import static org.mockito.Mockito.*;
  * @author Misagh Moayyed
  * @since 6.1.0
  */
-@SpringBootTest(classes = {
-    RefreshAutoConfiguration.class,
-    CasWebflowContextConfiguration.class,
-    CasCoreWebflowConfiguration.class,
-    CasWebflowContextConfiguration.class,
-    CasCoreServicesConfiguration.class,
-    CasWebApplicationServiceFactoryConfiguration.class
-})
+@SpringBootTest(classes = BaseAcceptoMultifactorAuthenticationTests.SharedTestConfiguration.class,
+    properties = {
+        "cas.authn.mfa.acceptto.apiUrl=http://localhost:5001",
+        "cas.authn.mfa.acceptto.application-id=thisisatestid",
+        "cas.authn.mfa.acceptto.secret=thisisasecret",
+        "cas.authn.mfa.acceptto.organization-id=thisisatestid",
+        "cas.authn.mfa.acceptto.organization-secret=thisisasecret",
+        "spring.mail.host=localhost",
+        "spring.mail.port=25000",
+        "cas.authn.mfa.acceptto.registration-api-public-key.location=classpath:publickey.pem"
+    })
+@Tag("Webflow")
 public class AccepttoQRCodeAuthenticationHandlerTests {
     @Test
     public void verifyOperation() throws Exception {

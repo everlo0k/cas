@@ -32,12 +32,18 @@ public class OidcCallbackAuthorizeViewResolver implements OAuth20CallbackAuthori
             val result = manager.get(true);
             if (result.isPresent()) {
                 LOGGER.trace("Redirecting to URL [{}] without prompting for login", url);
-                return new ModelAndView(url);
+                return new ModelAndView(new RedirectView(url));
             }
-            LOGGER.warn("Unable to detect an authenticated user profile for prompt-less login attempts");
-            val model = new HashMap<String, String>();
-            model.put(OAuth20Constants.ERROR, OidcConstants.LOGIN_REQUIRED);
-            return new ModelAndView(new MappingJackson2JsonView(), model);
+            val originalRedirectUrl = ctx.getRequestParameter(OAuth20Constants.REDIRECT_URI);
+
+            if (originalRedirectUrl.isEmpty()) {
+                val model = new HashMap<String, String>();
+                model.put(OAuth20Constants.ERROR, OidcConstants.LOGIN_REQUIRED);
+                return new ModelAndView(new MappingJackson2JsonView(), model);
+            }
+            val redirectUrlWithErrorCode = OidcAuthorizationRequestSupport.getRedirectUrlWithError(originalRedirectUrl.get(), OidcConstants.LOGIN_REQUIRED);
+            LOGGER.warn("Unable to detect an authenticated user profile for prompt-less login attempts. Redirecting to URL [{}]", redirectUrlWithErrorCode);
+            return new ModelAndView(new RedirectView(redirectUrlWithErrorCode));
         }
         if (prompt.contains(OidcConstants.PROMPT_LOGIN)) {
             LOGGER.trace("Removing login prompt from URL [{}]", url);

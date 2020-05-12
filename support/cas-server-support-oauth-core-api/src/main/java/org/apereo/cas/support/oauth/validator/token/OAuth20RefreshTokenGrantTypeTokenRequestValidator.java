@@ -5,7 +5,7 @@ import org.apereo.cas.support.oauth.OAuth20Constants;
 import org.apereo.cas.support.oauth.OAuth20GrantTypes;
 import org.apereo.cas.support.oauth.util.OAuth20Utils;
 import org.apereo.cas.support.oauth.web.endpoints.OAuth20ConfigurationContext;
-import org.apereo.cas.ticket.refreshtoken.RefreshToken;
+import org.apereo.cas.ticket.refreshtoken.OAuth20RefreshToken;
 import org.apereo.cas.util.HttpRequestUtils;
 
 import lombok.extern.slf4j.Slf4j;
@@ -35,8 +35,9 @@ public class OAuth20RefreshTokenGrantTypeTokenRequestValidator extends BaseOAuth
     protected boolean validateInternal(final JEEContext context, final String grantType,
                                        final ProfileManager manager, final UserProfile uProfile) {
         val request = context.getNativeRequest();
+        val clientId = OAuth20Utils.getClientIdAndClientSecret(context).getLeft();
         if (!HttpRequestUtils.doesParameterExist(request, OAuth20Constants.REFRESH_TOKEN)
-            || !HttpRequestUtils.doesParameterExist(request, OAuth20Constants.CLIENT_ID)) {
+            || clientId.isEmpty()) {
             return false;
         }
 
@@ -46,7 +47,7 @@ public class OAuth20RefreshTokenGrantTypeTokenRequestValidator extends BaseOAuth
             LOGGER.warn("Provided refresh token [{}] cannot be found in the registry", token);
             return false;
         }
-        if (!RefreshToken.class.isAssignableFrom(refreshToken.getClass())) {
+        if (!OAuth20RefreshToken.class.isAssignableFrom(refreshToken.getClass())) {
             LOGGER.warn("Provided refresh token [{}] is found in the registry but its type is not classified as a refresh token", token);
             return false;
         }
@@ -55,7 +56,6 @@ public class OAuth20RefreshTokenGrantTypeTokenRequestValidator extends BaseOAuth
             return false;
         }
 
-        val clientId = request.getParameter(OAuth20Constants.CLIENT_ID);
         LOGGER.debug("Received grant type [{}] with client id [{}]", grantType, clientId);
         val registeredService = OAuth20Utils.getRegisteredOAuthServiceByClientId(
             getConfigurationContext().getServicesManager(), clientId);

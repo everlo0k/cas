@@ -3,8 +3,8 @@ package org.apereo.cas.util.scripting;
 import groovy.lang.Script;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.util.Map;
 
@@ -14,22 +14,15 @@ import java.util.Map;
  * @author Misagh Moayyed
  * @since 6.0.0
  */
-@Slf4j
 @Getter
 public class GroovyShellScript implements ExecutableCompiledGroovyScript {
     private final transient Script groovyScript;
+    private final String script;
 
     @SneakyThrows
     public GroovyShellScript(final String script) {
+        this.script = script;
         this.groovyScript = ScriptingUtils.parseGroovyShellScript(script);
-    }
-
-    @Override
-    public void setBinding(final Map<String, Object> variables) {
-        val binding = this.groovyScript.getBinding();
-        if (variables != null && !variables.isEmpty()) {
-            variables.forEach(binding::setVariable);
-        }
     }
 
     /**
@@ -70,5 +63,20 @@ public class GroovyShellScript implements ExecutableCompiledGroovyScript {
             return ScriptingUtils.executeGroovyShellScript(this.groovyScript, clazz);
         }
         return null;
+    }
+
+    @Override
+    public void setBinding(final Map<String, Object> variables) {
+        if (variables != null && !variables.isEmpty()) {
+            val binding = this.groovyScript.getBinding();
+            variables.forEach(binding::setVariable);
+        }
+    }
+    
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+            .append("script", script)
+            .toString();
     }
 }

@@ -13,13 +13,11 @@ import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.test.annotation.DirtiesContext;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -29,8 +27,9 @@ import javax.persistence.Id;
 import javax.security.auth.login.AccountNotFoundException;
 import javax.security.auth.login.FailedLoginException;
 import javax.sql.DataSource;
-import java.util.Collections;
+
 import java.util.HashMap;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -41,13 +40,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 4.0.0
  */
 @SuppressWarnings("JDBCExecuteWithNonConstantString")
-@SpringBootTest(classes = {
-    RefreshAutoConfiguration.class,
-    DatabaseAuthenticationTestConfiguration.class
-})
-@DirtiesContext
-public class QueryDatabaseAuthenticationHandlerTests {
+@Tag("JDBC")
+public class QueryDatabaseAuthenticationHandlerTests extends BaseDatabaseAuthenticationHandlerTests {
     private static final String SQL = "SELECT * FROM casusers where username=?";
+
     private static final String PASSWORD_FIELD = "password";
 
     @Autowired
@@ -125,7 +121,7 @@ public class QueryDatabaseAuthenticationHandlerTests {
     @Test
     @SneakyThrows
     public void verifySuccess() {
-        val map = CoreAuthenticationUtils.transformPrincipalAttributesListIntoMultiMap(Collections.singletonList("phone:phoneNumber"));
+        val map = CoreAuthenticationUtils.transformPrincipalAttributesListIntoMultiMap(List.of("phone:phoneNumber"));
         val q = new QueryDatabaseAuthenticationHandler(StringUtils.EMPTY, null, null, null,
             this.dataSource, SQL, PASSWORD_FIELD,
             null, null,
@@ -156,7 +152,6 @@ public class QueryDatabaseAuthenticationHandlerTests {
     /**
      * This test proves that in case BCRYPT is used authentication using encoded password always fail
      * with FailedLoginException
-     *
      */
     @Test
     public void verifyBCryptFail() {

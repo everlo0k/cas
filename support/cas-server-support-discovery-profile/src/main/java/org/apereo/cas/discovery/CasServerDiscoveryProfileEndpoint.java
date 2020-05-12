@@ -1,11 +1,11 @@
 package org.apereo.cas.discovery;
 
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.web.BaseCasActuatorEndpoint;
 
 import lombok.val;
 import org.springframework.boot.actuate.endpoint.web.annotation.RestControllerEndpoint;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -20,8 +20,6 @@ import java.util.Map;
  */
 @RestControllerEndpoint(id = "discoveryProfile", enableByDefault = false)
 public class CasServerDiscoveryProfileEndpoint extends BaseCasActuatorEndpoint {
-    private final ServicesManager servicesManager;
-
     private final CasServerProfileRegistrar casServerProfileRegistrar;
 
     /**
@@ -29,14 +27,11 @@ public class CasServerDiscoveryProfileEndpoint extends BaseCasActuatorEndpoint {
      * Endpoints are by default sensitive.
      *
      * @param casProperties             the cas properties
-     * @param servicesManager           the services manager
      * @param casServerProfileRegistrar the cas server profile registrar
      */
     public CasServerDiscoveryProfileEndpoint(final CasConfigurationProperties casProperties,
-                                             final ServicesManager servicesManager,
                                              final CasServerProfileRegistrar casServerProfileRegistrar) {
         super(casProperties);
-        this.servicesManager = servicesManager;
         this.casServerProfileRegistrar = casServerProfileRegistrar;
     }
 
@@ -45,7 +40,7 @@ public class CasServerDiscoveryProfileEndpoint extends BaseCasActuatorEndpoint {
      *
      * @return the map
      */
-    @GetMapping
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public Map<String, Object> discovery() {
         val results = new HashMap<String, Object>();

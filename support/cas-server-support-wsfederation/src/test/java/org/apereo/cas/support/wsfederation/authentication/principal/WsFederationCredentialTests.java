@@ -10,7 +10,6 @@ import java.time.ZonedDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-
 /**
  * Test cases for {@link WsFederationCredential}.
  *
@@ -18,22 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 4.2.0
  */
 public class WsFederationCredentialTests extends AbstractWsFederationTests {
-
-    private static final String ISSUER = "http://adfs.example.com/adfs/services/trust";
-    private static final String AUDIENCE = "urn:federation:cas";
-
-    public static WsFederationCredential getCredential() {
-        val standardCred = new WsFederationCredential();
-        standardCred.setNotBefore(ZonedDateTime.now(ZoneOffset.UTC));
-        standardCred.setNotOnOrAfter(ZonedDateTime.now(ZoneOffset.UTC).plusHours(1));
-        standardCred.setIssuedOn(ZonedDateTime.now(ZoneOffset.UTC));
-        standardCred.setIssuer(ISSUER);
-        standardCred.setAudience(AUDIENCE);
-        standardCred.setId("_6257b2bf-7361-4081-ae1f-ec58d4310f61");
-        standardCred.setRetrievedOn(ZonedDateTime.now(ZoneOffset.UTC).plusSeconds(1));
-        return standardCred;
-    }
-
+    
     @Test
     public void verifyIsValidAllGood() {
         assertTrue(getCredential().isValid(AUDIENCE, ISSUER, 2000), "testIsValidAllGood() - True");
@@ -69,8 +53,15 @@ public class WsFederationCredentialTests extends AbstractWsFederationTests {
         standardCred.setNotBefore(ZonedDateTime.now(ZoneOffset.UTC).minusDays(1));
         standardCred.setNotOnOrAfter(ZonedDateTime.now(ZoneOffset.UTC).plusHours(1).minusDays(1));
         standardCred.setIssuedOn(ZonedDateTime.now(ZoneOffset.UTC).minusDays(1));
-
         assertFalse(standardCred.isValid(AUDIENCE, ISSUER, 2000), "testIsValidOldToken() - False");
+        assertNotNull(standardCred.getAudience());
+        assertNotNull(standardCred.getNotBefore());
+        assertNotNull(standardCred.getNotOnOrAfter());
+        assertNotNull(standardCred.getIssuedOn());
+        assertNotNull(standardCred.getRetrievedOn());
+        assertNotNull(standardCred.getId());
+        assertNotNull(standardCred.getIssuer());
+        assertNull(standardCred.getAuthenticationMethod());
     }
 
     @Test

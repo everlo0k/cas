@@ -4,7 +4,6 @@ import org.apereo.cas.authentication.CoreAuthenticationUtils;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.discovery.CasServerDiscoveryProfileEndpoint;
 import org.apereo.cas.discovery.CasServerProfileRegistrar;
-import org.apereo.cas.services.ServicesManager;
 
 import lombok.val;
 import org.apereo.services.persondir.IPersonAttributeDao;
@@ -33,10 +32,6 @@ import java.util.Set;
 public class CasDiscoveryProfileConfiguration {
 
     @Autowired
-    @Qualifier("servicesManager")
-    private ObjectProvider<ServicesManager> servicesManager;
-
-    @Autowired
     private CasConfigurationProperties casProperties;
 
     @Autowired
@@ -49,21 +44,20 @@ public class CasDiscoveryProfileConfiguration {
 
     @Bean
     public CasServerProfileRegistrar casServerProfileRegistrar() {
-        return new CasServerProfileRegistrar(servicesManager.getIfAvailable(), casProperties,
-            this.builtClients.getIfAvailable(),
+        return new CasServerProfileRegistrar(this.builtClients.getIfAvailable(),
             availableAttributes());
     }
 
     @Bean
     @ConditionalOnAvailableEndpoint
     public CasServerDiscoveryProfileEndpoint discoveryProfileEndpoint() {
-        return new CasServerDiscoveryProfileEndpoint(casProperties, servicesManager.getIfAvailable(), casServerProfileRegistrar());
+        return new CasServerDiscoveryProfileEndpoint(casProperties, casServerProfileRegistrar());
     }
 
     @Bean
     public Set<String> availableAttributes() {
         val attributes = new LinkedHashSet<String>(0);
-        val possibleUserAttributeNames = attributeRepository.getIfAvailable().getPossibleUserAttributeNames(IPersonAttributeDaoFilter.alwaysChoose());
+        val possibleUserAttributeNames = attributeRepository.getObject().getPossibleUserAttributeNames(IPersonAttributeDaoFilter.alwaysChoose());
         if (possibleUserAttributeNames != null) {
             attributes.addAll(possibleUserAttributeNames);
         }
@@ -83,7 +77,7 @@ public class CasDiscoveryProfileConfiguration {
     }
 
     private static Set<String> transformAttributes(final List<String> attributes) {
-        val attributeSet = new LinkedHashSet<String>();
+        val attributeSet = new LinkedHashSet<String>(attributes.size());
         CoreAuthenticationUtils.transformPrincipalAttributesListIntoMultiMap(attributes)
             .values()
             .forEach(v -> attributeSet.add(v.toString()));

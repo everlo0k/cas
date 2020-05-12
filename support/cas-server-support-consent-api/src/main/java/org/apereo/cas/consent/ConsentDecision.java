@@ -3,17 +3,16 @@ package org.apereo.cas.consent;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Lob;
-import javax.persistence.Table;
+import javax.persistence.MappedSuperclass;
+import javax.persistence.Transient;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 /**
@@ -22,19 +21,15 @@ import java.time.temporal.ChronoUnit;
  * @author Misagh Moayyed
  * @since 5.1.0
  */
-@Entity
-@Table(name = "ConsentDecision")
+@MappedSuperclass
 @ToString
 @Getter
 @Setter
 public class ConsentDecision implements Serializable {
-
     private static final long serialVersionUID = -3240292729509593433L;
 
     @Id
-    @org.springframework.data.annotation.Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "native")
-    @GenericGenerator(name = "native", strategy = "native")
+    @Transient
     private long id;
 
     @Column(nullable = false)
@@ -44,7 +39,7 @@ public class ConsentDecision implements Serializable {
     private String service;
 
     @Column(nullable = false)
-    private LocalDateTime createdDate = LocalDateTime.now();
+    private LocalDateTime createdDate = LocalDateTime.now(ZoneId.systemDefault());
 
     @Column(nullable = false)
     private ConsentReminderOptions options = ConsentReminderOptions.ATTRIBUTE_NAME;

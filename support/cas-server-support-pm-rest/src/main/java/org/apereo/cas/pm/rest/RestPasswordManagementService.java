@@ -20,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * This is {@link RestPasswordManagementService}.
@@ -29,7 +30,7 @@ import java.util.Map;
  */
 public class RestPasswordManagementService extends BasePasswordManagementService {
 
-    private final transient RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
     public RestPasswordManagementService(final CipherExecutor<Serializable, String> cipherExecutor,
                                          final String issuer,
@@ -58,8 +59,8 @@ public class RestPasswordManagementService extends BasePasswordManagementService
 
         val entity = new HttpEntity<Object>(headers);
         val result = restTemplate.exchange(rest.getEndpointUrlChange(), HttpMethod.POST, entity, Boolean.class);
-        if (result.getStatusCodeValue() == HttpStatus.OK.value()) {
-            return result.getBody();
+        if (result.getStatusCodeValue() == HttpStatus.OK.value() && result.hasBody()) {
+            return Objects.requireNonNull(result.getBody()).booleanValue();
         }
         return false;
     }
@@ -95,6 +96,25 @@ public class RestPasswordManagementService extends BasePasswordManagementService
         headers.put("username", CollectionUtils.wrap(username));
         val entity = new HttpEntity<Object>(headers);
         val result = restTemplate.exchange(rest.getEndpointUrlEmail(), HttpMethod.GET, entity, String.class);
+
+        if (result.getStatusCodeValue() == HttpStatus.OK.value() && result.hasBody()) {
+            return result.getBody();
+        }
+        return null;
+    }
+
+    @Override
+    public String findPhone(final String username) {
+        val rest = properties.getRest();
+        if (StringUtils.isBlank(rest.getEndpointUrlPhone())) {
+            return null;
+        }
+
+        val headers = new HttpHeaders();
+        headers.setAccept(CollectionUtils.wrap(MediaType.APPLICATION_JSON));
+        headers.put("username", CollectionUtils.wrap(username));
+        val entity = new HttpEntity<Object>(headers);
+        val result = restTemplate.exchange(rest.getEndpointUrlPhone(), HttpMethod.GET, entity, String.class);
 
         if (result.getStatusCodeValue() == HttpStatus.OK.value() && result.hasBody()) {
             return result.getBody();

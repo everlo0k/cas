@@ -1,8 +1,8 @@
 package org.apereo.cas.support.events.dao;
 
 import org.apereo.cas.influxdb.InfluxDbConnectionFactory;
+import org.apereo.cas.support.events.CasEventRepositoryFilter;
 
-import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -25,14 +25,19 @@ import java.util.concurrent.TimeUnit;
  * @since 5.2.0
  */
 @Slf4j
-@RequiredArgsConstructor
 public class InfluxDbCasEventRepository extends AbstractCasEventRepository implements DisposableBean {
     private static final String MEASUREMENT = "InfluxDbCasEventRepositoryCasEvents";
 
     private final InfluxDbConnectionFactory influxDbConnectionFactory;
 
+    public InfluxDbCasEventRepository(final CasEventRepositoryFilter eventRepositoryFilter,
+                                      final InfluxDbConnectionFactory influxDbConnectionFactory) {
+        super(eventRepositoryFilter);
+        this.influxDbConnectionFactory = influxDbConnectionFactory;
+    }
+
     @Override
-    public void save(final CasEvent event) {
+    public void saveInternal(final CasEvent event) {
         val builder = Point.measurement(MEASUREMENT);
         ReflectionUtils.doWithFields(CasEvent.class, field -> {
             if (!Modifier.isStatic(field.getModifiers())) {
@@ -51,9 +56,10 @@ public class InfluxDbCasEventRepository extends AbstractCasEventRepository imple
 
     @Override
     public Collection<? extends CasEvent> load() {
-        val events = new ArrayList<CasEvent>();
         val results = influxDbConnectionFactory.query(MEASUREMENT);
-        results.getResults()
+        val queryResults = results.getResults();
+        val events = new ArrayList<CasEvent>(queryResults.size());
+        queryResults
             .stream()
             .filter(r -> r.getSeries() != null)
             .map(QueryResult.Result::getSeries)

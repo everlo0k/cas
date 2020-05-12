@@ -12,6 +12,7 @@ import org.apereo.cas.config.CasCoreHttpConfiguration;
 import org.apereo.cas.config.CasCoreServicesAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
+import org.apereo.cas.config.CasCoreTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasCoreTicketsConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CasCoreWebConfiguration;
@@ -19,7 +20,6 @@ import org.apereo.cas.config.CasPersonDirectoryConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.monitor.config.MongoDbMonitoringConfiguration;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
 import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import lombok.val;
@@ -34,7 +34,6 @@ import org.springframework.boot.actuate.health.Status;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.Date;
 import java.util.Map;
@@ -51,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(classes = {
     MongoDbMonitoringConfiguration.class,
     CasCoreTicketsConfiguration.class,
+    CasCoreTicketIdGeneratorsConfiguration.class,
     CasCoreTicketCatalogConfiguration.class,
     CasCoreUtilConfiguration.class,
     CasPersonDirectoryConfiguration.class,
@@ -67,20 +67,18 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreConfiguration.class,
     CasCoreAuthenticationServiceSelectionStrategyConfiguration.class,
     CasCoreServicesConfiguration.class,
-    CasCoreLogoutConfiguration.class,
     CasCoreWebConfiguration.class,
     CasWebApplicationServiceFactoryConfiguration.class
-})
-@TestPropertySource(properties = {
-    "cas.monitor.mongo.userId=root",
-    "cas.monitor.mongo.password=secret",
-    "cas.monitor.mongo.host=localhost",
-    "cas.monitor.mongo.port=27017",
-    "cas.monitor.mongo.authenticationDatabaseName=admin",
-    "cas.monitor.mongo.databaseName=monitor"
-})
+},
+    properties = {
+        "cas.monitor.mongo.userId=root",
+        "cas.monitor.mongo.password=secret",
+        "cas.monitor.mongo.host=localhost",
+        "cas.monitor.mongo.port=27017",
+        "cas.monitor.mongo.authenticationDatabaseName=admin",
+        "cas.monitor.mongo.databaseName=monitor"
+    })
 @EnabledIfPortOpen(port = 27017)
-@EnabledIfContinuousIntegration
 public class MongoDbHealthIndicatorTests {
     @Autowired
     @Qualifier("mongoHealthIndicator")
@@ -106,7 +104,7 @@ public class MongoDbHealthIndicatorTests {
 
         details.values().forEach(value -> {
             if (value instanceof Map) {
-                val map = (Map) value;
+                val map = (Map<String, ?>) value;
                 assertTrue(map.containsKey("size"));
                 assertTrue(map.containsKey("capacity"));
                 assertTrue(map.containsKey("evictions"));

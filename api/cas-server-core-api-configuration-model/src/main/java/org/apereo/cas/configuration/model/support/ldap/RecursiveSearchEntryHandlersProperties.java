@@ -4,6 +4,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import java.util.List;
  */
 @RequiresModule(name = "cas-server-support-ldap")
 @Getter
+@Accessors(chain = true)
 @Setter
 public class RecursiveSearchEntryHandlersProperties implements Serializable {
 
@@ -30,5 +32,5 @@ public class RecursiveSearchEntryHandlersProperties implements Serializable {
     /**
      * The Merge attributes.
      */
-    private List<String> mergeAttributes = new ArrayList<>();
+    private List<String> mergeAttributes = new ArrayList<>(0);
 }

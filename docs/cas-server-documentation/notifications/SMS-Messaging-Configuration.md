@@ -10,6 +10,17 @@ CAS presents the ability to notify users on select actions via SMS messaging. Ex
 or password reset links/tokens. SMS providers supported by CAS are listed below. Note that an active/professional subscription may be required for certain
 providers.
 
+## Custom
+
+Send text messages using your own custom implementation.
+
+```java
+@Bean
+public SmsSender smsSender() {
+    ...
+}    
+```     
+
 ## Groovy
 
 Send text messages using an external Groovy script.
@@ -43,7 +54,7 @@ To see the relevant list of CAS properties, please [review this guide](../config
 
 The request body contains the actual message. A status code of `200` is expected from the endpoint.
 
-To see the relevant list of CAS properties, please [review this guide](../configuration/Configuration-Properties.html#rest).
+To see the relevant list of CAS properties, please [review this guide](../configuration/Configuration-Properties.html#rest-2).
 
 ## Twilio
 

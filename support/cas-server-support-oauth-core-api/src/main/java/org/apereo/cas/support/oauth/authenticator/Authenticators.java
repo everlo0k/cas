@@ -20,6 +20,10 @@ public interface Authenticators {
      */
     String CAS_OAUTH_CLIENT_ACCESS_TOKEN_AUTHN = "clientAccessTokenAuth";
     /**
+     * OAuth authn for refresh token authn for public clients.
+     */
+    String CAS_OAUTH_CLIENT_FORM_REFRESH_TOKEN_AUTHN = "clientRefreshTokenFormAuth";
+    /**
      * OAuth authn for client id and secret.
      */
     String CAS_OAUTH_CLIENT_DIRECT_FORM = "clientForm";
@@ -28,7 +32,11 @@ public interface Authenticators {
      */
     String CAS_OAUTH_CLIENT_USER_FORM = "userForm";
     /**
-     * OAuth authn for PKCE.
+     * OAuth authn for PKCE with clientid and secret.
      */
-    String CAS_OAUTH_CLIENT_PROOF_KEY_CODE_EXCHANGE_AUTHN = "pkceAuthn";
+    String CAS_OAUTH_CLIENT_DIRECT_FORM_PROOF_KEY_CODE_EXCHANGE_AUTHN = "pkceFormAuthn";
+    /**
+     * OAuth authn for PKCE with basic authn.
+     */
+    String CAS_OAUTH_CLIENT_BASIC_PROOF_KEY_CODE_EXCHANGE_AUTHN = "pkceBasicAuthn";
 }

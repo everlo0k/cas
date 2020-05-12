@@ -1,9 +1,11 @@
 package org.apereo.cas.configuration.model.support.mfa;
 
 import org.apereo.cas.configuration.support.RequiresModule;
+import org.apereo.cas.configuration.support.RestEndpointProperties;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.core.io.Resource;
 
@@ -20,6 +22,7 @@ import java.util.List;
 @RequiresModule(name = "cas-server-core-authentication", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class MultifactorAuthenticationProperties implements Serializable {
 
     private static final long serialVersionUID = 7416521468929733907L;
@@ -66,7 +69,7 @@ public class MultifactorAuthenticationProperties implements Serializable {
      * The body of the response in the event of a successful 200 status code is
      * expected to be the MFA provider id which CAS should activate.
      */
-    private String restEndpoint;
+    private Rest rest = new Rest();
 
     /**
      * MFA can be triggered based on the results of a groovy script of your own design.
@@ -75,7 +78,7 @@ public class MultifactorAuthenticationProperties implements Serializable {
     private transient Resource groovyScript;
 
     /**
-     * This is a more generic variant of the @{link #globalPrincipalAttributeNameTriggers}.
+     * This is a more generic variant of the {@link #globalPrincipalAttributeNameTriggers}.
      * It may be useful in cases where there
      * is more than one provider configured and available in the application runtime and
      * you need to design a strategy to dynamically decide on the provider that should be activated for the request.
@@ -209,7 +212,7 @@ public class MultifactorAuthenticationProperties implements Serializable {
     /**
      * Activate and configure a multifactor authentication provider via Duo Security.
      */
-    private List<DuoSecurityMultifactorProperties> duo = new ArrayList<>();
+    private List<DuoSecurityMultifactorProperties> duo = new ArrayList<>(0);
 
     /**
      * Activate and configure a multifactor authentication provider via Authy.
@@ -228,4 +231,12 @@ public class MultifactorAuthenticationProperties implements Serializable {
      */
     @NestedConfigurationProperty
     private AccepttoMultifactorProperties acceptto = new AccepttoMultifactorProperties();
+
+    @RequiresModule(name = "cas-server-core-authentication", automated = true)
+    @Getter
+    @Setter
+    @Accessors(chain = true)
+    public static class Rest extends RestEndpointProperties {
+        private static final long serialVersionUID = 3659099897056632608L;
+    }
 }

@@ -12,6 +12,7 @@ import org.apereo.cas.config.CasCoreHttpConfiguration;
 import org.apereo.cas.config.CasCoreServicesAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
+import org.apereo.cas.config.CasCoreTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasCoreTicketsConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CasCoreWebConfiguration;
@@ -28,6 +29,7 @@ import org.apereo.cas.couchdb.core.ProfileCouchDbRepository;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.services.web.config.CasThemesConfiguration;
 import org.apereo.cas.util.CollectionUtils;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 import org.apereo.cas.web.config.CasCookieConfiguration;
 import org.apereo.cas.web.flow.config.CasCoreWebflowConfiguration;
 import org.apereo.cas.web.flow.config.CasWebflowContextConfiguration;
@@ -65,11 +67,11 @@ import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
     CasCoreHttpConfiguration.class,
     CasCoreUtilConfiguration.class,
     CasCoreTicketCatalogConfiguration.class,
+    CasCoreTicketIdGeneratorsConfiguration.class,
     CasCoreTicketsConfiguration.class,
     CasPersonDirectoryTestConfiguration.class,
     CasCoreAuthenticationConfiguration.class,
     CasCoreWebConfiguration.class,
-    CasWebApplicationServiceFactoryConfiguration.class,
     CasCoreServicesAuthenticationConfiguration.class,
     CasCoreServicesConfiguration.class,
     CasCoreWebflowConfiguration.class,
@@ -80,13 +82,14 @@ import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
     CasThemesConfiguration.class,
     CasCoreAuthenticationServiceSelectionStrategyConfiguration.class
     }, properties = {
-    "cas.authn.surrogate.couchDb.dbName=surrogate_profile",
-    "cas.authn.surrogate.couchDb.profileBased=true",
-    "cas.authn.surrogate.couchDb.surrogatePrincipalsAttribute=surrogateFor",
-    "cas.authn.surrogate.couchDb.username=cas",
+    "cas.authn.surrogate.couch-db.dbName=surrogate_profile",
+    "cas.authn.surrogate.couch-db.profileBased=true",
+    "cas.authn.surrogate.couch-db.surrogatePrincipalsAttribute=surrogateFor",
+    "cas.authn.surrogate.couch-db.username=cas",
     "cas.authn.surrogate.couchdb.password=password"
 })
 @Getter
+@EnabledIfPortOpen(port = 5984)
 public class SurrogateCouchDbProfileAuthenticationServiceTests extends BaseSurrogateAuthenticationServiceTests {
 
     @Autowired

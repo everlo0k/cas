@@ -12,17 +12,13 @@ import org.ldaptive.ConnectionFactory;
 import org.ldaptive.DefaultConnectionFactory;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapException;
-import org.ldaptive.Response;
-import org.ldaptive.ResultCode;
-import org.ldaptive.SearchExecutor;
-import org.ldaptive.SearchResult;
+import org.ldaptive.SearchOperation;
+import org.ldaptive.SearchResponse;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
-import java.security.cert.CRLException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509CRL;
 
@@ -42,14 +38,14 @@ public class LdaptiveResourceCRLFetcher extends ResourceCRLFetcher {
     private final ConnectionConfig connectionConfig;
 
     /**
-     * Search exec that looks for the attribute.
+     * Search operation that looks for the attribute.
      */
-    private final SearchExecutor searchExecutor;
+    private final SearchOperation searchOperation;
 
     private final String certificateAttribute;
 
     @Override
-    public X509CRL fetch(final Resource crl) throws IOException, CRLException, CertificateException {
+    public X509CRL fetch(final Resource crl) throws Exception {
         if (LdapUtils.isLdapConnectionUrl(crl.toString())) {
             return fetchCRLFromLdap(crl);
         }
@@ -57,7 +53,7 @@ public class LdaptiveResourceCRLFetcher extends ResourceCRLFetcher {
     }
 
     @Override
-    public X509CRL fetch(final URI crl) throws IOException, CRLException, CertificateException {
+    public X509CRL fetch(final URI crl) throws Exception {
         if (LdapUtils.isLdapConnectionUrl(crl)) {
             return fetchCRLFromLdap(crl);
         }
@@ -65,7 +61,7 @@ public class LdaptiveResourceCRLFetcher extends ResourceCRLFetcher {
     }
 
     @Override
-    public X509CRL fetch(final URL crl) throws IOException, CRLException, CertificateException {
+    public X509CRL fetch(final URL crl) throws Exception {
         if (LdapUtils.isLdapConnectionUrl(crl)) {
             return fetchCRLFromLdap(crl);
         }
@@ -73,7 +69,7 @@ public class LdaptiveResourceCRLFetcher extends ResourceCRLFetcher {
     }
 
     @Override
-    public X509CRL fetch(final String crl) throws IOException, CRLException, CertificateException {
+    public X509CRL fetch(final String crl) throws Exception {
         if (LdapUtils.isLdapConnectionUrl(crl)) {
             return fetchCRLFromLdap(crl);
         }
@@ -85,18 +81,16 @@ public class LdaptiveResourceCRLFetcher extends ResourceCRLFetcher {
      *
      * @param r the resource that is the ldap url.
      * @return the x 509 cRL
-     * @throws IOException          the exception thrown if resources cant be fetched
-     * @throws CRLException         the exception thrown if resources cant be fetched
-     * @throws CertificateException if connection to ldap fails, or attribute to get the revocation list is unavailable
+     * @throws Exception the exception
      */
-    protected X509CRL fetchCRLFromLdap(final Object r) throws CertificateException, IOException, CRLException {
+    protected X509CRL fetchCRLFromLdap(final Object r) throws Exception {
         try {
             val ldapURL = r.toString();
             LOGGER.debug("Fetching CRL from ldap [{}]", ldapURL);
 
             val result = performLdapSearch(ldapURL);
-            if (result.getResultCode() == ResultCode.SUCCESS) {
-                val entry = result.getResult().getEntry();
+            if (result.isSuccess()) {
+                val entry = result.getEntry();
                 val attribute = entry.getAttribute(this.certificateAttribute);
 
                 if (attribute.isBinary()) {
@@ -120,15 +114,13 @@ public class LdaptiveResourceCRLFetcher extends ResourceCRLFetcher {
      * Gets x509 cRL from attribute. Retrieves the binary attribute value,
      * decodes it to base64, and fetches it as a byte-array resource.
      *
-     * @param aval the attribute, which may be null if it's not found
+     * @param attribute the attribute, which may be null if it's not found
      * @return the x 509 cRL from attribute
-     * @throws IOException          the exception thrown if resources cant be fetched
-     * @throws CRLException         the exception thrown if resources cant be fetched
-     * @throws CertificateException if connection to ldap fails, or attribute to get the revocation list is unavailable
+     * @throws Exception the exception
      */
-    protected X509CRL fetchX509CRLFromAttribute(final LdapAttribute aval) throws CertificateException, IOException, CRLException {
-        if (aval != null && aval.isBinary()) {
-            val val = aval.getBinaryValue();
+    protected X509CRL fetchX509CRLFromAttribute(final LdapAttribute attribute) throws Exception {
+        if (attribute != null && attribute.isBinary()) {
+            val val = attribute.getBinaryValue();
             if (val == null || val.length == 0) {
                 throw new CertificateException("Empty attribute. Can not download CRL from ldap");
             }
@@ -136,7 +128,7 @@ public class LdaptiveResourceCRLFetcher extends ResourceCRLFetcher {
             if (decoded64 == null) {
                 throw new CertificateException("Could not decode the attribute value to base64");
             }
-            LOGGER.debug("Retrieved CRL from ldap as byte array decoded in base64. Fetching...");
+            LOGGER.trace("Retrieved CRL from ldap as byte array decoded in base64. Fetching...");
             return super.fetch(new ByteArrayResource(decoded64));
         }
         throw new CertificateException("Attribute not found. Can not retrieve CRL");
@@ -149,9 +141,10 @@ public class LdaptiveResourceCRLFetcher extends ResourceCRLFetcher {
      * @return search result
      * @throws LdapException if an error occurs performing the search
      */
-    protected Response<SearchResult> performLdapSearch(final String ldapURL) throws LdapException {
-        val connectionFactory = prepareConnectionFactory(ldapURL);
-        return this.searchExecutor.search(connectionFactory);
+    protected SearchResponse performLdapSearch(final String ldapURL) throws LdapException {
+        val operation = SearchOperation.copy(this.searchOperation);
+        operation.setConnectionFactory(prepareConnectionFactory(ldapURL));
+        return operation.execute();
     }
 
     /**
@@ -161,7 +154,7 @@ public class LdaptiveResourceCRLFetcher extends ResourceCRLFetcher {
      * @return connection factory
      */
     protected ConnectionFactory prepareConnectionFactory(final String ldapURL) {
-        val cc = ConnectionConfig.newConnectionConfig(this.connectionConfig);
+        val cc = ConnectionConfig.copy(this.connectionConfig);
         cc.setLdapUrl(ldapURL);
         return new DefaultConnectionFactory(cc);
     }

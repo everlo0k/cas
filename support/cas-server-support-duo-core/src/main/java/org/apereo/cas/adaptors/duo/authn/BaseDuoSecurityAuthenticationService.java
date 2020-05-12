@@ -20,8 +20,8 @@ import org.springframework.http.HttpMethod;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * This is {@link BaseDuoSecurityAuthenticationService}.
@@ -35,19 +35,29 @@ public abstract class BaseDuoSecurityAuthenticationService implements DuoSecurit
     private static final long serialVersionUID = -8044100706027708789L;
 
     private static final int AUTH_API_VERSION = 2;
+
     private static final int RESULT_CODE_ERROR_THRESHOLD = 49999;
 
     private static final int USER_ACCOUNT_CACHE_INITIAL_SIZE = 50;
+
     private static final long USER_ACCOUNT_CACHE_MAX_SIZE = 100_000_000;
+
     private static final int USER_ACCOUNT_CACHE_EXPIRATION_SECONDS = 5;
 
     private static final String RESULT_KEY_RESPONSE = "response";
+
     private static final String RESULT_KEY_STAT = "stat";
+
     private static final String RESULT_KEY_RESULT = "result";
+
     private static final String RESULT_KEY_ENROLL_PORTAL_URL = "enroll_portal_url";
+
     private static final String RESULT_KEY_STATUS_MESSAGE = "status_msg";
+
     private static final String RESULT_KEY_CODE = "code";
+
     private static final String RESULT_KEY_MESSAGE = "message";
+
     private static final String RESULT_KEY_MESSAGE_DETAIL = "message_detail";
 
     private static final ObjectMapper MAPPER = new ObjectMapper().findAndRegisterModules();
@@ -63,14 +73,15 @@ public abstract class BaseDuoSecurityAuthenticationService implements DuoSecurit
 
     private final transient Cache<String, DuoSecurityUserAccount> userAccountCache;
 
-    public BaseDuoSecurityAuthenticationService(final DuoSecurityMultifactorProperties duoProperties, final HttpClient httpClient) {
+    public BaseDuoSecurityAuthenticationService(final DuoSecurityMultifactorProperties duoProperties,
+                                                final HttpClient httpClient) {
         this.duoProperties = duoProperties;
         this.httpClient = httpClient;
 
         this.userAccountCache = Caffeine.newBuilder()
             .initialCapacity(USER_ACCOUNT_CACHE_INITIAL_SIZE)
             .maximumSize(USER_ACCOUNT_CACHE_MAX_SIZE)
-            .expireAfterWrite(USER_ACCOUNT_CACHE_EXPIRATION_SECONDS, TimeUnit.SECONDS)
+            .expireAfterWrite(Duration.ofSeconds(USER_ACCOUNT_CACHE_EXPIRATION_SECONDS))
             .build();
         this.userAccountCachedMap = this.userAccountCache.asMap();
     }
@@ -127,7 +138,7 @@ public abstract class BaseDuoSecurityAuthenticationService implements DuoSecurit
             val userRequest = buildHttpPostUserPreAuthRequest(username);
             signHttpUserPreAuthRequest(userRequest);
             LOGGER.debug("Contacting Duo to inquire about username [{}]", username);
-            val userResponse = userRequest.executeHttpRequest().body().string();
+            val userResponse = getHttpResponse(userRequest);
             val jsonResponse = URLDecoder.decode(userResponse, StandardCharsets.UTF_8.name());
             LOGGER.debug("Received Duo admin response [{}]", jsonResponse);
 
@@ -138,7 +149,6 @@ public abstract class BaseDuoSecurityAuthenticationService implements DuoSecurit
             }
 
             if (result.get(RESULT_KEY_STAT).asText().equalsIgnoreCase("OK")) {
-
                 val response = result.get(RESULT_KEY_RESPONSE);
                 val authResult = response.get(RESULT_KEY_RESULT).asText().toUpperCase();
 
@@ -173,14 +183,27 @@ public abstract class BaseDuoSecurityAuthenticationService implements DuoSecurit
     }
 
     /**
+     * Gets http response.
+     *
+     * @param userRequest the user request
+     * @return the http response
+     * @throws Exception the exception
+     */
+    protected String getHttpResponse(final Http userRequest) throws Exception {
+        return userRequest.executeHttpRequest().body().string();
+    }
+
+    /**
      * Build http post auth request http.
      *
      * @return the http
      */
     protected Http buildHttpPostAuthRequest() {
-        return new Http(HttpMethod.POST.name(),
+        val request = new Http(HttpMethod.POST.name(),
             duoProperties.getDuoApiHost(),
             String.format("/auth/v%s/auth", AUTH_API_VERSION));
+        configureHttpRequest(request);
+        return request;
     }
 
     /**
@@ -190,11 +213,24 @@ public abstract class BaseDuoSecurityAuthenticationService implements DuoSecurit
      * @return the http
      */
     protected Http buildHttpPostUserPreAuthRequest(final String username) {
-        val usersRequest = new Http(HttpMethod.POST.name(),
+        val request = new Http(HttpMethod.POST.name(),
             duoProperties.getDuoApiHost(),
             String.format("/auth/v%s/preauth", AUTH_API_VERSION));
-        usersRequest.addParam("username", username);
-        return usersRequest;
+        request.addParam("username", username);
+        configureHttpRequest(request);
+        return request;
+    }
+
+    /**
+     * Configure http request.
+     *
+     * @param request the request
+     */
+    protected void configureHttpRequest(final Http request) {
+        val factory = this.httpClient.getHttpClientFactory();
+        if (factory.getProxy() != null) {
+            request.setProxy(factory.getProxy().getHostName(), factory.getProxy().getPort());
+        }
     }
 
 

@@ -33,7 +33,7 @@ public class DefaultAuthenticationAttributeReleasePolicy implements Authenticati
     private final String authenticationContextAttribute;
 
     public DefaultAuthenticationAttributeReleasePolicy(final String authenticationContextAttribute) {
-        this(new ArrayList<>(), new ArrayList<>(), authenticationContextAttribute);
+        this(new ArrayList<>(0), new ArrayList<>(0), authenticationContextAttribute);
     }
 
 
@@ -86,7 +86,7 @@ public class DefaultAuthenticationAttributeReleasePolicy implements Authenticati
      * Is attribute allowed for release?
      *
      * @param attributeName the attribute name
-     * @return the boolean
+     * @return true/false
      */
     protected boolean isAttributeAllowedForRelease(final String attributeName) {
         return !this.neverReleaseAttributes.contains(attributeName);

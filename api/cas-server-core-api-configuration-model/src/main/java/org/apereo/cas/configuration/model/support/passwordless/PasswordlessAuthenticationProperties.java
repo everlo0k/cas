@@ -1,15 +1,19 @@
 package org.apereo.cas.configuration.model.support.passwordless;
 
-import org.apereo.cas.configuration.model.core.util.EncryptionJwtSigningJwtCryptographyProperties;
 import org.apereo.cas.configuration.model.support.email.EmailProperties;
+import org.apereo.cas.configuration.model.support.passwordless.account.PasswordlessAuthenticationGroovyAccountsProperties;
+import org.apereo.cas.configuration.model.support.passwordless.account.PasswordlessAuthenticationLdapAccountsProperties;
+import org.apereo.cas.configuration.model.support.passwordless.account.PasswordlessAuthenticationMongoDbAccountsProperties;
+import org.apereo.cas.configuration.model.support.passwordless.account.PasswordlessAuthenticationRestAccountsProperties;
+import org.apereo.cas.configuration.model.support.passwordless.token.PasswordlessAuthenticationJpaTokensProperties;
+import org.apereo.cas.configuration.model.support.passwordless.token.PasswordlessAuthenticationRestTokensProperties;
 import org.apereo.cas.configuration.model.support.sms.SmsProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
-import org.apereo.cas.configuration.support.RestEndpointProperties;
 import org.apereo.cas.configuration.support.SpringResourceProperties;
-import org.apereo.cas.util.crypto.CipherExecutor;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
@@ -25,6 +29,7 @@ import java.util.Map;
 @RequiresModule(name = "cas-server-support-passwordless")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class PasswordlessAuthenticationProperties implements Serializable {
     private static final long serialVersionUID = 8726382874579042117L;
 
@@ -38,36 +43,88 @@ public class PasswordlessAuthenticationProperties implements Serializable {
      */
     private Tokens tokens = new Tokens();
 
+    /**
+     * Allow passwordless authentication to skip its own flow
+     * in favor of multifactor authentication providers that may be available
+     * and defined in CAS.
+     * <p>
+     * If multifactor authentication is activated, and defined MFA triggers
+     * in CAS signal availability and eligibility of an MFA flow for
+     * the given passwordless user, CAS will skip its normal passwordless
+     * authentication flow in favor of the requested multifactor authentication
+     * provider. If no MFA providers are available, or if no triggers require
+     * MFA for the verified passwordless user, passwordless authentication flow
+     * will commence as usual.
+     */
+    private boolean multifactorAuthenticationActivated;
+
+    /**
+     * Allow passwordless authentication to skip its own flow
+     * in favor of delegated authentication providers that may be available
+     * and defined in CAS.
+     * <p>
+     * If delegated authentication is activated, CAS will skip its normal passwordless
+     * authentication flow in favor of the requested delegated authentication
+     * provider. If no delegated providers are available, passwordless authentication flow
+     * will commence as usual.
+     */
+    private boolean delegatedAuthenticationActivated;
+
+    /**
+     * Select the delegated identity provider for the passwordless
+     * user using a script.
+     */
+    @NestedConfigurationProperty
+    private SpringResourceProperties delegatedAuthenticationSelectorScript = new SpringResourceProperties();
+
     @RequiresModule(name = "cas-server-support-passwordless")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Accounts implements Serializable {
 
         private static final long serialVersionUID = -8424650395669337488L;
+
         /**
          * Passwordless authentication settings via REST.
          */
-        private Rest rest = new Rest();
+        @NestedConfigurationProperty
+        private PasswordlessAuthenticationRestAccountsProperties rest = new PasswordlessAuthenticationRestAccountsProperties();
+
+        /**
+         * Passwordless authentication settings via LDAP.
+         */
+        @NestedConfigurationProperty
+        private PasswordlessAuthenticationLdapAccountsProperties ldap = new PasswordlessAuthenticationLdapAccountsProperties();
 
         /**
          * Passwordless authentication settings via Groovy.
          */
-        private Groovy groovy = new Groovy();
+        @NestedConfigurationProperty
+        private PasswordlessAuthenticationGroovyAccountsProperties groovy = new PasswordlessAuthenticationGroovyAccountsProperties();
+
+        /**
+         * Passwordless authentication settings via MongoDb.
+         */
+        @NestedConfigurationProperty
+        private PasswordlessAuthenticationMongoDbAccountsProperties mongo = new PasswordlessAuthenticationMongoDbAccountsProperties();
 
         /**
          * Passwordless authentication settings using static accounts.
          * The key is the user identifier, while the value is the form of
          * contact such as email, sms, etc.
          */
-        private Map<String, String> simple = new LinkedHashMap<>();
+        private Map<String, String> simple = new LinkedHashMap<>(2);
     }
 
     @RequiresModule(name = "cas-server-support-passwordless")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Tokens implements Serializable {
 
         private static final long serialVersionUID = 8371063350377031703L;
+
         /**
          * Indicate how long should the token be considered valid.
          */
@@ -76,7 +133,14 @@ public class PasswordlessAuthenticationProperties implements Serializable {
         /**
          * Passwordless authentication settings via REST.
          */
-        private RestTokens rest = new RestTokens();
+        @NestedConfigurationProperty
+        private PasswordlessAuthenticationRestTokensProperties rest = new PasswordlessAuthenticationRestTokensProperties();
+
+        /**
+         * Passwordless authentication settings via JPA.
+         */
+        @NestedConfigurationProperty
+        private PasswordlessAuthenticationJpaTokensProperties jpa = new PasswordlessAuthenticationJpaTokensProperties();
 
         /**
          * Email settings for notifications.
@@ -91,35 +155,5 @@ public class PasswordlessAuthenticationProperties implements Serializable {
         private SmsProperties sms = new SmsProperties();
     }
 
-    @RequiresModule(name = "cas-server-support-passwordless")
-    @Getter
-    @Setter
-    public static class Groovy extends SpringResourceProperties {
-        private static final long serialVersionUID = 8079027843747126083L;
-    }
 
-    @RequiresModule(name = "cas-server-support-passwordless")
-    @Getter
-    @Setter
-    public static class Rest extends RestEndpointProperties {
-        private static final long serialVersionUID = -8102345678378393382L;
-    }
-
-    @RequiresModule(name = "cas-server-support-passwordless")
-    @Getter
-    @Setter
-    public static class RestTokens extends RestEndpointProperties {
-        private static final long serialVersionUID = -8102345678378393382L;
-
-        /**
-         * Crypto settings on how to reset the password.
-         */
-        @NestedConfigurationProperty
-        private EncryptionJwtSigningJwtCryptographyProperties crypto = new EncryptionJwtSigningJwtCryptographyProperties();
-
-        public RestTokens() {
-            crypto.getEncryption().setKeySize(CipherExecutor.DEFAULT_STRINGABLE_ENCRYPTION_KEY_SIZE);
-            crypto.getSigning().setKeySize(CipherExecutor.DEFAULT_STRINGABLE_SIGNING_KEY_SIZE);
-        }
-    }
 }

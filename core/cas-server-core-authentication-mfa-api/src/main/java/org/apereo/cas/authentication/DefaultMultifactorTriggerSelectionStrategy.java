@@ -5,10 +5,10 @@ import org.apereo.cas.services.RegisteredService;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import javax.servlet.http.HttpServletRequest;
+
 import java.util.Collection;
 import java.util.Optional;
 
@@ -21,7 +21,6 @@ import java.util.Optional;
  */
 @RequiredArgsConstructor
 @Getter
-@Slf4j
 public class DefaultMultifactorTriggerSelectionStrategy implements MultifactorAuthenticationTriggerSelectionStrategy {
     private final Collection<MultifactorAuthenticationTrigger> multifactorAuthenticationTriggers;
 
@@ -31,6 +30,9 @@ public class DefaultMultifactorTriggerSelectionStrategy implements MultifactorAu
                                     final Authentication authentication,
                                     final Service service) {
         for (val trigger : multifactorAuthenticationTriggers) {
+            if (!trigger.supports(request, registeredService, authentication, service)) {
+                continue;
+            }
             val activated = trigger.isActivated(authentication, registeredService, request, service);
             if (activated.isPresent()) {
                 return Optional.of(activated.get().getId());

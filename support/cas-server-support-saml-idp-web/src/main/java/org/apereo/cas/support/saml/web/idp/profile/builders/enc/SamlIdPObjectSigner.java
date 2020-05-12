@@ -51,9 +51,11 @@ import org.opensaml.xmlsec.impl.BasicSignatureSigningConfiguration;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -70,6 +72,25 @@ public class SamlIdPObjectSigner {
     private final CasConfigurationProperties casProperties;
 
     private final SamlIdPMetadataLocator samlIdPMetadataLocator;
+
+    private static boolean doesCredentialFingerprintMatch(final AbstractCredential credential, final SamlRegisteredService samlRegisteredService) {
+        val fingerprint = samlRegisteredService.getSigningCredentialFingerprint();
+        if (StringUtils.isNotBlank(fingerprint)) {
+            val digest = DigestUtils.digest("SHA-1", Objects.requireNonNull(credential.getPublicKey()).getEncoded());
+            val pattern = RegexUtils.createPattern(fingerprint, Pattern.CASE_INSENSITIVE);
+            LOGGER.debug("Matching credential fingerprint [{}] against filter [{}] for service [{}]", digest, fingerprint, samlRegisteredService.getName());
+            return pattern.matcher(digest).find();
+        }
+        return true;
+    }
+
+    private static AbstractCredential finalizeSigningCredential(final MutableCredential credential, final Credential original) {
+        credential.setEntityId(original.getEntityId());
+        credential.setUsageType(original.getUsageType());
+        Objects.requireNonNull(original.getCredentialContextSet())
+            .forEach(ctx -> Objects.requireNonNull(credential.getCredentialContextSet()).add(ctx));
+        return (AbstractCredential) credential;
+    }
 
     /**
      * Encode a given saml object by invoking a number of outbound security handlers on the context.
@@ -95,7 +116,7 @@ public class SamlIdPObjectSigner {
                                            final RequestAbstractType authnRequest) throws SamlException {
 
         LOGGER.trace("Attempting to encode [{}] for [{}]", samlObject.getClass().getName(), adaptor.getEntityId());
-        val outboundContext = new MessageContext<T>();
+        val outboundContext = new MessageContext();
         prepareOutboundContext(samlObject, adaptor, outboundContext, binding, authnRequest);
         prepareSecurityParametersContext(adaptor, outboundContext, service);
         prepareEndpointURLSchemeSecurityHandler(outboundContext);
@@ -112,7 +133,7 @@ public class SamlIdPObjectSigner {
      * @param outboundContext the outbound context
      * @throws Exception the exception
      */
-    protected <T extends SAMLObject> void prepareSamlOutboundProtocolMessageSigningHandler(final MessageContext<T> outboundContext) throws Exception {
+    protected <T extends SAMLObject> void prepareSamlOutboundProtocolMessageSigningHandler(final MessageContext outboundContext) throws Exception {
         LOGGER.trace("Attempting to sign the outbound SAML message...");
         val handler = new SAMLOutboundProtocolMessageSigningHandler();
         handler.setSignErrorResponses(casProperties.getAuthn().getSamlIdp().getResponse().isSignError());
@@ -127,7 +148,7 @@ public class SamlIdPObjectSigner {
      * @param outboundContext the outbound context
      * @throws Exception the exception
      */
-    protected <T extends SAMLObject> void prepareSamlOutboundDestinationHandler(final MessageContext<T> outboundContext) throws Exception {
+    protected <T extends SAMLObject> void prepareSamlOutboundDestinationHandler(final MessageContext outboundContext) throws Exception {
         val handlerDest = new SAMLOutboundDestinationHandler();
         handlerDest.initialize();
         handlerDest.invoke(outboundContext);
@@ -140,7 +161,7 @@ public class SamlIdPObjectSigner {
      * @param outboundContext the outbound context
      * @throws Exception the exception
      */
-    protected <T extends SAMLObject> void prepareEndpointURLSchemeSecurityHandler(final MessageContext<T> outboundContext) throws Exception {
+    protected <T extends SAMLObject> void prepareEndpointURLSchemeSecurityHandler(final MessageContext outboundContext) throws Exception {
         val handlerEnd = new EndpointURLSchemeSecurityHandler();
         handlerEnd.initialize();
         handlerEnd.invoke(outboundContext);
@@ -155,7 +176,7 @@ public class SamlIdPObjectSigner {
      * @param service         the service
      */
     protected <T extends SAMLObject> void prepareSecurityParametersContext(final SamlRegisteredServiceServiceProviderMetadataFacade adaptor,
-                                                                           final MessageContext<T> outboundContext,
+                                                                           final MessageContext outboundContext,
                                                                            final SamlRegisteredService service) {
         val secParametersContext = outboundContext.getSubcontext(SecurityParametersContext.class, true);
         val roleDesc = adaptor.getSsoDescriptor();
@@ -176,7 +197,7 @@ public class SamlIdPObjectSigner {
      */
     protected <T extends SAMLObject> void prepareOutboundContext(final T samlObject,
                                                                  final SamlRegisteredServiceServiceProviderMetadataFacade adaptor,
-                                                                 final MessageContext<T> outboundContext,
+                                                                 final MessageContext outboundContext,
                                                                  final String binding,
                                                                  final RequestAbstractType authnRequest) throws SamlException {
 
@@ -196,7 +217,7 @@ public class SamlIdPObjectSigner {
     protected SignatureSigningParameters buildSignatureSigningParameters(final RoleDescriptor descriptor,
                                                                          final SamlRegisteredService service) {
         val criteria = new CriteriaSet();
-        val signatureSigningConfiguration = getSignatureSigningConfiguration(descriptor, service);
+        val signatureSigningConfiguration = getSignatureSigningConfiguration(service);
         criteria.add(new SignatureSigningConfigurationCriterion(signatureSigningConfiguration));
         criteria.add(new RoleDescriptorCriterion(descriptor));
         val resolver = new SAMLMetadataSignatureSigningParametersResolver();
@@ -222,17 +243,15 @@ public class SamlIdPObjectSigner {
     /**
      * Gets signature signing configuration.
      *
-     * @param roleDescriptor the role descriptor
-     * @param service        the service
+     * @param service the service
      * @return the signature signing configuration
      * @throws Exception the exception
      */
-    protected SignatureSigningConfiguration getSignatureSigningConfiguration(final RoleDescriptor roleDescriptor,
-                                                                             final SamlRegisteredService service) throws Exception {
+    protected SignatureSigningConfiguration getSignatureSigningConfiguration(final SamlRegisteredService service) throws Exception {
         val config = configureSignatureSigningSecurityConfiguration(service);
 
         val samlIdp = casProperties.getAuthn().getSamlIdp();
-        val privateKey = getSigningPrivateKey();
+        val privateKey = getSigningPrivateKey(service);
 
         val kekCredentialResolver = new MetadataCredentialResolver();
         val roleDescriptorResolver = SamlIdPUtils.getRoleDescriptorResolver(casSamlIdPMetadataResolver, samlIdp.getMetadata().isRequireValidMetadata());
@@ -247,7 +266,7 @@ public class SamlIdPObjectSigner {
         criteriaSet.add(new EntityRoleCriterion(IDPSSODescriptor.DEFAULT_ELEMENT_NAME));
 
         val credentials = Sets.<Credential>newLinkedHashSet(kekCredentialResolver.resolve(criteriaSet));
-        val creds = new ArrayList<Credential>();
+        val creds = new ArrayList<Credential>(2);
 
         credentials.forEach(c -> {
             val cred = getResolvedSigningCredential(c, privateKey, service);
@@ -327,9 +346,8 @@ public class SamlIdPObjectSigner {
 
     private AbstractCredential getResolvedSigningCredential(final Credential c, final PrivateKey privateKey,
                                                             final SamlRegisteredService service) {
-        val samlIdp = casProperties.getAuthn().getSamlIdp();
-
         try {
+            val samlIdp = casProperties.getAuthn().getSamlIdp();
             val credType = SamlIdPResponseProperties.SignatureCredentialTypes.valueOf(
                 StringUtils.defaultIfBlank(service.getSigningCredentialType(), samlIdp.getResponse().getCredentialType().name()).toUpperCase());
             LOGGER.trace("Requested credential type [{}] is found for service [{}]", credType, service.getName());
@@ -348,7 +366,7 @@ public class SamlIdPObjectSigner {
                         LOGGER.debug("Locating signature signing certificate from credential [{}]", CertUtils.toString(certificate));
                         return finalizeSigningCredential(new BasicX509Credential(certificate, privateKey), c);
                     }
-                    val signingCert = samlIdPMetadataLocator.getSigningCertificate();
+                    val signingCert = samlIdPMetadataLocator.resolveSigningCertificate(Optional.of(service));
                     LOGGER.debug("Locating signature signing certificate file from [{}]", signingCert);
                     val certificate = SamlUtils.readCertificate(signingCert);
                     return finalizeSigningCredential(new BasicX509Credential(certificate, privateKey), c);
@@ -359,39 +377,26 @@ public class SamlIdPObjectSigner {
         return null;
     }
 
-    private static boolean doesCredentialFingerprintMatch(final AbstractCredential credential, final SamlRegisteredService samlRegisteredService) {
-        val fingerprint = samlRegisteredService.getSigningCredentialFingerprint();
-        if (StringUtils.isNotBlank(fingerprint)) {
-            val digest = DigestUtils.digest("SHA-1", Objects.requireNonNull(credential.getPublicKey()).getEncoded());
-            val pattern = RegexUtils.createPattern(fingerprint, Pattern.CASE_INSENSITIVE);
-            LOGGER.debug("Matching credential fingerprint [{}] against filter [{}] for service [{}]", digest, fingerprint, samlRegisteredService.getName());
-            return pattern.matcher(digest).find();
-        }
-        return true;
-    }
-
-    private static AbstractCredential finalizeSigningCredential(final MutableCredential credential, final Credential original) {
-        credential.setEntityId(original.getEntityId());
-        credential.setUsageType(original.getUsageType());
-        Objects.requireNonNull(original.getCredentialContextSet())
-            .forEach(ctx -> Objects.requireNonNull(credential.getCredentialContextSet()).add(ctx));
-        return (AbstractCredential) credential;
-    }
-
     /**
      * Gets signing private key.
      *
+     * @param registeredService the registered service
      * @return the signing private key
      * @throws Exception the exception
      */
-    protected PrivateKey getSigningPrivateKey() throws Exception {
+    protected PrivateKey getSigningPrivateKey(final SamlRegisteredService registeredService) throws Exception {
         val samlIdp = casProperties.getAuthn().getSamlIdp();
-        val signingKey = samlIdPMetadataLocator.getSigningKey();
+        val signingKey = samlIdPMetadataLocator.resolveSigningKey(Optional.of(registeredService));
         val privateKeyFactoryBean = new PrivateKeyFactoryBean();
         privateKeyFactoryBean.setLocation(signingKey);
-        privateKeyFactoryBean.setAlgorithm(samlIdp.getMetadata().getPrivateKeyAlgName());
+        if (StringUtils.isBlank(registeredService.getSigningKeyAlgorithm())) {
+            privateKeyFactoryBean.setAlgorithm(samlIdp.getMetadata().getPrivateKeyAlgName());
+        } else {
+            privateKeyFactoryBean.setAlgorithm(registeredService.getSigningKeyAlgorithm());
+        }
         privateKeyFactoryBean.setSingleton(false);
-        LOGGER.debug("Locating signature signing key from [{}]", signingKey);
+        LOGGER.debug("Locating signature signing key for [{}] using algorithm [{}}",
+            registeredService, privateKeyFactoryBean.getAlgorithm());
         return privateKeyFactoryBean.getObject();
     }
 }

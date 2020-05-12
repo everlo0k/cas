@@ -4,7 +4,9 @@ import org.apereo.cas.web.flow.logout.TerminateSessionAction;
 import org.apereo.cas.web.support.WebUtils;
 
 import lombok.val;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -24,10 +26,11 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 5.3.0
  */
 @TestPropertySource(properties = {"cas.tgc.crypto.enabled=false", "cas.logout.confirmLogout=true"})
+@Tag("Webflow")
 public class TerminateSessionConfirmingActionTests extends AbstractWebflowActionsTests {
     @Autowired
     @Qualifier("terminateSessionAction")
-    private Action action;
+    private ObjectProvider<Action> action;
 
     @Test
     public void verifyTerminateActionConfirmed() throws Exception {
@@ -36,7 +39,7 @@ public class TerminateSessionConfirmingActionTests extends AbstractWebflowAction
         request.addParameter(TerminateSessionAction.REQUEST_PARAM_LOGOUT_REQUEST_CONFIRMED, "true");
         context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, new MockHttpServletResponse()));
         WebUtils.putTicketGrantingTicketInScopes(context, "TGT-123456-something");
-        assertEquals(CasWebflowConstants.TRANSITION_ID_SUCCESS, action.execute(context).getId());
+        assertEquals(CasWebflowConstants.TRANSITION_ID_SUCCESS, this.action.getObject().execute(context).getId());
         assertNotNull(WebUtils.getLogoutRequests(context));
     }
 
@@ -46,6 +49,6 @@ public class TerminateSessionConfirmingActionTests extends AbstractWebflowAction
         val request = new MockHttpServletRequest();
         context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, new MockHttpServletResponse()));
         WebUtils.putTicketGrantingTicketInScopes(context, "TGT-123456-something");
-        assertEquals(CasWebflowConstants.STATE_ID_WARN, action.execute(context).getId());
+        assertEquals(CasWebflowConstants.STATE_ID_WARN, this.action.getObject().execute(context).getId());
     }
 }

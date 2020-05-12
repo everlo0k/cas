@@ -6,7 +6,7 @@ import org.apereo.cas.web.flow.CasWebflowConstants;
 import org.apereo.cas.web.flow.configurer.AbstractCasWebflowConfigurer;
 
 import lombok.val;
-import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.webflow.action.EvaluateAction;
 import org.springframework.webflow.definition.registry.FlowDefinitionRegistry;
 import org.springframework.webflow.engine.ActionState;
@@ -22,18 +22,22 @@ import org.springframework.webflow.engine.builder.support.FlowBuilderServices;
  * @since 5.2.0
  */
 public class InterruptWebflowConfigurer extends AbstractCasWebflowConfigurer {
-    private static final String INTERRUPT_VIEW_ID = "casInterruptView";
+    static final String INTERRUPT_VIEW = "casInterruptView";
 
-    private static final String VIEW_ID_INTERRUPT_VIEW = "interruptView";
+    static final String VIEW_ID_INTERRUPT_VIEW = "interruptView";
 
-    private static final String STATE_ID_INQUIRE_INTERRUPT_ACTION = "inquireInterruptAction";
-    private static final String STATE_ID_FINALIZE_INTERRUPT_ACTION = "finalizeInterruptFlowAction";
-    private static final String STATE_ID_PREPARE_INTERRUPT_VIEW_ACTION = "prepareInterruptViewAction";
-    private static final String STATE_ID_FINISHED_INTERRUPT = "finishedInterrupt";
+    static final String STATE_ID_INQUIRE_INTERRUPT_ACTION = "inquireInterruptAction";
+
+    static final String STATE_ID_FINALIZE_INTERRUPT_ACTION = "finalizeInterruptFlowAction";
+
+    static final String STATE_ID_FINISHED_INTERRUPT = "finishedInterrupt";
+    
+    static final String ACTION_ID_PREPARE_INTERRUPT_VIEW = "prepareInterruptViewAction";
+
 
     public InterruptWebflowConfigurer(final FlowBuilderServices flowBuilderServices,
                                       final FlowDefinitionRegistry flowDefinitionRegistry,
-                                      final ApplicationContext applicationContext,
+                                      final ConfigurableApplicationContext applicationContext,
                                       final CasConfigurationProperties casProperties) {
         super(flowBuilderServices, flowDefinitionRegistry, applicationContext, casProperties);
     }
@@ -80,8 +84,8 @@ public class InterruptWebflowConfigurer extends AbstractCasWebflowConfigurer {
     }
 
     private void createInterruptView(final Flow flow) {
-        val viewState = createViewState(flow, VIEW_ID_INTERRUPT_VIEW, INTERRUPT_VIEW_ID);
-        viewState.getEntryActionList().add(createEvaluateAction(STATE_ID_PREPARE_INTERRUPT_VIEW_ACTION));
+        val viewState = createViewState(flow, VIEW_ID_INTERRUPT_VIEW, INTERRUPT_VIEW);
+        viewState.getEntryActionList().add(createEvaluateAction(ACTION_ID_PREPARE_INTERRUPT_VIEW));
         createStateDefaultTransition(viewState, STATE_ID_FINALIZE_INTERRUPT_ACTION);
 
         val target = getRealSubmissionState(flow).getTransition(CasWebflowConstants.TRANSITION_ID_SUCCESS).getTargetStateId();

@@ -44,7 +44,6 @@ public class SimpleHttpClient implements HttpClient, Serializable, DisposableBea
      */
     private static final long serialVersionUID = -4949380008568071855L;
 
-
     /**
      * the acceptable codes supported by this client.
      */
@@ -59,6 +58,11 @@ public class SimpleHttpClient implements HttpClient, Serializable, DisposableBea
      * the request executor service for this client.
      */
     private final FutureRequestExecutionService requestExecutorService;
+
+    /**
+     * The client factory that created and initialized this client instance.
+     */
+    private final SimpleHttpClientFactoryBean httpClientFactory;
 
     @Override
     public boolean sendMessageToEndPoint(final HttpMessage message) {
@@ -153,12 +157,11 @@ public class SimpleHttpClient implements HttpClient, Serializable, DisposableBea
         return false;
     }
 
-    /**
-     * Shutdown the executor service and close the http client.
-     */
     @Override
     public void destroy() {
+        IOUtils.closeQuietly(this.wrappedHttpClient);
         IOUtils.closeQuietly(this.requestExecutorService);
+        this.httpClientFactory.destroy();
     }
 
 }

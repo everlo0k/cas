@@ -4,7 +4,7 @@ import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.web.flow.configurer.AbstractCasWebflowConfigurer;
 
 import lombok.val;
-import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.webflow.definition.registry.FlowDefinitionRegistry;
 import org.springframework.webflow.engine.builder.support.FlowBuilderServices;
 
@@ -17,9 +17,11 @@ import org.springframework.webflow.engine.builder.support.FlowBuilderServices;
  */
 public class TrustedAuthenticationWebflowConfigurer extends AbstractCasWebflowConfigurer {
 
+    private static final String ACTION_ID_REMOTE_USER_AUTHENTICATION_ACTION = "remoteUserAuthenticationAction";
+
     public TrustedAuthenticationWebflowConfigurer(final FlowBuilderServices flowBuilderServices,
                                                   final FlowDefinitionRegistry loginFlowDefinitionRegistry,
-                                                  final ApplicationContext applicationContext,
+                                                  final ConfigurableApplicationContext applicationContext,
                                                   final CasConfigurationProperties casProperties) {
         super(flowBuilderServices, loginFlowDefinitionRegistry, applicationContext, casProperties);
     }
@@ -28,7 +30,7 @@ public class TrustedAuthenticationWebflowConfigurer extends AbstractCasWebflowCo
     protected void doInitialize() {
         val flow = getLoginFlow();
         if (flow != null) {
-            val action = createEvaluateAction("remoteUserAuthenticationAction");
+            val action = createEvaluateAction(ACTION_ID_REMOTE_USER_AUTHENTICATION_ACTION);
             val actionState = createActionState(flow, CasWebflowConstants.ACTION_ID_REMOTE_TRUSTED_AUTHENTICATION, action);
             createTransitionForState(actionState, CasWebflowConstants.TRANSITION_ID_SUCCESS, CasWebflowConstants.STATE_ID_CREATE_TICKET_GRANTING_TICKET);
             val currentStartState = getStartState(flow).getId();

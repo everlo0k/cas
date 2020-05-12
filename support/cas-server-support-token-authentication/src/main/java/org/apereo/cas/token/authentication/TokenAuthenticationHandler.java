@@ -81,38 +81,30 @@ public class TokenAuthenticationHandler extends AbstractTokenWrapperAuthenticati
 
         val service = this.servicesManager.findServiceBy(tokenCredential.getService());
         val signingSecret = getRegisteredServiceJwtSigningSecret(service);
-        val encryptionSecret = getRegisteredServiceJwtEncryptionSecret(service);
-
-        val serviceSigningAlg = getRegisteredServiceJwtProperty(service,
-            RegisteredServiceProperties.TOKEN_SECRET_SIGNING_ALG);
-        val signingSecretAlg = StringUtils.defaultString(serviceSigningAlg, JWSAlgorithm.HS256.getName());
-
-        val encryptionAlg = getRegisteredServiceJwtProperty(service,
-            RegisteredServiceProperties.TOKEN_SECRET_ENCRYPTION_ALG);
-        val encryptionSecretAlg = StringUtils.defaultString(encryptionAlg, JWEAlgorithm.DIR.getName());
-
-        val encryptionMethod = getRegisteredServiceJwtProperty(service,
-            RegisteredServiceProperties.TOKEN_SECRET_ENCRYPTION_METHOD);
-        val encryptionSecretMethod = StringUtils.defaultString(encryptionMethod, EncryptionMethod.A192CBC_HS384.getName());
-        val secretIsBase64String = getRegisteredServiceJwtProperty(service,
-            RegisteredServiceProperties.TOKEN_SECRETS_ARE_BASE64_ENCODED);
-        val secretsAreBase64Encoded = BooleanUtils.toBoolean(secretIsBase64String);
 
         if (StringUtils.isNotBlank(signingSecret)) {
-            Set<Algorithm> sets = new HashSet<>();
+            val serviceSigningAlg = getRegisteredServiceJwtProperty(service,
+                RegisteredServiceProperties.TOKEN_SECRET_SIGNING_ALG);
+
+            Set<Algorithm> sets = new HashSet<>(0);
             sets.addAll(JWSAlgorithm.Family.EC);
             sets.addAll(JWSAlgorithm.Family.HMAC_SHA);
             sets.addAll(JWSAlgorithm.Family.RSA);
             sets.addAll(JWSAlgorithm.Family.SIGNATURE);
-
+            val signingSecretAlg = StringUtils.defaultString(serviceSigningAlg, JWSAlgorithm.HS256.getName());
             val signingAlg = findAlgorithmFamily(sets, signingSecretAlg, JWSAlgorithm.class);
 
             val jwtAuthenticator = new JwtAuthenticator();
+
+            val secretIsBase64String = getRegisteredServiceJwtProperty(service,
+                RegisteredServiceProperties.TOKEN_SECRETS_ARE_BASE64_ENCODED);
+            val secretsAreBase64Encoded = BooleanUtils.toBoolean(secretIsBase64String);
             val secretBytes = getSecretBytes(signingSecret, secretsAreBase64Encoded);
             jwtAuthenticator.setSignatureConfiguration(new SecretSignatureConfiguration(secretBytes, signingAlg));
 
+            val encryptionSecret = getRegisteredServiceJwtEncryptionSecret(service);
             if (StringUtils.isNotBlank(encryptionSecret)) {
-                sets = new HashSet<>();
+                sets = new HashSet<>(0);
                 sets.addAll(JWEAlgorithm.Family.AES_GCM_KW);
                 sets.addAll(JWEAlgorithm.Family.AES_KW);
                 sets.addAll(JWEAlgorithm.Family.ASYMMETRIC);
@@ -121,17 +113,27 @@ public class TokenAuthenticationHandler extends AbstractTokenWrapperAuthenticati
                 sets.addAll(JWEAlgorithm.Family.RSA);
                 sets.addAll(JWEAlgorithm.Family.SYMMETRIC);
 
+                val encryptionAlg = getRegisteredServiceJwtProperty(service,
+                    RegisteredServiceProperties.TOKEN_SECRET_ENCRYPTION_ALG);
+
+                val encryptionSecretAlg = StringUtils.defaultString(encryptionAlg, JWEAlgorithm.DIR.getName());
                 val encAlg = findAlgorithmFamily(sets, encryptionSecretAlg, JWEAlgorithm.class);
 
-                sets = new HashSet<>();
+                sets = new HashSet<>(0);
                 sets.addAll(EncryptionMethod.Family.AES_CBC_HMAC_SHA);
                 sets.addAll(EncryptionMethod.Family.AES_GCM);
 
+                val encryptionMethod = getRegisteredServiceJwtProperty(service,
+                    RegisteredServiceProperties.TOKEN_SECRET_ENCRYPTION_METHOD);
+
+                val encryptionSecretMethod = StringUtils.defaultString(encryptionMethod, EncryptionMethod.A192CBC_HS384.getName());
                 val encMethod = findAlgorithmFamily(sets, encryptionSecretMethod, EncryptionMethod.class);
                 val encSecretBytes = getSecretBytes(encryptionSecret, secretsAreBase64Encoded);
                 jwtAuthenticator.setEncryptionConfiguration(new SecretEncryptionConfiguration(encSecretBytes, encAlg, encMethod));
             } else {
-                LOGGER.warn("JWT authentication is configured to share jwtAuthenticator single key for both signing/encryption");
+                LOGGER.info("No token encryption secret is defined for service [{}]. You may want to use the [{}] property",
+                        service.getServiceId(),
+                        RegisteredServiceProperties.TOKEN_SECRET_ENCRYPTION.getPropertyName());
             }
             return jwtAuthenticator;
         }
@@ -176,7 +178,7 @@ public class TokenAuthenticationHandler extends AbstractTokenWrapperAuthenticati
         if (propName.isAssignedTo(service)) {
             return propName.getPropertyValue(service).getValue();
         }
-        LOGGER.warn("Service [{}] does not define a property [{}] in the registry", service.getServiceId(), propName);
+        LOGGER.trace("Service [{}] does not define a property [{}] in the registry", service.getServiceId(), propName);
         return null;
     }
 

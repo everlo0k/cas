@@ -3,7 +3,7 @@ package org.apereo.cas.support.oauth.web.endpoints;
 import org.apereo.cas.support.oauth.OAuth20Constants;
 import org.apereo.cas.support.oauth.util.OAuth20Utils;
 import org.apereo.cas.ticket.TicketState;
-import org.apereo.cas.ticket.accesstoken.AccessToken;
+import org.apereo.cas.ticket.accesstoken.OAuth20AccessToken;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -29,7 +29,7 @@ import javax.servlet.http.HttpServletResponse;
  */
 @Slf4j
 public class OAuth20UserProfileEndpointController extends BaseOAuth20Controller {
-    private final ResponseEntity expiredAccessTokenResponseEntity;
+    private final ResponseEntity<String> expiredAccessTokenResponseEntity;
 
     public OAuth20UserProfileEndpointController(final OAuth20ConfigurationContext configurationContext) {
         super(configurationContext);
@@ -72,7 +72,8 @@ public class OAuth20UserProfileEndpointController extends BaseOAuth20Controller 
      * @return the response entity
      * @throws Exception the exception
      */
-    @GetMapping(path = OAuth20Constants.BASE_OAUTH20_URL + '/' + OAuth20Constants.PROFILE_URL)
+    @GetMapping(path = OAuth20Constants.BASE_OAUTH20_URL + '/' + OAuth20Constants.PROFILE_URL,
+        produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> handleGetRequest(final HttpServletRequest request,
                                                    final HttpServletResponse response) throws Exception {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -83,26 +84,15 @@ public class OAuth20UserProfileEndpointController extends BaseOAuth20Controller 
             LOGGER.error("Missing [{}] from the request", OAuth20Constants.ACCESS_TOKEN);
             return buildUnauthorizedResponseEntity(OAuth20Constants.MISSING_ACCESS_TOKEN);
         }
-        val accessTokenTicket = getOAuthConfigurationContext().getTicketRegistry().getTicket(accessToken, AccessToken.class);
+        val accessTokenTicket = getOAuthConfigurationContext().getTicketRegistry()
+            .getTicket(accessToken, OAuth20AccessToken.class);
 
-        if (accessTokenTicket == null) {
-            LOGGER.error("Access token [{}] cannot be found in the ticket registry.", accessToken);
-            return expiredAccessTokenResponseEntity;
-        }
-        if (accessTokenTicket.isExpired()) {
-            LOGGER.error("Access token [{}] has expired and will be removed from the ticket registry", accessToken);
-            getOAuthConfigurationContext().getTicketRegistry().deleteTicket(accessToken);
-            return expiredAccessTokenResponseEntity;
-        }
-
-        if (getOAuthConfigurationContext().getCasProperties().getLogout().isRemoveDescendantTickets()) {
-            val ticketGrantingTicket = accessTokenTicket.getTicketGrantingTicket();
-            if (ticketGrantingTicket == null || ticketGrantingTicket.isExpired()) {
-                LOGGER.error("Ticket granting ticket [{}] parenting access token [{}] has expired or is not found",
-                    ticketGrantingTicket, accessTokenTicket);
-                getOAuthConfigurationContext().getTicketRegistry().deleteTicket(accessToken);
-                return expiredAccessTokenResponseEntity;
+        if (accessTokenTicket == null || accessTokenTicket.isExpired()) {
+            LOGGER.error("Access token [{}] cannot be found in the ticket registry or has expired.", accessToken);
+            if (accessTokenTicket != null) {
+                getOAuthConfigurationContext().getTicketRegistry().deleteTicket(accessTokenTicket);
             }
+            return expiredAccessTokenResponseEntity;
         }
         updateAccessTokenUsage(accessTokenTicket);
 
@@ -115,7 +105,7 @@ public class OAuth20UserProfileEndpointController extends BaseOAuth20Controller 
      *
      * @param accessTokenTicket the access token
      */
-    protected void updateAccessTokenUsage(final AccessToken accessTokenTicket) {
+    protected void updateAccessTokenUsage(final OAuth20AccessToken accessTokenTicket) {
         val accessTokenState = TicketState.class.cast(accessTokenTicket);
         accessTokenState.update();
         if (accessTokenTicket.isExpired()) {
@@ -141,6 +131,6 @@ public class OAuth20UserProfileEndpointController extends BaseOAuth20Controller 
             }
         }
         LOGGER.debug("[{}]: [{}]", OAuth20Constants.ACCESS_TOKEN, accessToken);
-        return accessToken;
+        return extractAccessTokenFrom(accessToken);
     }
 }

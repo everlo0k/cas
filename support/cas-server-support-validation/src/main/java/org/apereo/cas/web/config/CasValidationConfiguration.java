@@ -13,6 +13,7 @@ import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.validation.AuthenticationAttributeReleasePolicy;
 import org.apereo.cas.validation.CasProtocolAttributesRenderer;
 import org.apereo.cas.validation.CasProtocolValidationSpecification;
+import org.apereo.cas.validation.CasProtocolViewFactory;
 import org.apereo.cas.validation.ChainingCasProtocolValidationSpecification;
 import org.apereo.cas.validation.RequestedAuthenticationContextValidator;
 import org.apereo.cas.validation.ServiceTicketValidationAuthorizersExecutionPlan;
@@ -44,10 +45,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationContext;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
+import org.springframework.http.MediaType;
 import org.springframework.web.servlet.View;
 
 import java.util.ArrayList;
@@ -63,7 +66,11 @@ import java.util.ArrayList;
 public class CasValidationConfiguration {
 
     @Autowired
-    private ApplicationContext applicationContext;
+    @Qualifier("casProtocolViewFactory")
+    private ObjectProvider<CasProtocolViewFactory> casProtocolViewFactory;
+
+    @Autowired
+    private ConfigurableApplicationContext applicationContext;
 
     @Autowired
     private CasConfigurationProperties casProperties;
@@ -71,10 +78,6 @@ public class CasValidationConfiguration {
     @Autowired
     @Qualifier("casAttributeEncoder")
     private ObjectProvider<ProtocolAttributeEncoder> protocolAttributeEncoder;
-
-    @Autowired
-    @Qualifier("cas3SuccessView")
-    private ObjectProvider<View> cas3SuccessView;
 
     @Autowired
     @Qualifier("authenticationAttributeReleasePolicy")
@@ -97,28 +100,8 @@ public class CasValidationConfiguration {
     private ServiceFactory<WebApplicationService> webApplicationServiceFactory;
 
     @Autowired
-    @Qualifier("cas2ServiceFailureView")
-    private ObjectProvider<View> cas2ServiceFailureView;
-
-    @Autowired
-    @Qualifier("cas2SuccessView")
-    private ObjectProvider<View> cas2SuccessView;
-
-    @Autowired
     @Qualifier("serviceValidationAuthorizers")
     private ObjectProvider<ServiceTicketValidationAuthorizersExecutionPlan> serviceValidationAuthorizers;
-
-    @Autowired
-    @Qualifier("cas3ServiceFailureView")
-    private ObjectProvider<View> cas3ServiceFailureView;
-
-    @Autowired
-    @Qualifier("cas2ProxySuccessView")
-    private ObjectProvider<View> cas2ProxySuccessView;
-
-    @Autowired
-    @Qualifier("cas2ProxyFailureView")
-    private ObjectProvider<View> cas2ProxyFailureView;
 
     @Autowired
     @Qualifier("proxy10Handler")
@@ -154,51 +137,56 @@ public class CasValidationConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(name = "cas1ServiceSuccessView")
+    @RefreshScope
     public View cas1ServiceSuccessView() {
         return new Cas10ResponseView(true,
-            protocolAttributeEncoder.getIfAvailable(),
-            servicesManager.getIfAvailable(),
-            authenticationAttributeReleasePolicy.getIfAvailable(),
-            authenticationServiceSelectionPlan.getIfAvailable(),
+            protocolAttributeEncoder.getObject(),
+            servicesManager.getObject(),
+            authenticationAttributeReleasePolicy.getObject(),
+            authenticationServiceSelectionPlan.getObject(),
             cas1ProtocolAttributesRenderer());
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "cas1ServiceFailureView")
+    @RefreshScope
     public View cas1ServiceFailureView() {
         return new Cas10ResponseView(false,
-            protocolAttributeEncoder.getIfAvailable(),
-            servicesManager.getIfAvailable(),
-            authenticationAttributeReleasePolicy.getIfAvailable(),
-            authenticationServiceSelectionPlan.getIfAvailable(),
+            protocolAttributeEncoder.getObject(),
+            servicesManager.getObject(),
+            authenticationAttributeReleasePolicy.getObject(),
+            authenticationServiceSelectionPlan.getObject(),
             cas1ProtocolAttributesRenderer());
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "cas2ServiceSuccessView")
+    @RefreshScope
     public View cas2ServiceSuccessView() {
         return new Cas20ResponseView(true,
-            protocolAttributeEncoder.getIfAvailable(),
-            servicesManager.getIfAvailable(),
-            cas2SuccessView.getIfAvailable(),
-            authenticationAttributeReleasePolicy.getIfAvailable(),
-            authenticationServiceSelectionPlan.getIfAvailable(),
+            protocolAttributeEncoder.getObject(),
+            servicesManager.getObject(),
+            cas2SuccessView(),
+            authenticationAttributeReleasePolicy.getObject(),
+            authenticationServiceSelectionPlan.getObject(),
             NoOpProtocolAttributesRenderer.INSTANCE);
     }
 
     @Bean
+    @RefreshScope
     @ConditionalOnMissingBean(name = "cas3ServiceJsonView")
     public View cas3ServiceJsonView() {
         return new Cas30JsonResponseView(true,
-            protocolAttributeEncoder.getIfAvailable(),
-            servicesManager.getIfAvailable(),
-            authenticationAttributeReleasePolicy.getIfAvailable(),
-            authenticationServiceSelectionPlan.getIfAvailable(),
+            protocolAttributeEncoder.getObject(),
+            servicesManager.getObject(),
+            authenticationAttributeReleasePolicy.getObject(),
+            authenticationServiceSelectionPlan.getObject(),
             cas3ProtocolAttributesRenderer());
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "cas3ProtocolAttributesRenderer")
+    @RefreshScope
     public CasProtocolAttributesRenderer cas3ProtocolAttributesRenderer() {
         switch (casProperties.getView().getCas3().getAttributeRendererType()) {
             case INLINE:
@@ -211,6 +199,7 @@ public class CasValidationConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(name = "cas1ProtocolAttributesRenderer")
+    @RefreshScope
     public CasProtocolAttributesRenderer cas1ProtocolAttributesRenderer() {
         switch (casProperties.getView().getCas1().getAttributeRendererType()) {
             case VALUES_PER_LINE:
@@ -223,49 +212,33 @@ public class CasValidationConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(name = "cas3ServiceSuccessView")
+    @RefreshScope
     public View cas3ServiceSuccessView() {
         return new Cas30ResponseView(true,
-            protocolAttributeEncoder.getIfAvailable(),
-            servicesManager.getIfAvailable(),
-            cas3SuccessView.getIfAvailable(),
-            authenticationAttributeReleasePolicy.getIfAvailable(),
-            authenticationServiceSelectionPlan.getIfAvailable(),
+            protocolAttributeEncoder.getObject(),
+            servicesManager.getObject(),
+            cas3SuccessView(),
+            authenticationAttributeReleasePolicy.getObject(),
+            authenticationServiceSelectionPlan.getObject(),
             cas3ProtocolAttributesRenderer());
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "proxyController")
-    @ConditionalOnProperty(prefix = "cas.sso", name = "proxyAuthnEnabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "cas.sso", name = "proxy-authn-enabled", havingValue = "true", matchIfMissing = true)
     public ProxyController proxyController() {
-        return new ProxyController(cas2ProxySuccessView.getIfAvailable(),
-            cas2ProxyFailureView.getIfAvailable(),
-            centralAuthenticationService.getIfAvailable(),
+        return new ProxyController(cas2ProxySuccessView(),
+            cas2ProxyFailureView(),
+            centralAuthenticationService.getObject(),
             webApplicationServiceFactory,
             applicationContext);
     }
 
+    @RefreshScope
     @Bean
     @ConditionalOnMissingBean(name = "serviceValidationViewFactory")
     public ServiceValidationViewFactory serviceValidationViewFactory() {
         val viewFactory = new ServiceValidationViewFactory();
-
-        viewFactory.registerView(ServiceValidationViewTypes.JSON, cas3ServiceJsonView());
-
-        val successViewV3 = cas3ServiceSuccessView();
-        viewFactory.registerView(V3ServiceValidateController.class, Pair.of(successViewV3, cas3ServiceFailureView.getIfAvailable()));
-        viewFactory.registerView(V3ProxyValidateController.class, Pair.of(successViewV3, cas3ServiceFailureView.getIfAvailable()));
-
-        if (casProperties.getView().getCas2().isV3ForwardCompatible()) {
-            viewFactory.registerView(ProxyValidateController.class, Pair.of(successViewV3, cas3ServiceFailureView.getIfAvailable()));
-            viewFactory.registerView(ServiceValidateController.class, Pair.of(successViewV3, cas3ServiceFailureView.getIfAvailable()));
-        } else {
-            val successViewV2 = cas2ServiceSuccessView();
-            viewFactory.registerView(ProxyValidateController.class, Pair.of(successViewV2, cas2ServiceFailureView.getIfAvailable()));
-            viewFactory.registerView(ServiceValidateController.class, Pair.of(successViewV2, cas2ServiceFailureView.getIfAvailable()));
-        }
-
-        viewFactory.registerView(LegacyValidateController.class, Pair.of(cas1ServiceSuccessView(), cas1ServiceFailureView()));
-
         val configurers = applicationContext.getBeansOfType(ServiceValidationViewFactoryConfigurer.class, false, true);
         val results = new ArrayList<ServiceValidationViewFactoryConfigurer>(configurers.values());
         AnnotationAwareOrderComparator.sort(results);
@@ -273,11 +246,37 @@ public class CasValidationConfiguration {
         return viewFactory;
     }
 
+    @RefreshScope
+    @Bean
+    @ConditionalOnMissingBean(name = "casServiceValidationViewFactoryConfigurer")
+    public ServiceValidationViewFactoryConfigurer casServiceValidationViewFactoryConfigurer() {
+        return viewFactory -> {
+            viewFactory.registerView(ServiceValidationViewTypes.JSON, cas3ServiceJsonView());
+
+            val successViewV3 = cas3ServiceSuccessView();
+            val failureViewV3 = cas3ServiceFailureView();
+            viewFactory.registerView(V3ServiceValidateController.class, Pair.of(successViewV3, failureViewV3));
+            viewFactory.registerView(V3ProxyValidateController.class, Pair.of(successViewV3, failureViewV3));
+
+            if (casProperties.getView().getCas2().isV3ForwardCompatible()) {
+                viewFactory.registerView(ProxyValidateController.class, Pair.of(successViewV3, failureViewV3));
+                viewFactory.registerView(ServiceValidateController.class, Pair.of(successViewV3, failureViewV3));
+            } else {
+                val successViewV2 = cas2ServiceSuccessView();
+                val failureViewV2 = cas2ServiceFailureView();
+                viewFactory.registerView(ProxyValidateController.class, Pair.of(successViewV2, failureViewV2));
+                viewFactory.registerView(ServiceValidateController.class, Pair.of(successViewV2, failureViewV2));
+            }
+
+            viewFactory.registerView(LegacyValidateController.class, Pair.of(cas1ServiceSuccessView(), cas1ServiceFailureView()));
+        };
+    }
+
     @Bean
     @ConditionalOnMissingBean(name = "v3ServiceValidateControllerValidationSpecification")
     public CasProtocolValidationSpecification v3ServiceValidateControllerValidationSpecification() {
         val validationChain = new ChainingCasProtocolValidationSpecification();
-        validationChain.addSpecification(cas20WithoutProxyProtocolValidationSpecification.getIfAvailable());
+        validationChain.addSpecification(cas20WithoutProxyProtocolValidationSpecification.getObject());
         return validationChain;
     }
 
@@ -286,27 +285,27 @@ public class CasValidationConfiguration {
     public V3ServiceValidateController v3ServiceValidateController() {
         val context = getServiceValidateConfigurationContextBuilder()
             .validationSpecifications(CollectionUtils.wrapSet(v3ServiceValidateControllerValidationSpecification()))
-            .proxyHandler(proxy20Handler.getIfAvailable())
+            .proxyHandler(proxy20Handler.getObject())
             .build();
         return new V3ServiceValidateController(context);
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "v3ProxyValidateControllerValidationSpecification")
-    @ConditionalOnProperty(prefix = "cas.sso", name = "proxyAuthnEnabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "cas.sso", name = "proxy-authn-enabled", havingValue = "true", matchIfMissing = true)
     public CasProtocolValidationSpecification v3ProxyValidateControllerValidationSpecification() {
         val validationChain = new ChainingCasProtocolValidationSpecification();
-        validationChain.addSpecification(cas20ProtocolValidationSpecification.getIfAvailable());
+        validationChain.addSpecification(cas20ProtocolValidationSpecification.getObject());
         return validationChain;
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "v3ProxyValidateController")
-    @ConditionalOnProperty(prefix = "cas.sso", name = "proxyAuthnEnabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "cas.sso", name = "proxy-authn-enabled", havingValue = "true", matchIfMissing = true)
     public V3ProxyValidateController v3ProxyValidateController() {
         val context = getServiceValidateConfigurationContextBuilder()
             .validationSpecifications(CollectionUtils.wrapSet(v3ProxyValidateControllerValidationSpecification()))
-            .proxyHandler(proxy20Handler.getIfAvailable())
+            .proxyHandler(proxy20Handler.getObject())
             .build();
         return new V3ProxyValidateController(context);
     }
@@ -315,7 +314,7 @@ public class CasValidationConfiguration {
     @ConditionalOnMissingBean(name = "proxyValidateControllerValidationSpecification")
     public CasProtocolValidationSpecification proxyValidateControllerValidationSpecification() {
         val validationChain = new ChainingCasProtocolValidationSpecification();
-        validationChain.addSpecification(cas20ProtocolValidationSpecification.getIfAvailable());
+        validationChain.addSpecification(cas20ProtocolValidationSpecification.getObject());
         return validationChain;
     }
 
@@ -324,7 +323,7 @@ public class CasValidationConfiguration {
     public ProxyValidateController proxyValidateController() {
         val context = getServiceValidateConfigurationContextBuilder()
             .validationSpecifications(CollectionUtils.wrapSet(proxyValidateControllerValidationSpecification()))
-            .proxyHandler(proxy20Handler.getIfAvailable())
+            .proxyHandler(proxy20Handler.getObject())
             .build();
         return new ProxyValidateController(context);
     }
@@ -333,7 +332,7 @@ public class CasValidationConfiguration {
     @ConditionalOnMissingBean(name = "legacyValidateControllerValidationSpecification")
     public CasProtocolValidationSpecification legacyValidateControllerValidationSpecification() {
         val validationChain = new ChainingCasProtocolValidationSpecification();
-        validationChain.addSpecification(cas10ProtocolValidationSpecification.getIfAvailable());
+        validationChain.addSpecification(cas10ProtocolValidationSpecification.getObject());
         return validationChain;
     }
 
@@ -342,7 +341,7 @@ public class CasValidationConfiguration {
     public LegacyValidateController legacyValidateController() {
         val context = getServiceValidateConfigurationContextBuilder()
             .validationSpecifications(CollectionUtils.wrapSet(legacyValidateControllerValidationSpecification()))
-            .proxyHandler(proxy10Handler.getIfAvailable())
+            .proxyHandler(proxy10Handler.getObject())
             .build();
         return new LegacyValidateController(context);
     }
@@ -351,7 +350,7 @@ public class CasValidationConfiguration {
     @ConditionalOnMissingBean(name = "serviceValidateControllerValidationSpecification")
     public CasProtocolValidationSpecification serviceValidateControllerValidationSpecification() {
         val validationChain = new ChainingCasProtocolValidationSpecification();
-        validationChain.addSpecification(cas20WithoutProxyProtocolValidationSpecification.getIfAvailable());
+        validationChain.addSpecification(cas20WithoutProxyProtocolValidationSpecification.getObject());
         return validationChain;
     }
 
@@ -360,20 +359,68 @@ public class CasValidationConfiguration {
     public ServiceValidateController serviceValidateController() {
         val context = getServiceValidateConfigurationContextBuilder()
             .validationSpecifications(CollectionUtils.wrapSet(serviceValidateControllerValidationSpecification()))
-            .proxyHandler(proxy20Handler.getIfAvailable())
+            .proxyHandler(proxy20Handler.getObject())
             .build();
         return new ServiceValidateController(context);
     }
 
+    @Bean
+    public View cas2SuccessView() {
+        return casProtocolViewFactory.getObject().create(applicationContext,
+            casProperties.getView().getCas2().getSuccess(),
+            MediaType.APPLICATION_XML_VALUE);
+    }
+
+    @Bean
+    public View cas2ServiceFailureView() {
+        return casProtocolViewFactory.getObject().create(applicationContext,
+            casProperties.getView().getCas2().getFailure());
+    }
+
+    @ConditionalOnProperty(prefix = "cas.sso", name = "proxy-authn-enabled", havingValue = "true", matchIfMissing = true)
+    @Bean
+    public View cas2ProxyFailureView() {
+        return casProtocolViewFactory.getObject().create(applicationContext,
+            casProperties.getView().getCas2().getProxy().getFailure(),
+            MediaType.APPLICATION_XML_VALUE);
+    }
+
+    @ConditionalOnProperty(prefix = "cas.sso", name = "proxy-authn-enabled", havingValue = "true", matchIfMissing = true)
+    @Bean
+    public View cas2ProxySuccessView() {
+        return casProtocolViewFactory.getObject().create(applicationContext,
+            casProperties.getView().getCas2().getProxy().getSuccess(),
+            MediaType.APPLICATION_XML_VALUE);
+    }
+
+    @Bean
+    public View cas3SuccessView() {
+        return casProtocolViewFactory.getObject().create(applicationContext,
+            casProperties.getView().getCas3().getSuccess());
+    }
+
+    @Bean
+    public View cas3ServiceFailureView() {
+        return casProtocolViewFactory.getObject().create(applicationContext,
+            casProperties.getView().getCas3().getFailure(),
+            MediaType.APPLICATION_XML_VALUE);
+    }
+
+    @Bean
+    public View casPostResponseView() {
+        return casProtocolViewFactory.getObject().create(applicationContext,
+            "protocol/casPostResponseView");
+    }
+
     private ServiceValidateConfigurationContext.ServiceValidateConfigurationContextBuilder getServiceValidateConfigurationContextBuilder() {
         return ServiceValidateConfigurationContext.builder()
-            .authenticationSystemSupport(authenticationSystemSupport.getIfAvailable())
-            .servicesManager(servicesManager.getIfAvailable())
-            .centralAuthenticationService(centralAuthenticationService.getIfAvailable())
-            .argumentExtractor(argumentExtractor.getIfAvailable())
-            .requestedContextValidator(requestedContextValidator.getIfAvailable())
+            .authenticationSystemSupport(authenticationSystemSupport.getObject())
+            .servicesManager(servicesManager.getObject())
+            .centralAuthenticationService(centralAuthenticationService.getObject())
+            .argumentExtractor(argumentExtractor.getObject())
+            .requestedContextValidator(requestedContextValidator.getObject())
             .authnContextAttribute(casProperties.getAuthn().getMfa().getAuthenticationContextAttribute())
-            .validationAuthorizers(serviceValidationAuthorizers.getIfAvailable())
+            .validationAuthorizers(serviceValidationAuthorizers.getObject())
             .renewEnabled(casProperties.getSso().isRenewAuthnEnabled())
             .validationViewFactory(serviceValidationViewFactory());
     }

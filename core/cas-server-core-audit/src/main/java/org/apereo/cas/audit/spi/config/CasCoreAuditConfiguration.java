@@ -24,7 +24,6 @@ import org.apereo.cas.util.CollectionUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apereo.inspektr.audit.AuditTrailManagementAspect;
 import org.apereo.inspektr.audit.spi.AuditActionResolver;
@@ -35,12 +34,14 @@ import org.apereo.inspektr.audit.support.AbstractStringAuditTrailManager;
 import org.apereo.inspektr.audit.support.Slf4jLoggingAuditTrailManager;
 import org.apereo.inspektr.common.spi.PrincipalResolver;
 import org.apereo.inspektr.common.web.ClientInfoThreadLocalFilter;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
@@ -62,28 +63,36 @@ import java.util.Map;
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @Slf4j
-public class CasCoreAuditConfiguration implements AuditTrailExecutionPlanConfigurer, AuditTrailRecordResolutionPlanConfigurer {
+@ConditionalOnProperty(prefix = "cas.audit", name = "enabled", havingValue = "true", matchIfMissing = true)
+public class CasCoreAuditConfiguration {
 
     @Autowired
     private CasConfigurationProperties casProperties;
 
     @Autowired
-    private ApplicationContext applicationContext;
+    private ConfigurableApplicationContext applicationContext;
+
+    @Autowired
+    @Qualifier("auditTrailExecutionPlan")
+    private ObjectProvider<AuditTrailExecutionPlan> auditTrailExecutionPlan;
+
+    @Autowired
+    @Qualifier("auditTrailRecordResolutionPlan")
+    private ObjectProvider<AuditTrailRecordResolutionPlan> auditTrailRecordResolutionPlan;
 
     @Bean
-    public AuditTrailManagementAspect auditTrailManagementAspect(@Qualifier("auditTrailExecutionPlan")
-                                                                 final AuditTrailExecutionPlan auditTrailExecutionPlan,
-                                                                 @Qualifier("auditTrailRecordResolutionPlan")
-                                                                 final AuditTrailRecordResolutionPlan auditTrailRecordResolutionPlan) {
-        val supportedActions = casProperties.getAudit().getSupportedActions();
-        val auditManager = new FilterAndDelegateAuditTrailManager(auditTrailExecutionPlan.getAuditTrailManagers(), supportedActions);
+    public AuditTrailManagementAspect auditTrailManagementAspect() {
+        val audit = casProperties.getAudit();
+        val auditManager = new FilterAndDelegateAuditTrailManager(auditTrailExecutionPlan.getObject().getAuditTrailManagers(),
+            audit.getSupportedActions(), audit.getExcludedActions());
+        val auditRecordResolutionPlan = auditTrailRecordResolutionPlan.getObject();
         val aspect = new AuditTrailManagementAspect(
-            casProperties.getAudit().getAppCode(),
+            audit.getAppCode(),
             auditablePrincipalResolver(auditPrincipalIdProvider()),
             CollectionUtils.wrapList(auditManager),
-            auditTrailRecordResolutionPlan.getAuditActionResolvers(),
-            auditTrailRecordResolutionPlan.getAuditResourceResolvers());
-        aspect.setFailOnAuditFailures(!casProperties.getAudit().isIgnoreAuditFailures());
+            auditRecordResolutionPlan.getAuditActionResolvers(),
+            auditRecordResolutionPlan.getAuditResourceResolvers());
+        aspect.setFailOnAuditFailures(!audit.isIgnoreAuditFailures());
         return aspect;
     }
 
@@ -93,8 +102,7 @@ public class CasCoreAuditConfiguration implements AuditTrailExecutionPlanConfigu
     public AuditTrailRecordResolutionPlan auditTrailRecordResolutionPlan(final List<AuditTrailRecordResolutionPlanConfigurer> configurers) {
         val plan = new DefaultAuditTrailRecordResolutionPlan();
         configurers.forEach(c -> {
-            val name = RegExUtils.removePattern(c.getClass().getSimpleName(), "\\$.+");
-            LOGGER.trace("Registering audit trail manager [{}]", name);
+            LOGGER.trace("Registering audit trail manager [{}]", c.getName());
             c.configureAuditTrailRecordResolutionPlan(plan);
         });
         return plan;
@@ -106,8 +114,7 @@ public class CasCoreAuditConfiguration implements AuditTrailExecutionPlanConfigu
     public AuditTrailExecutionPlan auditTrailExecutionPlan(final List<AuditTrailExecutionPlanConfigurer> configurers) {
         val plan = new DefaultAuditTrailExecutionPlan();
         configurers.forEach(c -> {
-            val name = RegExUtils.removePattern(c.getClass().getSimpleName(), "\\$.+");
-            LOGGER.trace("Configuring audit trail execution plan via [{}]", name);
+            LOGGER.trace("Configuring audit trail execution plan via [{}]", c.getName());
             c.configureAuditTrailExecutionPlan(plan);
         });
         return plan;
@@ -230,25 +237,40 @@ public class CasCoreAuditConfiguration implements AuditTrailExecutionPlanConfigu
     public AuditPrincipalIdProvider auditPrincipalIdProvider() {
         val resolvers = applicationContext.getBeansOfType(AuditPrincipalIdProvider.class, false, true);
         val providers = new ArrayList<AuditPrincipalIdProvider>(resolvers.values());
-        AnnotationAwareOrderComparator.sort(providers);
+        AnnotationAwareOrderComparator.sortIfNecessary(providers);
         return new ChainingAuditPrincipalIdProvider(providers);
     }
 
-    @Override
-    public void configureAuditTrailExecutionPlan(final AuditTrailExecutionPlan plan) {
-        val audit = casProperties.getAudit().getSlf4j();
-        val slf4j = new Slf4jLoggingAuditTrailManager();
-        slf4j.setUseSingleLine(audit.isUseSingleLine());
-        slf4j.setEntrySeparator(audit.getSinglelineSeparator());
-        slf4j.setAuditFormat(AbstractStringAuditTrailManager.AuditFormats.valueOf(audit.getAuditFormat().toUpperCase()));
-        plan.registerAuditTrailManager(slf4j);
+    @Bean
+    @ConditionalOnMissingBean(name = "casAuditTrailExecutionPlanConfigurer")
+    @ConditionalOnProperty(prefix = "cas.audit.slf4j", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public AuditTrailExecutionPlanConfigurer casAuditTrailExecutionPlanConfigurer() {
+        return plan -> {
+            val audit = casProperties.getAudit().getSlf4j();
+            val slf4j = new Slf4jLoggingAuditTrailManager();
+            slf4j.setUseSingleLine(audit.isUseSingleLine());
+            slf4j.setEntrySeparator(audit.getSinglelineSeparator());
+            slf4j.setAuditFormat(AbstractStringAuditTrailManager.AuditFormats.valueOf(audit.getAuditFormat().toUpperCase()));
+            plan.registerAuditTrailManager(slf4j);
+        };
     }
 
-    @Override
-    public void configureAuditTrailRecordResolutionPlan(final AuditTrailRecordResolutionPlan plan) {
-        /*
-            Add audit action resolvers here.
-         */
+    @Bean
+    @ConditionalOnMissingBean(name = "casAuditTrailRecordResolutionPlanConfigurer")
+    public AuditTrailRecordResolutionPlanConfigurer casAuditTrailRecordResolutionPlanConfigurer() {
+        return plan -> {
+            addAuditActionResolvers(plan);
+            addAuditResourceResolvers(plan);
+            addAuditCustomResolvers(plan);
+        };
+    }
+
+    private void addAuditCustomResolvers(final AuditTrailRecordResolutionPlan plan) {
+        plan.registerAuditActionResolvers(customAuditActionResolverMap());
+        plan.registerAuditResourceResolvers(customAuditResourceResolverMap());
+    }
+
+    private void addAuditActionResolvers(final AuditTrailRecordResolutionPlan plan) {
         val resolver = authenticationActionResolver();
         plan.registerAuditActionResolver("AUTHENTICATION_RESOLVER", resolver);
         plan.registerAuditActionResolver("SAVE_SERVICE_ACTION_RESOLVER", resolver);
@@ -272,10 +294,9 @@ public class CasCoreAuditConfiguration implements AuditTrailExecutionPlanConfigu
 
         val serviceAccessResolver = new DefaultAuditActionResolver(AuditTrailConstants.AUDIT_ACTION_POSTFIX_TRIGGERED, StringUtils.EMPTY);
         plan.registerAuditActionResolver("SERVICE_ACCESS_ENFORCEMENT_ACTION_RESOLVER", serviceAccessResolver);
+    }
 
-        /*
-            Add audit resource resolvers here.
-         */
+    private void addAuditResourceResolvers(final AuditTrailRecordResolutionPlan plan) {
         plan.registerAuditResourceResolver("AUTHENTICATION_RESOURCE_RESOLVER", new CredentialsAsFirstParameterResourceResolver());
         plan.registerAuditResourceResolver("AUTHENTICATION_EVENT_RESOURCE_RESOLVER", nullableReturnValueResourceResolver());
 
@@ -294,11 +315,5 @@ public class CasCoreAuditConfiguration implements AuditTrailExecutionPlanConfigu
         plan.registerAuditResourceResolver("SAVE_SERVICE_RESOURCE_RESOLVER", returnValueResourceResolver());
         plan.registerAuditResourceResolver("DELETE_SERVICE_RESOURCE_RESOLVER", returnValueResourceResolver());
         plan.registerAuditResourceResolver("SERVICE_ACCESS_ENFORCEMENT_RESOURCE_RESOLVER", serviceAccessEnforcementAuditResourceResolver());
-
-        /*
-            Add custom resolvers here.
-         */
-        plan.registerAuditActionResolvers(customAuditActionResolverMap());
-        plan.registerAuditResourceResolvers(customAuditResourceResolverMap());
     }
 }

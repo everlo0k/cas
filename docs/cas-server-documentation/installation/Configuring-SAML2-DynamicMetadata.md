@@ -66,7 +66,8 @@ Use the below snippet as an example to fetch metadata from REST endpoints:
 The metadata location in the registration record above simply needs to be specified as <code>rest://</code> to signal to CAS that SAML metadata for registered service provider must be fetched from REST endpoints defined in CAS configuration.
 </p></div>
 
-Requests are submitted to REST endpoints with `entityId` as the parameter and `Content-Type: application/xml` as the header. Upon a successful `200 - OK` response status, CAS expects the body of the HTTP response to match the below snippet:
+Requests are submitted to REST endpoints with `entityId` as the parameter and `Content-Type: application/xml` as the header. Upon 
+a successful `200 - OK` response status, CAS expects the body of the HTTP response to match the below snippet:
 
 ```json
 {  
@@ -78,6 +79,39 @@ Requests are submitted to REST endpoints with `entityId` as the parameter and `C
 ```
 
 To see the relevant CAS properties, please [see this guide](../configuration/Configuration-Properties.html#saml-metadata-rest).
+
+### Identity Provider Metadata
+
+Metadata artifacts that belong to CAS as a SAML2 identity provider may also be managed and stored via REST APIs. Artifacts such as the metadata, signing and 
+encryption keys, etc are passed along to an external API endpoint in the following structure as the request body:
+
+```json
+{
+    "signingCertificate": "...",
+    "signingKey": "...",
+    "encryptionCertificate": "...",
+    "encryptionKey": "...",
+    "metadata": "...",
+    "appliesTo": "CAS"
+}
+```
+
+The URL endpoint, defined in CAS settings is expected to be available at a path that ends in `/idp`, which is added onto the URL endpoint by CAS automatically.
+The API is expected to produce a successful `200 - OK` response status on all operations outlined below:  
+
+| Method               | Description
+|----------------------|----------------------------------------------------------------------------
+| `GET`                | The response is expected to produce a JSON document outlining keys and metadata as indicated above. An `appliesTo` parameter may be passed to indicate the document owner and applicability, where a value of `CAS` indicates the CAS server as the global owner of the metadata and keys.
+| `POST`               | Store the metadata and keys to finalize the metadata generation process. The request body contains the JSON document that outlines metadata and keys as indicated above.
+
+Note that the signing and encryption keys are expected to be encrypted and signed using CAS crypto keys. To see the relevant 
+CAS properties, please [see this guide](../configuration/Configuration-Properties.html#saml-metadata-rest).
+
+#### Per Service
+
+Identity provider metadata, certificates and keys can also be defined on a per-service basis to override the global defaults.
+Metadata documents that would be applicable to a service definition need to adjust the `appliesTo` field in the metadata
+document to carry the service definition's name and numeric identifier using the `[service-name]-[service-numeric-identifier]` format.
 
 ## MongoDb
 
@@ -130,15 +164,22 @@ Metadata artifacts that belong to CAS as a SAML2 identity provider may also be m
     "signingKey": "...",
     "encryptionCertificate": "...",
     "encryptionKey": "...",
-    "metadata": ""
+    "metadata": "...",
+    "appliesTo": "CAS"
 }
 ```
 
 Note that the signing and encryption keys are expected to be encrypted and signed using CAS crypto keys. To see the relevant CAS properties, please [see this guide](../configuration/Configuration-Properties.html#saml-metadata-mongodb).
 
+#### Per Service
+
+Identity provider metadata, certificates and keys can also be defined on a per-service basis to override the global defaults.
+Metadata documents that would be applicable to a service definition need to adjust the `appliesTo` field in the metadata
+document to carry the service definition's name and numeric identifier using the `[service-name]-[service-numeric-identifier]` format.
+
 ## JPA
 
-Metadata documents may also be stored in and fetched from a relational database instance. This may specially be used to avoid copying metadata files across CAS nodes in a cluster, particularly where one needs to deal with more than a few bilateral SAML integrations. Metadata documents are stored in and fetched from a single pre-defined table  (i.e. `SamlMetadataDocument`) whose connection information is taught to CAS via settings and is automatically generated.  The outline of the table is as follows:
+Metadata documents may also be stored in and fetched from a relational database instance. This may specially be used to avoid copying metadata files across CAS nodes in a cluster, particularly where one needs to deal with more than a few bilateral SAML integrations. Metadata documents are stored in and fetched from a single pre-defined table  (i.e. `SamlMetadataDocument`) whose connection information is taught to CAS via settings and is automatically generated. The outline of the table is as follows:
 
 | Field        | Description
 |--------------|---------------------------------------------------
@@ -157,7 +198,7 @@ Support is enabled by including the following module in the overlay:
 </dependency>
 ```
 
-SAML service definitions must then be designed as follows to allow CAS to fetch metadata documents from database  instances:
+SAML service definitions must then be designed as follows to allow CAS to fetch metadata documents from database instances:
 
 ```json
 {
@@ -189,8 +230,15 @@ inside a database table that would have the following structure:
 | `encryptionCertificate`   | The encryption certificate.
 | `encryptionKey`           | The encryption key.
 | `metadata`                | The SAML2 identity provider metadata.
+| `appliesTo`               | The owner of the SAML2 identity provider metadata (i.e. `CAS`).
 
 Note that the signing and encryption keys are expected to be encrypted and signed using CAS crypto keys. To see the relevant CAS properties, please [see this guide](../configuration/Configuration-Properties.html#saml-metadata-jpa).
+
+#### Per Service
+
+Identity provider metadata, certificates and keys can also be defined on a per-service basis to override the global defaults.
+Metadata documents that would be applicable to a service definition need to adjust the `appliesTo` column in the metadata
+document to carry the service definition's name and numeric identifier using the `[service-name]-[service-numeric-identifier]` format.
 
 ## CouchDb
 
@@ -222,7 +270,7 @@ SAML service definitions must then be designed as follows to allow CAS to fetch 
   "name" : "SAMLService",
   "id" : 10000003,
   "description" : "A relational-db-based metadata resolver",
-  "metadataLocation" : "couchdb://"
+  "metadataLocation" : "couchdb://",
 }
 ```
 
@@ -245,12 +293,20 @@ inside a database with documents that would have the following structure:
 | `encryptionCertificate`   | The encryption certificate.
 | `encryptionKey`           | The encryption key.
 | `metadata`                | The SAML2 identity provider metadata.
+| `appliesTo`               | The owner of the SAML2 identity provider metadata (i.e. `CAS`).
 
 Note that the signing and encryption keys are expected to be encrypted and signed using CAS crypto keys. To see the relevant CAS properties, please [see this guide](../configuration/Configuration-Properties.html#saml-metadata-couchdb).
 
+#### Per Service
+
+Identity provider metadata, certificates and keys can also be defined on a per-service basis to override the global defaults.
+Metadata documents that would be applicable to a service definition need to adjust the `appliesTo` field in the metadata
+document to carry the service definition's name and numeric identifier using the `[service-name]_[service-numeric-identifier]` format.
+
 ## Groovy
 
-A metadata location for a SAML service definition may  point to an external Groovy script, allowing the script to programmatically determine and build the metadata resolution machinery to be added to the collection of the existing resolvers. 
+A metadata location for a SAML service definition may  point to an external Groovy script, allowing the script to programmatically 
+determine and build the metadata resolution machinery to be added to the collection of the existing resolvers. 
 
 ```json
 {
@@ -353,7 +409,14 @@ inside a bucket with metadata that would have the following structure:
 | `signingKey`              | The signing key.
 | `encryptionCertificate`   | The encryption certificate.
 | `encryptionKey`           | The encryption key.
+| `appliesTo`               | The owner of this metadata document (i.e. `CAS`).
 
 The actual object's content/body is expected to contain the SAML2 identity provider metadata. Note that the signing and encryption keys are expected to be encrypted and signed using CAS crypto keys. 
 
 To see the relevant CAS properties, please [see this guide](../configuration/Configuration-Properties.html#saml-metadata-amazon-s3).
+
+#### Per Service
+
+Identity provider metadata, certificates and keys can also be defined on a per-service basis to override the global defaults.
+Metadata documents that would be applicable to a service definition need to be put in a special bucket named 
+using the `[service-name][service-numeric-identifier]` format.

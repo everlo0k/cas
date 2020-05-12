@@ -6,7 +6,8 @@ import org.apereo.cas.support.oauth.OAuth20GrantTypes;
 import org.apereo.cas.support.oauth.OAuth20ResponseTypes;
 import org.apereo.cas.support.oauth.util.OAuth20Utils;
 import org.apereo.cas.support.oauth.web.response.accesstoken.ext.AccessTokenRequestDataHolder;
-import org.apereo.cas.ticket.accesstoken.AccessToken;
+import org.apereo.cas.support.oauth.web.response.accesstoken.response.OAuth20JwtAccessTokenEncoder;
+import org.apereo.cas.ticket.accesstoken.OAuth20AccessToken;
 import org.apereo.cas.uma.UmaConfigurationContext;
 import org.apereo.cas.uma.claim.UmaResourceSetClaimPermissionResult;
 import org.apereo.cas.uma.ticket.permission.UmaPermissionTicket;
@@ -18,6 +19,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.hjson.JsonValue;
 import org.pac4j.core.profile.CommonProfile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -42,6 +44,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Controller("umaAuthorizationRequestEndpointController")
 public class UmaAuthorizationRequestEndpointController extends BaseUmaEndpointController {
+
     public UmaAuthorizationRequestEndpointController(final UmaConfigurationContext umaConfigurationContext) {
         super(umaConfigurationContext);
     }
@@ -61,7 +64,7 @@ public class UmaAuthorizationRequestEndpointController extends BaseUmaEndpointCo
                                                      final HttpServletRequest request, final HttpServletResponse response) {
         try {
             val profileResult = getAuthenticatedProfile(request, response, OAuth20Constants.UMA_AUTHORIZATION_SCOPE);
-            val umaRequest = MAPPER.readValue(body, UmaAuthorizationRequest.class);
+            val umaRequest = MAPPER.readValue(JsonValue.readHjson(body).toString(), UmaAuthorizationRequest.class);
 
             if (StringUtils.isBlank(umaRequest.getGrantType())) {
                 return new ResponseEntity("Unable to accept authorization request; grant type is missing", HttpStatus.BAD_REQUEST);
@@ -159,13 +162,12 @@ public class UmaAuthorizationRequestEndpointController extends BaseUmaEndpointCo
     protected ResponseEntity generateRequestingPartyToken(final HttpServletRequest request, final HttpServletResponse response,
                                                           final CommonProfile profileResult, final UmaAuthorizationRequest umaRequest,
                                                           final UmaPermissionTicket permissionTicket, final ResourceSet resourceSet) {
-        val currentAat = profileResult.getAttribute(AccessToken.class.getName(), AccessToken.class);
+        val currentAat = profileResult.getAttribute(OAuth20AccessToken.class.getName(), OAuth20AccessToken.class);
         val registeredService = OAuth20Utils.getRegisteredOAuthServiceByClientId(getUmaConfigurationContext().getServicesManager(),
             OAuth20Utils.getClientIdFromAuthenticatedProfile(profileResult));
 
-        val scopes = new LinkedHashSet<String>();
+        val scopes = new LinkedHashSet<String>(permissionTicket.getScopes());
         scopes.add(OAuth20Constants.UMA_AUTHORIZATION_SCOPE);
-        scopes.addAll(permissionTicket.getScopes());
         scopes.addAll(resourceSet.getScopes());
 
         val holder = AccessTokenRequestDataHolder.builder()
@@ -185,19 +187,30 @@ public class UmaAuthorizationRequestEndpointController extends BaseUmaEndpointCo
         }
 
         val accessToken = result.getAccessToken().get();
+
+        val encodedAccessToken = OAuth20JwtAccessTokenEncoder.builder()
+            .accessToken(accessToken)
+            .registeredService(holder.getRegisteredService())
+            .service(holder.getService())
+            .accessTokenJwtBuilder(getUmaConfigurationContext().getAccessTokenJwtBuilder())
+            .casProperties(getUmaConfigurationContext().getCasProperties())
+            .build()
+            .encode();
+
         val timeout = Beans.newDuration(getUmaConfigurationContext().getCasProperties()
             .getAuthn().getUma().getRequestingPartyToken().getMaxTimeToLiveInSeconds()).getSeconds();
         request.setAttribute(UmaPermissionTicket.class.getName(), permissionTicket);
         request.setAttribute(ResourceSet.class.getName(), resourceSet);
-        val idToken = getUmaConfigurationContext().getRequestingPartyTokenGenerator().generate(request, response, accessToken,
-            timeout, OAuth20ResponseTypes.CODE, registeredService);
+        val idToken = getUmaConfigurationContext().getRequestingPartyTokenGenerator().generate(request, response,
+            accessToken, timeout, OAuth20ResponseTypes.CODE, registeredService);
         accessToken.setIdToken(idToken);
         getUmaConfigurationContext().getTicketRegistry().updateTicket(accessToken);
 
         if (StringUtils.isNotBlank(umaRequest.getRpt())) {
             getUmaConfigurationContext().getTicketRegistry().deleteTicket(umaRequest.getRpt());
         }
-        val model = CollectionUtils.wrap("rpt", accessToken.getId(), "code", HttpStatus.CREATED);
+
+        val model = CollectionUtils.wrap("rpt", encodedAccessToken, "code", HttpStatus.CREATED);
         return new ResponseEntity<>(model, HttpStatus.OK);
     }
 }

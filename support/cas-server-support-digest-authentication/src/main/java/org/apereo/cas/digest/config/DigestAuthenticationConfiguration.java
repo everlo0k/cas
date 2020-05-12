@@ -7,7 +7,6 @@ import org.apereo.cas.digest.DigestHashedCredentialRetriever;
 import org.apereo.cas.digest.web.flow.DigestAuthenticationAction;
 import org.apereo.cas.digest.web.flow.DigestAuthenticationWebflowConfigurer;
 import org.apereo.cas.web.flow.CasWebflowConfigurer;
-import org.apereo.cas.web.flow.CasWebflowExecutionPlan;
 import org.apereo.cas.web.flow.CasWebflowExecutionPlanConfigurer;
 import org.apereo.cas.web.flow.resolver.CasDelegatingWebflowEventResolver;
 import org.apereo.cas.web.flow.resolver.CasWebflowEventResolver;
@@ -19,7 +18,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -45,14 +44,14 @@ public class DigestAuthenticationConfiguration {
     private ObjectProvider<FlowDefinitionRegistry> loginFlowDefinitionRegistry;
 
     @Autowired
-    private FlowBuilderServices flowBuilderServices;
+    private ObjectProvider<FlowBuilderServices> flowBuilderServices;
 
     @Autowired
     @Qualifier("adaptiveAuthenticationPolicy")
     private ObjectProvider<AdaptiveAuthenticationPolicy> adaptiveAuthenticationPolicy;
 
     @Autowired
-    private ApplicationContext applicationContext;
+    private ConfigurableApplicationContext applicationContext;
 
     @Autowired
     @Qualifier("serviceTicketRequestWebflowEventResolver")
@@ -66,15 +65,18 @@ public class DigestAuthenticationConfiguration {
     @Bean
     @DependsOn("defaultWebflowConfigurer")
     public CasWebflowConfigurer digestAuthenticationWebflowConfigurer() {
-        return new DigestAuthenticationWebflowConfigurer(flowBuilderServices, loginFlowDefinitionRegistry.getIfAvailable(), applicationContext, casProperties);
+        return new DigestAuthenticationWebflowConfigurer(flowBuilderServices.getObject(),
+            loginFlowDefinitionRegistry.getObject(), applicationContext, casProperties);
     }
 
     @Autowired
     @Bean
-    public Action digestAuthenticationAction(@Qualifier("defaultDigestCredentialRetriever") final DigestHashedCredentialRetriever defaultDigestCredentialRetriever) {
-        return new DigestAuthenticationAction(initialAuthenticationAttemptWebflowEventResolver.getIfAvailable(),
-            serviceTicketRequestWebflowEventResolver.getIfAvailable(),
-            adaptiveAuthenticationPolicy.getIfAvailable(),
+    @ConditionalOnMissingBean(name = "digestAuthenticationAction")
+    public Action digestAuthenticationAction(@Qualifier("defaultDigestCredentialRetriever")
+                                             final DigestHashedCredentialRetriever defaultDigestCredentialRetriever) {
+        return new DigestAuthenticationAction(initialAuthenticationAttemptWebflowEventResolver.getObject(),
+            serviceTicketRequestWebflowEventResolver.getObject(),
+            adaptiveAuthenticationPolicy.getObject(),
             casProperties.getAuthn().getDigest().getRealm(),
             casProperties.getAuthn().getDigest().getAuthenticationMethod(),
             defaultDigestCredentialRetriever);
@@ -91,11 +93,6 @@ public class DigestAuthenticationConfiguration {
     @Bean
     @ConditionalOnMissingBean(name = "digestAuthenticationCasWebflowExecutionPlanConfigurer")
     public CasWebflowExecutionPlanConfigurer digestAuthenticationCasWebflowExecutionPlanConfigurer() {
-        return new CasWebflowExecutionPlanConfigurer() {
-            @Override
-            public void configureWebflowExecutionPlan(final CasWebflowExecutionPlan plan) {
-                plan.registerWebflowConfigurer(digestAuthenticationWebflowConfigurer());
-            }
-        };
+        return plan -> plan.registerWebflowConfigurer(digestAuthenticationWebflowConfigurer());
     }
 }

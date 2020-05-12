@@ -4,6 +4,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import java.util.List;
 @RequiresModule(name = "cas-server-support-ldap")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class CaseChangeSearchEntryHandlersProperties implements Serializable {
 
     private static final long serialVersionUID = 2420895955116725666L;
@@ -40,5 +42,5 @@ public class CaseChangeSearchEntryHandlersProperties implements Serializable {
     /**
      * The Attribute names.
      */
-    private List<String> attributeNames = new ArrayList<>();
+    private List<String> attributeNames = new ArrayList<>(0);
 }

@@ -1,10 +1,8 @@
 package org.apereo.cas.web.security;
 
-import org.apereo.cas.authentication.support.password.PasswordEncoderUtils;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.configuration.model.core.monitor.ActuatorEndpointProperties;
 import org.apereo.cas.configuration.model.core.monitor.MonitorProperties;
-import org.apereo.cas.configuration.support.JpaBeans;
 import org.apereo.cas.web.security.authentication.MonitorEndpointLdapAuthenticationProvider;
 
 import lombok.RequiredArgsConstructor;
@@ -13,7 +11,6 @@ import lombok.val;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.lambda.Unchecked;
-import org.springframework.boot.actuate.autoconfigure.endpoint.web.WebEndpointProperties;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.actuate.endpoint.web.PathMappedEndpoints;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
@@ -41,10 +38,33 @@ public class CasWebSecurityConfigurerAdapter extends WebSecurityConfigurerAdapte
     public static final String ENDPOINT_URL_ADMIN_FORM_LOGIN = "/adminlogin";
 
     private final CasConfigurationProperties casProperties;
+
     private final SecurityProperties securityProperties;
+
     private final CasWebSecurityExpressionHandler casWebSecurityExpressionHandler;
-    private final WebEndpointProperties webEndpointProperties;
+
     private final PathMappedEndpoints pathMappedEndpoints;
+
+    @Override
+    protected void configure(final AuthenticationManagerBuilder auth) throws Exception {
+        val jaas = casProperties.getMonitor().getEndpoints().getJaas();
+        if (jaas.getLoginConfig() != null) {
+            configureJaasAuthenticationProvider(auth, jaas);
+        } else {
+            LOGGER.trace("No JAAS login config is defined to enable JAAS authentication");
+        }
+
+        val ldap = casProperties.getMonitor().getEndpoints().getLdap();
+        if (StringUtils.isNotBlank(ldap.getLdapUrl()) && StringUtils.isNotBlank(ldap.getSearchFilter())) {
+            configureLdapAuthenticationProvider(auth, ldap);
+        } else {
+            LOGGER.trace("No LDAP url or search filter is defined to enable LDAP authentication");
+        }
+
+        if (!auth.isConfigured()) {
+            super.configure(auth);
+        }
+    }
 
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
@@ -64,34 +84,6 @@ public class CasWebSecurityConfigurerAdapter extends WebSecurityConfigurerAdapte
         }));
         configureEndpointAccessToDenyUndefined(http, requests);
         configureEndpointAccessForStaticResources(requests);
-    }
-
-    @Override
-    protected void configure(final AuthenticationManagerBuilder auth) throws Exception {
-        val jaas = casProperties.getMonitor().getEndpoints().getJaas();
-        if (jaas.getLoginConfig() != null) {
-            configureJaasAuthenticationProvider(auth, jaas);
-        } else {
-            LOGGER.trace("No JAAS login config is defined to enable JAAS authentication");
-        }
-
-        val ldap = casProperties.getMonitor().getEndpoints().getLdap();
-        if (StringUtils.isNotBlank(ldap.getLdapUrl()) && StringUtils.isNotBlank(ldap.getSearchFilter())) {
-            configureLdapAuthenticationProvider(auth, ldap);
-        } else {
-            LOGGER.trace("No LDAP url or search filter is defined to enable LDAP authentication");
-        }
-
-        val jdbc = casProperties.getMonitor().getEndpoints().getJdbc();
-        if (StringUtils.isNotBlank(jdbc.getQuery())) {
-            configureJdbcAuthenticationProvider(auth, jdbc);
-        } else {
-            LOGGER.trace("No JDBC query is defined to enable JDBC authentication");
-        }
-
-        if (!auth.isConfigured()) {
-            super.configure(auth);
-        }
     }
 
     /**
@@ -116,21 +108,6 @@ public class CasWebSecurityConfigurerAdapter extends WebSecurityConfigurerAdapte
                     configureEndpointAccess(http, requests, access, endpointDefaults, endpointRequest)));
             }
         });
-    }
-
-    /**
-     * Configure jdbc authentication provider.
-     *
-     * @param auth the auth
-     * @param jdbc the jdbc
-     * @throws Exception the exception
-     */
-    protected void configureJdbcAuthenticationProvider(final AuthenticationManagerBuilder auth, final MonitorProperties.Endpoints.JdbcSecurity jdbc) throws Exception {
-        val cfg = auth.jdbcAuthentication();
-        cfg.usersByUsernameQuery(jdbc.getQuery());
-        cfg.rolePrefix(jdbc.getRolePrefix());
-        cfg.dataSource(JpaBeans.newDataSource(jdbc));
-        cfg.passwordEncoder(PasswordEncoderUtils.newPasswordEncoder(jdbc.getPasswordEncoder()));
     }
 
     /**
@@ -296,10 +273,10 @@ public class CasWebSecurityConfigurerAdapter extends WebSecurityConfigurerAdapte
 
     private boolean isLdapAuthorizationActive() {
         val ldap = casProperties.getMonitor().getEndpoints().getLdap();
-        val authZ = ldap.getLdapAuthz();
         return StringUtils.isNotBlank(ldap.getBaseDn())
             && StringUtils.isNotBlank(ldap.getLdapUrl())
             && StringUtils.isNotBlank(ldap.getSearchFilter())
-            && (StringUtils.isNotBlank(authZ.getRoleAttribute()) || StringUtils.isNotBlank(authZ.getGroupAttribute()));
+            && (StringUtils.isNotBlank(ldap.getLdapAuthz().getRoleAttribute())
+            || StringUtils.isNotBlank(ldap.getLdapAuthz().getGroupAttribute()));
     }
 }

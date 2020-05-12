@@ -1,10 +1,14 @@
 package org.apereo.cas.configuration.model.core.config.cloud;
 
+import org.apereo.cas.configuration.model.support.aws.BaseAmazonWebServicesProperties;
+import org.apereo.cas.configuration.model.support.dynamodb.AbstractDynamoDbProperties;
 import org.apereo.cas.configuration.support.RequiredProperty;
 import org.apereo.cas.configuration.support.RequiresModule;
+import org.apereo.cas.configuration.support.RestEndpointProperties;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 
@@ -19,6 +23,7 @@ import java.io.Serializable;
  */
 @Getter
 @Setter
+@Accessors(chain = true)
 public class SpringCloudConfigurationProperties implements Serializable {
     private static final long serialVersionUID = -2749293768878152908L;
 
@@ -31,6 +36,7 @@ public class SpringCloudConfigurationProperties implements Serializable {
     @Setter
     public static class Cloud implements Serializable {
         private static final long serialVersionUID = -6326706651416825269L;
+
         /**
          * MongoDb config settings.
          */
@@ -42,16 +48,28 @@ public class SpringCloudConfigurationProperties implements Serializable {
         private Jdbc jdbc = new Jdbc();
 
         /**
+         * REST config settings.
+         */
+        private Rest rest = new Rest();
+
+        /**
          * AWS config settings.
          */
         private AmazonWebServicesConfiguration aws = new AmazonWebServicesConfiguration();
+
+        /**
+         * AWS DynamoDb config settings.
+         */
+        private AmazonDynamoDb dynamoDb = new AmazonDynamoDb();
     }
 
     @RequiresModule(name = "cas-server-support-configuration-cloud-mongo")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class MongoDb implements Serializable {
         private static final long serialVersionUID = -6509143371334754469L;
+
         /**
          * Mongodb URI.
          */
@@ -59,11 +77,21 @@ public class SpringCloudConfigurationProperties implements Serializable {
         private String uri;
     }
 
+    @RequiresModule(name = "cas-server-support-configuration-cloud-rest")
+    @Getter
+    @Accessors(chain = true)
+    @Setter
+    public static class Rest extends RestEndpointProperties {
+        private static final long serialVersionUID = -4509143371334754469L;
+    }
+
     @RequiresModule(name = "cas-server-support-configuration-cloud-jdbc")
     @Getter
+    @Accessors(chain = true)
     @Setter
     public static class Jdbc implements Serializable {
         private static final long serialVersionUID = -7575240387340025345L;
+
         /**
          * SQL statement.
          */
@@ -93,47 +121,7 @@ public class SpringCloudConfigurationProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-aws")
     @Getter
     @Setter
-    public static class BaseAmazonConfiguration implements Serializable {
-        private static final long serialVersionUID = -103104249388429120L;
-
-        /**
-         * Local address.
-         */
-        private String localAddress;
-
-        /**
-         * Credential secret key.
-         */
-        @RequiredProperty
-        private String credentialSecretKey;
-
-        /**
-         * Credential access key.
-         */
-        @RequiredProperty
-        private String credentialAccessKey;
-
-        /**
-         * Region.
-         */
-        @RequiredProperty
-        private String region;
-
-        /**
-         * region override.
-         */
-        private String regionOverride;
-
-        /**
-         * Endpoint.
-         */
-        @RequiredProperty
-        private String endpoint;
-    }
-
-    @RequiresModule(name = "cas-server-support-aws")
-    @Getter
-    @Setter
+    @Accessors(chain = true)
     public static class AmazonWebServicesConfiguration implements Serializable {
         private static final long serialVersionUID = -124404249388429120L;
 
@@ -151,20 +139,36 @@ public class SpringCloudConfigurationProperties implements Serializable {
          * AWS S3 settings.
          */
         private AmazonS3 s3 = new AmazonS3();
+
+        /**
+         * AWS SSM settings.
+         */
+        private AmazonSystemsManagerParameterStore ssm = new AmazonSystemsManagerParameterStore();
     }
 
     @RequiresModule(name = "cas-server-support-configuration-cloud-aws-secretsmanager")
     @Getter
     @Setter
-    public static class AmazonSecretsManager extends BaseAmazonConfiguration {
+    @Accessors(chain = true)
+    public static class AmazonSecretsManager extends BaseAmazonWebServicesProperties {
         private static final long serialVersionUID = -124404249387429120L;
+    }
+
+    @RequiresModule(name = "cas-server-support-configuration-cloud-aws-ssm")
+    @Getter
+    @Setter
+    @Accessors(chain = true)
+    public static class AmazonSystemsManagerParameterStore extends BaseAmazonWebServicesProperties {
+        private static final long serialVersionUID = -224404249387429120L;
     }
 
     @RequiresModule(name = "cas-server-support-configuration-cloud-aws-s3")
     @Getter
     @Setter
-    public static class AmazonS3 extends BaseAmazonConfiguration {
+    @Accessors(chain = true)
+    public static class AmazonS3 extends BaseAmazonWebServicesProperties {
         private static final long serialVersionUID = -124404249387429120L;
+
         /**
          * Bucket name that holds the settings.
          */
@@ -174,14 +178,9 @@ public class SpringCloudConfigurationProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-configuration-cloud-dynamodb")
     @Getter
     @Setter
-    public static class AmazonDynamoDb extends BaseAmazonConfiguration {
+    @Accessors(chain = true)
+    public static class AmazonDynamoDb extends AbstractDynamoDbProperties {
         private static final long serialVersionUID = -123404249388429120L;
-
-        /**
-         * Does not create tables on startup, if true.
-         */
-        private boolean preventTableCreationOnStartup;
     }
-
 
 }

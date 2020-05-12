@@ -8,7 +8,7 @@ import org.apereo.cas.authentication.AuthenticationTransaction;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.authentication.DefaultAuthenticationSystemSupport;
 import org.apereo.cas.authentication.DefaultAuthenticationTransactionManager;
-import org.apereo.cas.authentication.DefaultPrincipalElectionStrategy;
+import org.apereo.cas.authentication.principal.DefaultPrincipalElectionStrategy;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.authentication.principal.WebApplicationServiceFactory;
 import org.apereo.cas.rest.factory.CasProtocolServiceTicketResourceEntityResponseFactory;
@@ -22,6 +22,7 @@ import org.apereo.cas.web.support.DefaultArgumentExtractor;
 
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -48,6 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @since 4.0.0
  */
 @ExtendWith(MockitoExtension.class)
+@Tag("RestfulApi")
 public class ServiceTicketResourceTests {
 
     private static final String TICKETS_RESOURCE_URL = "/cas/v1/tickets";

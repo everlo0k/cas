@@ -3,11 +3,11 @@ package org.apereo.cas;
 import org.apereo.cas.aws.AmazonEnvironmentAwareClientBuilder;
 import org.apereo.cas.config.AmazonS3BucketsCloudConfigBootstrapConfiguration;
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
 import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.internal.SkipMd5CheckStrategy;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import lombok.val;
@@ -19,7 +19,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.mock.env.MockEnvironment;
-import org.springframework.test.context.TestPropertySource;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -35,16 +34,14 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(classes = {
     RefreshAutoConfiguration.class,
     AmazonS3BucketsCloudConfigBootstrapConfiguration.class
-})
-@EnabledIfPortOpen(port = 4572)
-@EnabledIfContinuousIntegration
-@Tag("AmazonWebServices")
-@TestPropertySource(properties = {
+}, properties = {
     "cas.spring.cloud.aws.s3.bucketName=" + AmazonS3BucketsCloudConfigBootstrapConfigurationTests.BUCKET_NAME,
     "cas.spring.cloud.aws.s3.endpoint=" + AmazonS3BucketsCloudConfigBootstrapConfigurationTests.ENDPOINT,
     "cas.spring.cloud.aws.s3.credentialAccessKey=" + AmazonS3BucketsCloudConfigBootstrapConfigurationTests.CREDENTIAL_ACCESS_KEY,
     "cas.spring.cloud.aws.s3.credentialSecretKey=" + AmazonS3BucketsCloudConfigBootstrapConfigurationTests.CREDENTIAL_SECRET_KEY
 })
+@EnabledIfPortOpen(port = 4572)
+@Tag("AmazonWebServices")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class AmazonS3BucketsCloudConfigBootstrapConfigurationTests {
     static final String BUCKET_NAME = "config-bucket";
@@ -57,6 +54,11 @@ public class AmazonS3BucketsCloudConfigBootstrapConfigurationTests {
     @Autowired
     private CasConfigurationProperties casProperties;
 
+    static {
+        System.setProperty(SkipMd5CheckStrategy.DISABLE_GET_OBJECT_MD5_VALIDATION_PROPERTY, "true");
+        System.setProperty(SkipMd5CheckStrategy.DISABLE_PUT_OBJECT_MD5_VALIDATION_PROPERTY, "true");
+    }
+    
     @BeforeAll
     public static void initialize() {
         val environment = new MockEnvironment();

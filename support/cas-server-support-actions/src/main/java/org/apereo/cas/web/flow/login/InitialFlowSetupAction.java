@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 /**
  * Class to automatically set the paths for the CookieGenerators.
  * <p>
- * Note: This is technically not threadsafe, but because its overriding with a
+ * Note: This is technically not thread-safe, but because its overriding with a
  * constant value it doesn't matter.
  * <p>
  * Note: As of CAS 3.1, this is a required class that retrieves and exposes the
@@ -48,13 +48,27 @@ public class InitialFlowSetupAction extends AbstractAction {
     private final List<ArgumentExtractor> argumentExtractors;
 
     private final ServicesManager servicesManager;
+
     private final AuthenticationServiceSelectionPlan authenticationRequestServiceSelectionStrategies;
+
     private final CasCookieBuilder ticketGrantingTicketCookieGenerator;
+
     private final CasCookieBuilder warnCookieGenerator;
+
     private final CasConfigurationProperties casProperties;
+
     private final AuthenticationEventExecutionPlan authenticationEventExecutionPlan;
+
     private final SingleSignOnParticipationStrategy renewalStrategy;
+
     private final TicketRegistrySupport ticketRegistrySupport;
+
+    private static void configureWebflowForPostParameters(final RequestContext context) {
+        val request = WebUtils.getHttpServletRequestFromExternalWebflowContext(context);
+        if (request.getMethod().equalsIgnoreCase(HttpMethod.POST.name())) {
+            WebUtils.putInitialHttpRequestPostParameters(context);
+        }
+    }
 
     @Override
     public Event doExecute(final RequestContext context) {
@@ -89,15 +103,7 @@ public class InitialFlowSetupAction extends AbstractAction {
         WebUtils.putCustomLoginFormFields(context, casProperties.getView().getCustomLoginFormFields());
     }
 
-    private static void configureWebflowForPostParameters(final RequestContext context) {
-        val request = WebUtils.getHttpServletRequestFromExternalWebflowContext(context);
-        if (request.getMethod().equalsIgnoreCase(HttpMethod.POST.name())) {
-            WebUtils.putInitialHttpRequestPostParameters(context);
-        }
-    }
-
     private void configureWebflowForServices(final RequestContext context) {
-        val request = WebUtils.getHttpServletRequestFromExternalWebflowContext(context);
         val service = WebUtils.getService(this.argumentExtractors, context);
         if (service != null) {
             LOGGER.debug("Placing service in context scope: [{}]", service.getId());
@@ -119,6 +125,7 @@ public class InitialFlowSetupAction extends AbstractAction {
                 }
             }
         } else if (!casProperties.getSso().isAllowMissingServiceParameter()) {
+            val request = WebUtils.getHttpServletRequestFromExternalWebflowContext(context);
             LOGGER.warn("No service authentication request is available at [{}]. CAS is configured to disable the flow.",
                 request.getRequestURL());
             throw new NoSuchFlowExecutionException(context.getFlowExecutionContext().getKey(),
@@ -147,7 +154,6 @@ public class InitialFlowSetupAction extends AbstractAction {
         WebUtils.putWarningCookie(context, Boolean.valueOf(this.warnCookieGenerator.retrieveCookieValue(request)));
 
         WebUtils.putGeoLocationTrackingIntoFlowScope(context, casProperties.getEvents().isTrackGeolocation());
-        WebUtils.putPasswordManagementEnabled(context, casProperties.getAuthn().getPm().isEnabled());
         WebUtils.putRememberMeAuthenticationEnabled(context, casProperties.getTicket().getTgt().getRememberMe().isEnabled());
         WebUtils.putStaticAuthenticationIntoFlowScope(context,
             StringUtils.isNotBlank(casProperties.getAuthn().getAccept().getUsers())

@@ -5,10 +5,11 @@ import org.apereo.cas.uma.ticket.permission.DefaultUmaPermissionTicket;
 import org.apereo.cas.uma.ticket.resource.ResourceSet;
 import org.apereo.cas.uma.ticket.resource.ResourceSetPolicy;
 import org.apereo.cas.uma.ticket.resource.ResourceSetPolicyPermission;
-import org.apereo.cas.util.serialization.ComponentSerializationPlan;
-import org.apereo.cas.util.serialization.ComponentSerializationPlanConfigurator;
+import org.apereo.cas.util.serialization.ComponentSerializationPlanConfigurer;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -17,15 +18,18 @@ import org.springframework.context.annotation.Configuration;
  * @author Misagh Moayyed
  * @since 5.2.0
  */
-@Configuration("casOAuthUmaComponentSerializationConfiguration")
+@Configuration(value = "casOAuthUmaComponentSerializationConfiguration", proxyBeanMethods = false)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-public class CasOAuthUmaComponentSerializationConfiguration implements ComponentSerializationPlanConfigurator {
+public class CasOAuthUmaComponentSerializationConfiguration {
 
-    @Override
-    public void configureComponentSerializationPlan(final ComponentSerializationPlan plan) {
-        plan.registerSerializableClass(DefaultUmaPermissionTicket.class);
-        plan.registerSerializableClass(ResourceSet.class);
-        plan.registerSerializableClass(ResourceSetPolicy.class);
-        plan.registerSerializableClass(ResourceSetPolicyPermission.class);
+    @Bean
+    @ConditionalOnMissingBean(name = "umaComponentSerializationPlanConfigurer")
+    public ComponentSerializationPlanConfigurer umaComponentSerializationPlanConfigurer() {
+        return plan -> {
+            plan.registerSerializableClass(DefaultUmaPermissionTicket.class);
+            plan.registerSerializableClass(ResourceSet.class);
+            plan.registerSerializableClass(ResourceSetPolicy.class);
+            plan.registerSerializableClass(ResourceSetPolicyPermission.class);
+        };
     }
 }

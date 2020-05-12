@@ -23,7 +23,7 @@ import javax.annotation.PostConstruct;
  * @author Paul Spaude
  * @since 5.3.6
  */
-@Configuration("coreWsSecuritySecurityTokenServiceSamlConfiguration")
+@Configuration(value = "coreWsSecuritySecurityTokenServiceSamlConfiguration", proxyBeanMethods = false)
 @Slf4j
 @AutoConfigureAfter(CoreSamlConfiguration.class)
 public class CoreWsSecuritySecurityTokenServiceSamlConfiguration {
@@ -40,13 +40,13 @@ public class CoreWsSecuritySecurityTokenServiceSamlConfiguration {
             + "Java reflection is used to disable the OpenSAML bootstrapping process. This approach is prone to error, "
             + "and may be revisited in future versions of CAS, "
             + "once the wss4j library opens up its OpenSAML bootstrapping API in more extensible ways";
-        LOGGER.warn(warningMessage);
+        LOGGER.info(warningMessage);
 
         LOGGER.trace("Initializing WS provider configuration...");
         WSProviderConfig.init();
 
         LOGGER.trace("Marking OpenSAML components as initialized...");
-        val openSaml = openSamlConfigBean.getIfAvailable();
+        val openSaml = openSamlConfigBean.getObject();
         findFieldAndSetValue("providerRegistry", openSaml.getXmlObjectProviderRegistry());
         findFieldAndSetValue("builderFactory", openSaml.getBuilderFactory());
         findFieldAndSetValue("marshallerFactory", openSaml.getMarshallerFactory());

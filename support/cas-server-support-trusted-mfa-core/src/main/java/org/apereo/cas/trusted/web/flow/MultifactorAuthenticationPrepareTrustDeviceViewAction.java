@@ -29,14 +29,19 @@ import org.springframework.webflow.execution.RequestContext;
 public class MultifactorAuthenticationPrepareTrustDeviceViewAction extends AbstractAction {
 
     private final MultifactorAuthenticationTrustStorage storage;
+
     private final DeviceFingerprintStrategy deviceFingerprintStrategy;
+
     private final TrustedDevicesMultifactorProperties trustedProperties;
+
     private final AuditableExecution registeredServiceAccessStrategyEnforcer;
+
     private final ServicesManager servicesManager;
+
     private final MultifactorAuthenticationTrustedDeviceBypassEvaluator bypassEvaluator;
 
     @Override
-    public Event doExecute(final RequestContext requestContext) throws Exception {
+    public Event doExecute(final RequestContext requestContext) {
         val authn = WebUtils.getAuthentication(requestContext);
         val registeredService = WebUtils.getRegisteredService(requestContext);
         val service = WebUtils.getService(requestContext);

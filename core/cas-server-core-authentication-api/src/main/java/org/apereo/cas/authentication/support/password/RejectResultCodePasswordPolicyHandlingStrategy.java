@@ -54,7 +54,7 @@ public class RejectResultCodePasswordPolicyHandlingStrategy<AuthnResponse> exten
      * Is authentication response with result boolean.
      *
      * @param response the response
-     * @return the boolean
+     * @return true/false
      */
     protected boolean isAuthenticationResponseWithResult(final AuthnResponse response) {
         return false;
@@ -67,6 +67,6 @@ public class RejectResultCodePasswordPolicyHandlingStrategy<AuthnResponse> exten
      * @return the authentication response result codes
      */
     protected Collection<String> getAuthenticationResponseResultCodes(final AuthnResponse response) {
-        return new ArrayList<>();
+        return new ArrayList<>(0);
     }
 }

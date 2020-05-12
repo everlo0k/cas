@@ -5,7 +5,7 @@ import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.authentication.DefaultAuthenticationAttributeReleasePolicy;
 import org.apereo.cas.authentication.DefaultAuthenticationServiceSelectionPlan;
 import org.apereo.cas.authentication.RememberMeCredential;
-import org.apereo.cas.authentication.principal.DefaultPrincipalFactory;
+import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
 import org.apereo.cas.authentication.support.DefaultCasProtocolAttributeEncoder;
 import org.apereo.cas.authentication.support.NoOpProtocolAttributeEncoder;
 import org.apereo.cas.services.DefaultServicesManager;
@@ -33,7 +33,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -52,7 +51,9 @@ import static org.mockito.Mockito.*;
 public class Saml10SuccessResponseViewTests extends AbstractOpenSamlTests {
 
     private static final String TEST_VALUE = "testValue";
+
     private static final String TEST_ATTRIBUTE = "testAttribute";
+
     private static final String PRINCIPAL_ID = "testPrincipal";
 
     private Saml10SuccessResponseView response;
@@ -88,7 +89,7 @@ public class Saml10SuccessResponseViewTests extends AbstractOpenSamlTests {
         attributes.put(TEST_ATTRIBUTE, List.of(TEST_VALUE));
         attributes.put("testEmptyCollection", new ArrayList<>(0));
         attributes.put("testAttributeCollection", Arrays.asList("tac1", "tac2"));
-        val principal = new DefaultPrincipalFactory().createPrincipal(PRINCIPAL_ID, attributes);
+        val principal = PrincipalFactoryUtils.newPrincipalFactory().createPrincipal(PRINCIPAL_ID, attributes);
 
         val authAttributes = new HashMap<String, List<Object>>();
         authAttributes.put(
@@ -97,7 +98,7 @@ public class Saml10SuccessResponseViewTests extends AbstractOpenSamlTests {
         authAttributes.put("testSamlAttribute", List.of("value"));
 
         val primary = CoreAuthenticationTestUtils.getAuthentication(principal, authAttributes);
-        val assertion = new DefaultAssertionBuilder(primary).with(Collections.singletonList(primary)).with(
+        val assertion = new DefaultAssertionBuilder(primary).with(List.of(primary)).with(
             CoreAuthenticationTestUtils.getService()).with(true).build();
         model.put("assertion", assertion);
 
@@ -125,7 +126,7 @@ public class Saml10SuccessResponseViewTests extends AbstractOpenSamlTests {
     public void verifyResponseWithNoAttributes() throws Exception {
         val model = new HashMap<String, Object>();
 
-        val principal = new DefaultPrincipalFactory().createPrincipal(PRINCIPAL_ID);
+        val principal = PrincipalFactoryUtils.newPrincipalFactory().createPrincipal(PRINCIPAL_ID);
 
         val authAttributes = new HashMap<String, List<Object>>();
         authAttributes.put(
@@ -135,7 +136,7 @@ public class Saml10SuccessResponseViewTests extends AbstractOpenSamlTests {
 
         val primary = CoreAuthenticationTestUtils.getAuthentication(principal, authAttributes);
         val assertion = new DefaultAssertionBuilder(primary)
-            .with(Collections.singletonList(primary))
+            .with(List.of(primary))
             .with(CoreAuthenticationTestUtils.getService())
             .with(true)
             .build();
@@ -158,7 +159,7 @@ public class Saml10SuccessResponseViewTests extends AbstractOpenSamlTests {
 
         val attributes = new HashMap<String, List<Object>>();
         attributes.put(TEST_ATTRIBUTE, List.of(TEST_VALUE));
-        val principal = new DefaultPrincipalFactory().createPrincipal(PRINCIPAL_ID, attributes);
+        val principal = PrincipalFactoryUtils.newPrincipalFactory().createPrincipal(PRINCIPAL_ID, attributes);
 
         val authnAttributes = new HashMap<String, List<Object>>();
         authnAttributes.put("authnAttribute1", List.of("authnAttrbuteV1"));
@@ -168,7 +169,7 @@ public class Saml10SuccessResponseViewTests extends AbstractOpenSamlTests {
         val primary = CoreAuthenticationTestUtils.getAuthentication(principal, authnAttributes);
 
         val assertion = new DefaultAssertionBuilder(primary)
-            .with(Collections.singletonList(primary))
+            .with(List.of(primary))
             .with(CoreAuthenticationTestUtils.getService())
             .with(true)
             .build();

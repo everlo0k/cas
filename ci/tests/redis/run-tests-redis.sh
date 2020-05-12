@@ -18,10 +18,10 @@ if [ "$runBuild" = false ]; then
     exit 0
 fi
 
-prepCommand="echo 'Running command...'; "
+
 gradle="./gradlew $@"
 gradleBuild=""
-gradleBuildOptions="--stacktrace --build-cache --configure-on-demand --no-daemon -DtestCategoryType=REDIS "
+gradleBuildOptions="--build-cache --configure-on-demand --no-daemon -DtestCategoryType=REDIS "
 
 echo -e "***********************************************"
 echo -e "Gradle build started at `date`"
@@ -30,7 +30,7 @@ echo -e "***********************************************"
 ./ci/tests/redis/run-redis-server.sh
 
 gradleBuild="$gradleBuild testRedis jacocoRootReport -x test -x javadoc -x check \
-    -DskipGradleLint=true -DskipNestedConfigMetadataGen=true "
+    -DskipNestedConfigMetadataGen=true  "
 
 if [[ "${TRAVIS_COMMIT_MESSAGE}" == *"[show streams]"* ]]; then
     gradleBuild="$gradleBuild -DshowStandardStreams=true "
@@ -49,7 +49,7 @@ if [ -z "$gradleBuild" ]; then
 else
     tasks="$gradle $gradleBuildOptions $gradleBuild"
     echo -e "***************************************************************************************"
-    echo $prepCommand
+
     echo $tasks
     echo -e "***************************************************************************************"
 
@@ -57,7 +57,7 @@ else
     eval $waitloop
     waitRetVal=$?
 
-    eval $prepCommand
+
     eval $tasks
     retVal=$?
 
@@ -67,7 +67,7 @@ else
 
     if [ $retVal == 0 ]; then
         echo "Uploading test coverage results..."
-        bash <(curl -s https://codecov.io/bash)
+        bash <(curl -s https://codecov.io/bash)  -F Redis
         echo "Gradle build finished successfully."
     else
         echo "Gradle build did NOT finish successfully."

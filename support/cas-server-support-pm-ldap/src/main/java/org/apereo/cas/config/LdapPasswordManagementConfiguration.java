@@ -9,6 +9,7 @@ import org.apereo.cas.util.crypto.CipherExecutor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +21,8 @@ import org.springframework.context.annotation.Configuration;
  * @author Misagh Moayyed
  * @since 5.2.0
  */
-@Configuration("ldapPasswordManagementConfiguration")
+@Configuration(value = "ldapPasswordManagementConfiguration", proxyBeanMethods = false)
+@ConditionalOnProperty(name = "cas.authn.pm.ldap[0].ldap-url")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class LdapPasswordManagementConfiguration {
     @Autowired
@@ -37,9 +39,9 @@ public class LdapPasswordManagementConfiguration {
     @RefreshScope
     @Bean
     public PasswordManagementService passwordChangeService() {
-        return new LdapPasswordManagementService(passwordManagementCipherExecutor.getIfAvailable(),
+        return new LdapPasswordManagementService(passwordManagementCipherExecutor.getObject(),
             casProperties.getServer().getPrefix(),
             casProperties.getAuthn().getPm(),
-            passwordHistoryService.getIfAvailable());
+            passwordHistoryService.getObject());
     }
 }

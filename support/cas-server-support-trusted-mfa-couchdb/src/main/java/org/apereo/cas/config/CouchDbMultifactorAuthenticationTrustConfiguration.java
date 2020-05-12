@@ -3,6 +3,7 @@ package org.apereo.cas.config;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.couchdb.core.CouchDbConnectorFactory;
 import org.apereo.cas.couchdb.trusted.MultifactorAuthenticationTrustRecordCouchDbRepository;
+import org.apereo.cas.trusted.authentication.api.MultifactorAuthenticationTrustRecordKeyGenerator;
 import org.apereo.cas.trusted.authentication.api.MultifactorAuthenticationTrustStorage;
 import org.apereo.cas.trusted.authentication.storage.CouchDbMultifactorAuthenticationTrustStorage;
 import org.apereo.cas.util.crypto.CipherExecutor;
@@ -24,9 +25,13 @@ import org.springframework.context.annotation.Configuration;
  * @author Timur Duehr
  * @since 6.0.0
  */
-@Configuration("couchDbMultifactorAuthenticationTrustConfiguration")
+@Configuration(value = "couchDbMultifactorAuthenticationTrustConfiguration", proxyBeanMethods = false)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class CouchDbMultifactorAuthenticationTrustConfiguration {
+
+    @Autowired
+    @Qualifier("mfaTrustRecordKeyGenerator")
+    private ObjectProvider<MultifactorAuthenticationTrustRecordKeyGenerator> keyGenerationStrategy;
 
     @Autowired
     private CasConfigurationProperties casProperties;
@@ -43,7 +48,7 @@ public class CouchDbMultifactorAuthenticationTrustConfiguration {
     @Bean
     @RefreshScope
     public CouchDbConnectorFactory mfaTrustCouchDbFactory() {
-        return new CouchDbConnectorFactory(casProperties.getAuthn().getMfa().getTrusted().getCouchDb(), objectMapperFactory.getIfAvailable());
+        return new CouchDbConnectorFactory(casProperties.getAuthn().getMfa().getTrusted().getCouchDb(), objectMapperFactory.getObject());
     }
 
     @ConditionalOnMissingBean(name = "couchDbTrustRecordRepository")
@@ -51,8 +56,10 @@ public class CouchDbMultifactorAuthenticationTrustConfiguration {
     @RefreshScope
     public MultifactorAuthenticationTrustRecordCouchDbRepository couchDbTrustRecordRepository(
         @Qualifier("mfaTrustCouchDbFactory") final CouchDbConnectorFactory mfaTrustCouchDbFactory) {
-        return new MultifactorAuthenticationTrustRecordCouchDbRepository(mfaTrustCouchDbFactory.getCouchDbConnector(),
+        val repository = new MultifactorAuthenticationTrustRecordCouchDbRepository(mfaTrustCouchDbFactory.getCouchDbConnector(),
             casProperties.getAuthn().getMfa().getTrusted().getCouchDb().isCreateIfNotExists());
+        repository.initStandardDesignDocument();
+        return repository;
     }
 
     @ConditionalOnMissingBean(name = "couchDbMfaTrustEngine")
@@ -60,8 +67,8 @@ public class CouchDbMultifactorAuthenticationTrustConfiguration {
     @RefreshScope
     public MultifactorAuthenticationTrustStorage mfaTrustEngine(
         @Qualifier("couchDbTrustRecordRepository") final MultifactorAuthenticationTrustRecordCouchDbRepository couchDbTrustRecordRepository) {
-        val c = new CouchDbMultifactorAuthenticationTrustStorage(couchDbTrustRecordRepository);
-        c.setCipherExecutor(mfaTrustCipherExecutor.getIfAvailable());
-        return c;
+        return new CouchDbMultifactorAuthenticationTrustStorage(casProperties.getAuthn().getMfa().getTrusted(),
+            mfaTrustCipherExecutor.getObject(),
+            couchDbTrustRecordRepository, keyGenerationStrategy.getObject());
     }
 }

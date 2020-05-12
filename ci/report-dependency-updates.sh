@@ -19,17 +19,16 @@ if [ "$runBuild" = false ]; then
 fi
 
 
-prepCommand="echo 'Running command...'; "
 gradle="./gradlew $@"
 gradleBuild=""
-gradleBuildOptions="--stacktrace --build-cache --configure-on-demand --no-daemon "
+gradleBuildOptions="--build-cache --configure-on-demand --no-daemon  "
 
 echo -e "***********************************************"
 echo -e "Gradle build started at `date`"
 echo -e "***********************************************"
 
 gradleBuild="$gradleBuild dependencyUpdates -Drevision=release -x javadoc -x check  \
-    -DskipGradleLint=true -DskipNestedConfigMetadataGen=true \
+    -DskipNestedConfigMetadataGen=true \
     --parallel -DgradleReleaseChannel=current "
     
 if [[ "${TRAVIS_COMMIT_MESSAGE}" == *"[show streams]"* ]]; then
@@ -49,7 +48,6 @@ if [ -z "$gradleBuild" ]; then
 else
     tasks="$gradle $gradleBuildOptions $gradleBuild"
     echo -e "***************************************************************************************"
-    echo $prepCommand
     echo $tasks
     echo -e "***************************************************************************************"
 
@@ -57,7 +55,6 @@ else
     eval $waitloop
     waitRetVal=$?
 
-    eval $prepCommand
     eval $tasks
     retVal=$?
 

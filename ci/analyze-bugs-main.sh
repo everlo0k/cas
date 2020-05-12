@@ -18,17 +18,16 @@ if [ "$runBuild" = false ]; then
     exit 0
 fi
 
-prepCommand="echo 'Running command...'; "
 gradle="./gradlew $@"
 gradleBuild=""
-gradleBuildOptions="--stacktrace --build-cache --configure-on-demand --no-daemon "
+gradleBuildOptions="--build-cache --configure-on-demand --no-daemon "
 
 echo -e "***********************************************"
 echo -e "Gradle build started at `date`"
 echo -e "***********************************************"
 
 gradleBuild="$gradleBuild spotbugsMain -x test -x javadoc \
-     -DskipGradleLint=true -DskipNestedConfigMetadataGen=true \
+     -DskipNestedConfigMetadataGen=true \
      -DshowStandardStreams=true "
 
 if [[ "${TRAVIS_COMMIT_MESSAGE}" == *"[rerun tasks]"* ]]; then
@@ -44,7 +43,6 @@ if [ -z "$gradleBuild" ]; then
 else
     tasks="$gradle $gradleBuildOptions $gradleBuild"
     echo -e "***************************************************************************************"
-    echo $prepCommand
     echo $tasks
     echo -e "***************************************************************************************"
 
@@ -52,7 +50,6 @@ else
     eval $waitloop
     waitRetVal=$?
 
-    eval $prepCommand
     eval $tasks
     retVal=$?
 

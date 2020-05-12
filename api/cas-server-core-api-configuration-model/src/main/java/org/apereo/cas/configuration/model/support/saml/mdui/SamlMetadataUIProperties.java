@@ -6,6 +6,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
@@ -21,6 +22,7 @@ import java.util.List;
 @RequiresModule(name = "cas-server-support-saml-mdui")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class SamlMetadataUIProperties implements Serializable {
 
     private static final long serialVersionUID = 2113479681245996975L;
@@ -54,7 +56,7 @@ public class SamlMetadataUIProperties implements Serializable {
      * separator. Example: {@code classpath:/sp-metadata.xml::classpath:/pub.key}.
      */
     @RequiredProperty
-    private List<String> resources = new ArrayList<>();
+    private List<String> resources = new ArrayList<>(0);
 
     /**
      * Scheduler settings to indicate how often is metadata reloaded.

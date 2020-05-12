@@ -6,6 +6,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +20,7 @@ import java.util.Map;
 @RequiresModule(name = "cas-server-support-pac4j-webflow")
 @Getter
 @Setter
+@Accessors(chain = true)
 public abstract class BasePac4jOidcClientProperties extends Pac4jIdentifiableClientProperties {
 
     private static final long serialVersionUID = 3359382317533639638L;
@@ -59,7 +61,7 @@ public abstract class BasePac4jOidcClientProperties extends Pac4jIdentifiableCli
     /**
      * Custom parameters to send along in authZ requests, etc.
      */
-    private Map<String, String> customParams = new HashMap<>();
+    private Map<String, String> customParams = new HashMap<>(0);
 
     /**
      * The response mode specifies how the result of the authorization request is formatted.

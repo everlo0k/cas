@@ -7,13 +7,13 @@ import org.apereo.cas.couchdb.core.CouchDbConnectorFactory;
 import org.apereo.cas.couchdb.core.ProfileCouchDbRepository;
 import org.apereo.cas.ticket.registry.TicketRegistrySupport;
 
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.ektorp.impl.ObjectMapperFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Bean;
@@ -25,9 +25,9 @@ import org.springframework.context.annotation.Configuration;
  * @author Timur Duehr
  * @since 6.0.0
  */
-@Configuration("casAcceptableUsagePolicyCoucbDbConfiguration")
+@Configuration(value = "casAcceptableUsagePolicyCoucbDbConfiguration", proxyBeanMethods = false)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-@Slf4j
+@ConditionalOnProperty(prefix = "cas.acceptable-usage-policy", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class CasAcceptableUsagePolicyCouchDbConfiguration {
     @Autowired
     private CasConfigurationProperties casProperties;
@@ -44,7 +44,7 @@ public class CasAcceptableUsagePolicyCouchDbConfiguration {
     @Bean
     @RefreshScope
     public CouchDbConnectorFactory aupCouchDbFactory() {
-        return new CouchDbConnectorFactory(casProperties.getAcceptableUsagePolicy().getCouchDb(), objectMapperFactory.getIfAvailable());
+        return new CouchDbConnectorFactory(casProperties.getAcceptableUsagePolicy().getCouchDb(), objectMapperFactory.getObject());
     }
 
     @ConditionalOnMissingBean(name = "aupCouchDbRepository")
@@ -62,8 +62,8 @@ public class CasAcceptableUsagePolicyCouchDbConfiguration {
     @RefreshScope
     public AcceptableUsagePolicyRepository acceptableUsagePolicyRepository(
         @Qualifier("aupCouchDbRepository") final ProfileCouchDbRepository profileCouchDbRepository) {
-        return new CouchDbAcceptableUsagePolicyRepository(ticketRegistrySupport.getIfAvailable(),
-            casProperties.getAcceptableUsagePolicy().getAupAttributeName(),
+        return new CouchDbAcceptableUsagePolicyRepository(ticketRegistrySupport.getObject(),
+            casProperties.getAcceptableUsagePolicy(),
             profileCouchDbRepository,
             casProperties.getAcceptableUsagePolicy().getCouchDb().getRetries());
     }

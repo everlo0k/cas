@@ -6,12 +6,14 @@ import org.apereo.cas.configuration.model.support.ConnectionPoolingProperties;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apereo.services.persondir.IPersonAttributeDao;
 import org.apereo.services.persondir.support.NamedStubPersonAttributeDao;
 import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 import org.springframework.util.StringUtils;
 
+import java.io.File;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -44,21 +46,6 @@ public class Beans {
     }
 
     /**
-     * New thread pool executor factory bean.
-     *
-     * @param keepAlive the keep alive
-     * @param maxSize   the max size
-     * @return the thread pool executor factory bean
-     */
-    public static ThreadPoolExecutorFactoryBean newThreadPoolExecutorFactoryBean(final long keepAlive,
-                                                                                 final long maxSize) {
-        val bean = new ThreadPoolExecutorFactoryBean();
-        bean.setMaxPoolSize((int) maxSize);
-        bean.setKeepAliveSeconds((int) keepAlive);
-        return bean;
-    }
-
-    /**
      * New attribute repository person attribute dao.
      *
      * @param p the properties
@@ -71,7 +58,15 @@ public class Beans {
         val stub = p.getStub();
         stub.getAttributes().forEach((key, value) -> {
             val vals = StringUtils.commaDelimitedListToStringArray(value);
-            pdirMap.put(key, Arrays.stream(vals).collect(Collectors.toList()));
+            pdirMap.put(key, Arrays.stream(vals)
+                .map(v -> {
+                    val bool = BooleanUtils.toBooleanObject(v);
+                    if (bool != null) {
+                        return bool;
+                    }
+                    return v;
+                })
+                .collect(Collectors.toList()));
         });
         dao.setBackingMap(pdirMap);
         if (StringUtils.hasText(stub.getId())) {
@@ -95,5 +90,10 @@ public class Beans {
             return Duration.ofSeconds(Long.parseLong(length));
         }
         return Duration.parse(length);
+    }
+
+    @SneakyThrows
+    public static String getTempFilePath(final String prefix, final String suffix) {
+        return File.createTempFile(prefix, suffix).getCanonicalPath();
     }
 }

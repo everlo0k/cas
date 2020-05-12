@@ -36,14 +36,33 @@ import java.util.Map;
 @Slf4j
 @UtilityClass
 public class HttpUtils {
-
+    private static final int MAP_SIZE = 8;
     private static final int MAX_CONNECTIONS = 200;
     private static final int MAX_CONNECTIONS_PER_ROUTE = 20;
 
-    private static final HttpClient HTTP_CLIENT = HttpClientBuilder.create()
+    private static HttpClient HTTP_CLIENT = HttpClientBuilder.create()
         .setMaxConnTotal(MAX_CONNECTIONS)
         .setMaxConnPerRoute(MAX_CONNECTIONS_PER_ROUTE)
         .build();
+
+    /**
+     * Execute http response.
+     *
+     * @param url               the url
+     * @param method            the method
+     * @param basicAuthUsername the basic auth username
+     * @param basicAuthPassword the basic auth password
+     * @param entity            the entity
+     * @return the http response
+     */
+    public static HttpResponse execute(final String url,
+                                       final String method,
+                                       final String basicAuthUsername,
+                                       final String basicAuthPassword,
+                                       final String entity) {
+        return execute(url, method, basicAuthUsername, basicAuthPassword,
+            new HashMap<>(0), new HashMap<>(0), entity);
+    }
 
     /**
      * Execute http response.
@@ -57,7 +76,7 @@ public class HttpUtils {
     public static HttpResponse execute(final String url, final String method,
                                        final String basicAuthUsername,
                                        final String basicAuthPassword) {
-        return execute(url, method, basicAuthUsername, basicAuthPassword, new HashMap<>(), new HashMap<>());
+        return execute(url, method, basicAuthUsername, basicAuthPassword, new HashMap<>(0), new HashMap<>(0));
     }
 
     /**
@@ -73,7 +92,7 @@ public class HttpUtils {
     public static HttpResponse execute(final String url, final String method,
                                        final String basicAuthUsername, final String basicAuthPassword,
                                        final Map<String, Object> headers) {
-        return execute(url, method, basicAuthUsername, basicAuthPassword, new HashMap<>(), headers);
+        return execute(url, method, basicAuthUsername, basicAuthPassword, new HashMap<>(0), headers);
     }
 
     /**
@@ -86,7 +105,7 @@ public class HttpUtils {
      */
     public static HttpResponse execute(final String url, final String method,
                                        final Map<String, Object> headers) {
-        return execute(url, method, null, null, new HashMap<>(), headers);
+        return execute(url, method, null, null, new HashMap<>(0), headers);
     }
 
     /**
@@ -97,7 +116,7 @@ public class HttpUtils {
      * @return the http response
      */
     public static HttpResponse execute(final String url, final String method) {
-        return execute(url, method, null, null, new HashMap<>(), new HashMap<>());
+        return execute(url, method, null, null, new HashMap<>(0), new HashMap<>(0));
     }
 
     /**
@@ -139,10 +158,10 @@ public class HttpUtils {
                                        final Map<String, Object> headers,
                                        final String entity) {
         try {
-            val uri = buildHttpUri(url, parameters);
+            val uri = buildHttpUri(url.trim(), parameters);
             val request = getHttpRequestByMethod(method.toLowerCase().trim(), entity, uri);
             headers.forEach((k, v) -> request.addHeader(k, v.toString()));
-            prepareHttpRequest(request, basicAuthUsername, basicAuthPassword, parameters);
+            prepareHttpRequest(request, basicAuthUsername, basicAuthPassword);
             return HTTP_CLIENT.execute(request);
         } catch (final Exception e) {
             LOGGER.error(e.getMessage(), e);
@@ -197,7 +216,7 @@ public class HttpUtils {
                                           final String basicAuthPassword,
                                           final Map<String, Object> parameters) {
         try {
-            return executeGet(url, basicAuthUsername, basicAuthPassword, parameters, new HashMap<>());
+            return executeGet(url, basicAuthUsername, basicAuthPassword, parameters, new HashMap<>(0));
         } catch (final Exception e) {
             LOGGER.error(e.getMessage(), e);
         }
@@ -271,7 +290,7 @@ public class HttpUtils {
      */
     public static HttpResponse executeGet(final String url) {
         try {
-            return executeGet(url, null, null, new LinkedHashMap<>());
+            return executeGet(url, null, null, new LinkedHashMap<>(MAP_SIZE));
         } catch (final Exception e) {
             LOGGER.error(e.getMessage(), e);
         }
@@ -290,7 +309,7 @@ public class HttpUtils {
                                           final String basicAuthUsername,
                                           final String basicAuthPassword) {
         try {
-            return executeGet(url, basicAuthUsername, basicAuthPassword, new HashMap<>());
+            return executeGet(url, basicAuthUsername, basicAuthPassword, new HashMap<>(0));
         } catch (final Exception e) {
             LOGGER.error(e.getMessage(), e);
         }
@@ -310,7 +329,7 @@ public class HttpUtils {
                                            final String basicAuthUsername,
                                            final String basicAuthPassword,
                                            final String entity) {
-        return executePost(url, basicAuthUsername, basicAuthPassword, entity, new HashMap<>());
+        return executePost(url, basicAuthUsername, basicAuthPassword, entity, new HashMap<>(0));
     }
 
     /**
@@ -343,7 +362,7 @@ public class HttpUtils {
                                            final String entity,
                                            final Map<String, Object> parameters) {
         try {
-            return executePost(url, basicAuthUsername, basicAuthPassword, entity, parameters, new HashMap<>());
+            return executePost(url, basicAuthUsername, basicAuthPassword, entity, parameters, new HashMap<>(0));
         } catch (final Exception e) {
             LOGGER.error(e.getMessage(), e);
         }
@@ -471,10 +490,9 @@ public class HttpUtils {
      * @param request           the request
      * @param basicAuthUsername the basic auth username
      * @param basicAuthPassword the basic auth password
-     * @param parameters        the parameters
      */
     private static void prepareHttpRequest(final HttpUriRequest request, final String basicAuthUsername,
-                                           final String basicAuthPassword, final Map<String, Object> parameters) {
+                                           final String basicAuthPassword) {
         if (StringUtils.isNotBlank(basicAuthUsername) && StringUtils.isNotBlank(basicAuthPassword)) {
             val auth = EncodingUtils.encodeBase64(basicAuthUsername + ':' + basicAuthPassword);
             request.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + auth);
@@ -515,5 +533,13 @@ public class HttpUtils {
             acceptHeaders.set(org.springframework.http.HttpHeaders.AUTHORIZATION, "Basic " + basic);
         }
         return acceptHeaders;
+    }
+
+    public static HttpClient getHttpClient() {
+        return HTTP_CLIENT;
+    }
+
+    public static void setHttpClient(final HttpClient httpClient) {
+        HTTP_CLIENT = httpClient;
     }
 }

@@ -1,32 +1,21 @@
 package org.apereo.cas.adaptors.u2f;
 
 import org.apereo.cas.adaptors.u2f.storage.U2FDeviceRepository;
+import org.apereo.cas.adaptors.u2f.web.flow.BaseU2FWebflowActionTests;
 import org.apereo.cas.authentication.AuthenticationHandler;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
-import org.apereo.cas.config.CasCoreAuthenticationConfiguration;
-import org.apereo.cas.config.CasCoreAuthenticationSupportConfiguration;
-import org.apereo.cas.config.CasCoreServicesConfiguration;
-import org.apereo.cas.config.CasCoreUtilConfiguration;
-import org.apereo.cas.config.U2FConfiguration;
-import org.apereo.cas.config.U2FWebflowConfiguration;
-import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
-import org.apereo.cas.config.support.authentication.U2FAuthenticationComponentSerializationConfiguration;
-import org.apereo.cas.config.support.authentication.U2FAuthenticationEventExecutionPlanConfiguration;
-import org.apereo.cas.web.flow.config.CasCoreWebflowConfiguration;
-import org.apereo.cas.web.flow.config.CasWebflowContextConfiguration;
 import org.apereo.cas.web.support.WebUtils;
 
 import lombok.val;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.webflow.context.servlet.ServletExternalContext;
 import org.springframework.webflow.execution.RequestContextHolder;
 import org.springframework.webflow.test.MockRequestContext;
@@ -39,22 +28,11 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.0.0
  */
-@SpringBootTest(classes = {
-    RefreshAutoConfiguration.class,
-    U2FConfiguration.class,
-    U2FWebflowConfiguration.class,
-    U2FAuthenticationEventExecutionPlanConfiguration.class,
-    U2FAuthenticationComponentSerializationConfiguration.class,
-    CasCoreWebflowConfiguration.class,
-    CasWebflowContextConfiguration.class,
-    CasCoreServicesConfiguration.class,
-    CasCoreAuthenticationConfiguration.class,
-    CasWebApplicationServiceFactoryConfiguration.class,
-    CasCoreAuthenticationSupportConfiguration.class,
-    CasCoreUtilConfiguration.class
-})
-@TestPropertySource(properties = "cas.authn.mfa.u2f.json.location=file:src/test/resources/u2f-accounts.json")
+@SpringBootTest(classes = BaseU2FWebflowActionTests.SharedTestConfiguration.class,
+    properties = "cas.authn.mfa.u2f.json.location=file:src/test/resources/u2f-accounts.json"
+)
 @DirtiesContext
+@Tag("MFA")
 public class U2FAuthenticationHandlerTests {
     @Autowired
     @Qualifier("u2fAuthenticationHandler")
@@ -74,7 +52,7 @@ public class U2FAuthenticationHandlerTests {
             + '}';
 
         val authnData = "{\"appId\":\"https://mmoayyed.unicon.net:8443\","
-            + "\"challenge\":\"NEnAEZPOoSTvD33crTed8YENizvWZ5muFZYffYp3AeU\",\"signRequests\":[{\"version\":\"U2F_V2\","
+            + "\"challenge\":\"NEnAEZPOoSTvD33crTPasswordlessAuthenticationWebflowConfigurerTestsed8YENizvWZ5muFZYffYp3AeU\",\"signRequests\":[{\"version\":\"U2F_V2\","
             + "\"challenge\":\"NEnAEZPOoSTvD33crTed8YENizvWZ5muFZYffYp3AeU\",\"appId\":\"https://mmoayyed.unicon.net:8443\","
             + "\"keyHandle\":\"2_QYgDSPYcOgYBGBe8c9PVCunjigbD-3o5HcliXhu-Up_GKckYMxxVF6AgSPWubqfWy8WmJNDYQEJ1QKZe343Q\"}]}";
         u2fDeviceRepository.requestDeviceAuthentication("NEnAEZPOoSTvD33crTed8YENizvWZ5muFZYffYp3AeU", "casuser", authnData);

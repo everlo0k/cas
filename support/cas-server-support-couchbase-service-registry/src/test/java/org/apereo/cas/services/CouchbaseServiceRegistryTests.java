@@ -1,8 +1,9 @@
 package org.apereo.cas.services;
 
 import org.apereo.cas.config.CasCoreServicesConfiguration;
+import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CouchbaseServiceRegistryConfiguration;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Tag;
@@ -13,8 +14,8 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 
 /**
@@ -27,14 +28,16 @@ import org.springframework.context.event.EventListener;
     CouchbaseServiceRegistryTests.CouchbaseServiceRegistryTestConfiguration.class,
     RefreshAutoConfiguration.class,
     CasCoreServicesConfiguration.class,
+    CasCoreUtilConfiguration.class,
     CouchbaseServiceRegistryConfiguration.class
 },
     properties = {
-        "cas.serviceRegistry.couchbase.password=password",
-        "cas.serviceRegistry.couchbase.bucket=testbucket"
+        "cas.service-registry.couchbase.clusterPassword=password",
+        "cas.service-registry.couchbase.clusterUsername=admin",
+        "cas.service-registry.couchbase.bucket=testbucket"
     })
 @Tag("Couchbase")
-@EnabledIfContinuousIntegration
+@EnabledIfPortOpen(port = 8091)
 @Execution(ExecutionMode.SAME_THREAD)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ResourceLock("Couchbase")
@@ -49,7 +52,7 @@ public class CouchbaseServiceRegistryTests extends AbstractServiceRegistryTests 
         return serviceRegistry;
     }
 
-    @Configuration("CouchbaseServiceRegistryTestConfiguration")
+    @TestConfiguration("CouchbaseServiceRegistryTestConfiguration")
     public static class CouchbaseServiceRegistryTestConfiguration {
 
         @SneakyThrows
@@ -57,6 +60,7 @@ public class CouchbaseServiceRegistryTests extends AbstractServiceRegistryTests 
         public void handleCouchbaseSaveEvent(final CouchbaseRegisteredServiceSavedEvent event) {
             Thread.sleep(100);
         }
+
         @SneakyThrows
         @EventListener
         public void handleCouchbaseDeleteEvent(final CouchbaseRegisteredServiceDeletedEvent event) {

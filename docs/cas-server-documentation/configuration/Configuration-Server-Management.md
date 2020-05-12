@@ -111,21 +111,21 @@ The following endpoints are secured and exposed by the configuration server:
 |-----------------------------------|------------------------------------------
 | `/encrypt`                        | Accepts a `POST` to encrypt CAS configuration settings.
 | `/decrypt`                        | Accepts a `POST` to decrypt CAS configuration settings.
-| `/actuator/refresh`                        | Accepts a `POST` and attempts to refresh the internal state of configuration server.
-| `/actuator/actuator/env`                   | Accepts a `GET` and describes all configuration sources of the configuration server.
-| `/actuator/cas/default`                    | Describes what the configuration server knows about the `default` settings profile.
-| `/actuator/cas/native`                     | Describes what the configuration server knows about the `native` settings profile.
+| `/actuator/refresh`               | Accepts a `POST` and attempts to refresh the internal state of configuration server.
+| `/actuator/env`                   | Accepts a `GET` and describes all configuration sources of the configuration server.
+| `/actuator/cas/default`           | Describes what the configuration server knows about the `default` settings profile.
+| `/actuator/cas/native`            | Describes what the configuration server knows about the `native` settings profile.
 
 Once you have the configuration server deployed and assuming the credentials used to secure the configuration server match the example below, you can observe the collection of settings via:
 
 ```bash
-curl -u casuser:Mellon http://config.server.url:8888/casconfigserver/cas/native
+curl -u casuser:Mellon https://config.server.url:8888/casconfigserver/cas/native
 ```
 
 Assuming actuator endpoints are enabled in the configuration, you can also observe the collection of property sources that provide settings to the configuration server:
 
 ```bash
-curl -u casuser:Mellon http://localhost:8888/casconfigserver/actuator/env
+curl -u casuser:Mellon https://config.server.url:8888/casconfigserver/actuator/env
 ```
 
 <div class="alert alert-info"><strong>Actuator Endpoints</strong><p>
@@ -140,7 +140,7 @@ The properties to configure the CAS server web application as the client of the 
 must necessarily be read in before the rest of the application’s configuration is read from the configuration server, during the *bootstrap* phase.
 
 ```properties
-spring.cloud.config.uri=http://casuser:Mellon@localhost:8888/casconfigserver
+spring.cloud.config.uri=https://casuser:Mellon@config.server.url:8888/casconfigserver
 spring.cloud.config.profile=native
 spring.cloud.config.enabled=true
 spring.profiles.active=default
@@ -338,6 +338,23 @@ Support is provided via the following dependency in the WAR overlay:
 
 See [this guide](Configuration-Properties.html#amazon-secrets-manager) for relevant settings.
 
+##### Amazon Systems Manager Parameter Store (SSM)
+
+CAS is also able to use [AWS Systems Manager Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) 
+to locate properties and settings.
+
+Support is provided via the following dependency in the WAR overlay:
+
+```xml
+<dependency>
+     <groupId>org.apereo.cas</groupId>
+     <artifactId>cas-server-support-configuration-cloud-aws-ssm</artifactId>
+     <version>${cas.version}</version>
+</dependency>
+```
+
+See [this guide](Configuration-Properties.html#amazon-parameter-store) for relevant settings.
+
 ##### DynamoDb
 
 CAS is also able to use [DynamoDb](https://aws.amazon.com/dynamodb/) to locate properties and settings.
@@ -400,6 +417,24 @@ Support is provided via the following dependency in the WAR overlay:
 
 By default, settings are expected to be found under a `CAS_SETTINGS_TABLE` that contains the fields: `id`, `name` and `value`.
 To see the relevant list of CAS properties for this feature, please [review this guide](Configuration-Properties.html#jdbc).
+
+##### REST
+
+CAS is also able to locate properties and settings using a REST API.
+
+Support is provided via the following dependency in the WAR overlay:
+
+```xml
+<dependency>
+     <groupId>org.apereo.cas</groupId>
+     <artifactId>cas-server-support-configuration-cloud-rest</artifactId>
+     <version>${cas.version}</version>
+</dependency>
+```
+
+The REST endpoint is expected to produce a `Map` in the payload with keys as the setting names
+and values as the setting value. To see the relevant list of CAS properties for this 
+feature, please [review this guide](Configuration-Properties.html#rest).
 
 #### CAS Server Cloud Configuration
 

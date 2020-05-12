@@ -15,7 +15,6 @@ import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 import com.amazonaws.services.dynamodbv2.model.ScanRequest;
 import com.amazonaws.services.dynamodbv2.util.TableUtils;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -36,15 +35,22 @@ import java.util.Properties;
  * @author Misagh Moayyed
  * @since 5.1.0
  */
-@Configuration("dynamoDbCloudConfigBootstrapConfiguration")
+@Configuration(value = "dynamoDbCloudConfigBootstrapConfiguration", proxyBeanMethods = false)
 @Slf4j
 @Getter
 public class DynamoDbCloudConfigBootstrapConfiguration implements PropertySourceLocator {
-    private static final String CAS_CONFIGURATION_PREFIX = "cas.spring.cloud.dynamodb";
-    private static final String TABLE_NAME = "DynamoDbCasProperties";
+
+    /**
+     * Configuration table name.
+     */
+    public static final String TABLE_NAME = "DynamoDbCasProperties";
+    /**
+     * Configuration prefix.
+     */
+    public static final String CAS_CONFIGURATION_PREFIX = "cas.spring.cloud.dynamoDb";
 
     private static final long PROVISIONED_THROUGHPUT = 10;
-
+    
     private static Pair<String, Object> retrieveSetting(final Map<String, AttributeValue> entry) {
         val name = entry.get(ColumnNames.NAME.getColumnName()).getS();
         val value = entry.get(ColumnNames.VALUE.getColumnName()).getS();
@@ -52,7 +58,7 @@ public class DynamoDbCloudConfigBootstrapConfiguration implements PropertySource
     }
 
     @SneakyThrows
-    private static void createSettingsTable(final AmazonDynamoDB amazonDynamoDBClient, final boolean deleteTables) {
+    public static void createSettingsTable(final AmazonDynamoDB amazonDynamoDBClient, final boolean deleteTables) {
         val request = createCreateTableRequest();
         if (deleteTables) {
             val delete = new DeleteTableRequest(request.getTableName());
@@ -69,7 +75,6 @@ public class DynamoDbCloudConfigBootstrapConfiguration implements PropertySource
         LOGGER.debug("Located newly created table with description: [{}]", tableDescription);
     }
 
-    @SuppressFBWarnings("PRMC_POSSIBLY_REDUNDANT_METHOD_CALLS")
     private static CreateTableRequest createCreateTableRequest() {
         val name = ColumnNames.ID.getColumnName();
         return new CreateTableRequest()
@@ -107,9 +112,20 @@ public class DynamoDbCloudConfigBootstrapConfiguration implements PropertySource
     }
 
     @Getter
-    private enum ColumnNames {
+    public enum ColumnNames {
 
-        ID("id"), NAME("name"), VALUE("value");
+        /**
+         * Column id.
+         */
+        ID("id"),
+        /**
+         * Column name.
+         */
+        NAME("name"),
+        /**
+         * Column value.
+         */
+        VALUE("value");
 
         private final String columnName;
 

@@ -40,6 +40,10 @@ This endpoint will display the CAS IdP SAML2 metadata upon receiving a GET reque
 it will be displayed. If metadata is absent, one will be generated automatically.
 CAS configuration below dictates where metadata files/keys will be generated and stored.
 
+Note that the endpoint can accept a `service` parameter either by entity id or numeric identifier. This parameter
+is matched against the CAS service registry allowing the endpoint to calculate and combine any identity provider 
+metadata overrides that may have been specified.
+
 Here is a generated metadata file as an example:
 
 ```xml
@@ -78,6 +82,16 @@ Here is a generated metadata file as an example:
     </IDPSSODescriptor>
 </EntityDescriptor>
 ```
+
+SAML2 identity provider metadata can be managed in dynamics ways as well. To learn more, please [review this guide](Configuring-SAML2-DynamicMetadata.html).
+
+### Per Service
+
+Identity provider metadata, certificates and keys can also be defined on a per-service basis to override the global defaults.
+Metadata artifacts that would be applicable to a specific service definition and managed via the file system need to be stored
+in a directory location named after the service definition's name inside the canonical metadata directory. For example,
+if global metadata artifacts are managed on disk at `/etc/cas/config/saml/metadata`, then metadata applicable to a service definition
+whose name is configured as `SampleService` are expected to be found at `/etc/cas/config/saml/metadata/SampleService`.
 
 SAML2 identity provider metadata can be managed in dynamics ways as well. To learn more, please [review this guide](Configuring-SAML2-DynamicMetadata.html).
 
@@ -140,6 +154,7 @@ The following fields are available for SAML services:
 | `metadataSignatureLocation`          | Location of the metadata signing certificate/public key to validate the metadata which must be defined from system files or classpath. If defined, will enforce the `SignatureValidationFilter` validation filter on metadata.
 | `metadataExpirationDuration`         | If defined, will expire metadata in the cache after the indicated duration which will force CAS to retrieve and resolve the metadata again.
 | `requireSignedRoot`                  | Whether incoming metadata's root element is required to be signed. Default is `true`.
+| `signUnsolicitedAuthnRequest`        | When dealing with Unsolicited SSO, determine whether the authentication request should be forcefully signed.
 | `signAssertions`                     | Whether assertions should be signed. Default is `false`.
 | `signResponses`                      | Whether responses should be signed. Default is `true`.
 | `encryptionOptional`                 | Encrypt whenever possible (i.e a compatible key is found in the peer's metadata) or skip encryption otherwise. Default is `false`.
@@ -171,6 +186,7 @@ The following fields are available for SAML services:
 | `signingCredentialFingerprint` | `SHA-1` digest of the signing credential's public key, parsed as a regular expression, used for the purposes of key rotation when dealing with multiple credentials.
 | `signingCredentialType` | Acceptable values are `BASIC` and `X509`. This setting controls the type of the signature block produced in the final SAML response for this application. The latter, being the default, encodes the signature in `PEM` format inside a `X509Data` block while the former encodes the signature based on the resolved public key under a `DEREncodedKeyValue` block.
 | `signingSignatureReferenceDigestMethods` | Collection of signing signature reference digest methods, if any, to override the global defaults.
+| `signingKeyAlgorithm` | Signing key algorithm to forcibly use for signing operations when loading the private key. Default is `RSA`.
 | `signingSignatureAlgorithms` | Collection of signing signature algorithms, if any, to override the global defaults.
 | `signingSignatureBlackListedAlgorithms` | Collection of signing signature blacklisted algorithms, if any, to override the global defaults.
 | `signingSignatureWhiteListedAlgorithms` | Collection of signing signature whitelisted algorithms, if any, to override the global defaults.

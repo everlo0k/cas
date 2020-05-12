@@ -66,7 +66,7 @@ public class DynamoDbTicketRegistryFacilitator {
      *
      * @param ticketId        the ticket id
      * @param encodedTicketId the encoded ticket id
-     * @return the boolean
+     * @return true/false
      */
     public boolean delete(final String ticketId, final String encodedTicketId) {
         val metadata = this.ticketCatalog.find(ticketId);
@@ -104,8 +104,8 @@ public class DynamoDbTicketRegistryFacilitator {
      * @return the all
      */
     public Collection<Ticket> getAll() {
-        val tickets = new ArrayList<Ticket>();
         val metadata = this.ticketCatalog.findAll();
+        val tickets = new ArrayList<Ticket>(metadata.size());
         metadata.forEach(r -> {
             val scan = new ScanRequest(r.getProperties().getStorageName());
             LOGGER.debug("Scanning table with request [{}]", scan);

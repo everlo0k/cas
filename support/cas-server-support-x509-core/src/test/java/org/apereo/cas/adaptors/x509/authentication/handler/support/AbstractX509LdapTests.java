@@ -7,6 +7,7 @@ import org.apereo.cas.util.LdapTestUtils;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.Tag;
 import org.ldaptive.LdapAttribute;
 import org.springframework.core.io.ClassPathResource;
 
@@ -16,6 +17,7 @@ import org.springframework.core.io.ClassPathResource;
  * @author Misagh Moayyed
  * @since 4.1
  */
+@Tag("Ldap")
 public abstract class AbstractX509LdapTests extends LdapIntegrationTestsOperations {
 
     private static final String DN = "CN=x509,ou=people,dc=example,dc=org";
@@ -39,16 +41,12 @@ public abstract class AbstractX509LdapTests extends LdapIntegrationTestsOperatio
         val col = getLdapDirectory(port).getLdapEntries();
         for (val ldapEntry : col) {
             if (ldapEntry.getDn().equals(DN)) {
-                val attr = new LdapAttribute(true);
                 val userCA = new byte[1024];
                 IOUtils.read(new ClassPathResource("userCA-valid.crl").getInputStream(), userCA);
                 val value = EncodingUtils.encodeBase64ToByteArray(userCA);
-                attr.setName("certificateRevocationList");
-                attr.addBinaryValue(value);
+                val attr = LdapAttribute.builder().name("certificateRevocationList").values(value).binary(true).build();
                 LdapTestUtils.modifyLdapEntry(getLdapDirectory(port).getConnection(), ldapEntry, attr);
             }
         }
     }
-
-
 }

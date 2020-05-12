@@ -1,9 +1,9 @@
 package org.apereo.cas.support.x509.rest;
 
+import org.apereo.cas.adaptors.x509.authentication.X509CertificateExtractor;
 import org.apereo.cas.adaptors.x509.authentication.principal.X509CertificateCredential;
 import org.apereo.cas.authentication.Credential;
 import org.apereo.cas.rest.factory.RestHttpRequestCredentialFactory;
-import org.apereo.cas.web.extractcert.X509CertificateExtractor;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,12 +32,13 @@ public class X509RestHttpRequestHeaderCredentialFactory implements RestHttpReque
 
     @Override
     public List<Credential> fromRequest(final HttpServletRequest request, final MultiValueMap<String, String> requestBody) {
-        val credentials = new ArrayList<Credential>();
         val certFromHeader = certificateExtractor.extract(request);
         if (certFromHeader != null) {
             LOGGER.debug("Certificate found in HTTP request via [{}]", certificateExtractor.getClass().getName());
+            val credentials = new ArrayList<Credential>(1);
             credentials.add(new X509CertificateCredential(certFromHeader));
+            return credentials;
         }
-        return credentials;
+        return new ArrayList<Credential>(0);
     }
 }

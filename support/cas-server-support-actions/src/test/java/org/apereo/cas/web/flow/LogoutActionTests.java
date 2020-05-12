@@ -14,6 +14,7 @@ import org.apereo.cas.web.support.WebUtils;
 
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -23,8 +24,9 @@ import org.springframework.webflow.core.collection.LocalAttributeMap;
 import org.springframework.webflow.execution.RequestContext;
 
 import javax.servlet.http.Cookie;
-import java.util.Collections;
+
 import java.util.HashSet;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -33,6 +35,7 @@ import static org.mockito.Mockito.*;
  * @author Scott Battaglia
  * @since 3.0.0
  */
+@Tag("Webflow")
 public class LogoutActionTests extends AbstractWebflowActionsTests {
 
     private static final String COOKIE_TGC_ID = "CASTGC";
@@ -54,7 +57,7 @@ public class LogoutActionTests extends AbstractWebflowActionsTests {
         when(this.requestContext.getExternalContext()).thenReturn(servletExternalContext);
         when(servletExternalContext.getNativeRequest()).thenReturn(request);
         when(servletExternalContext.getNativeResponse()).thenReturn(new MockHttpServletResponse());
-        when(this.requestContext.getFlowScope()).thenReturn(new LocalAttributeMap());
+        when(this.requestContext.getFlowScope()).thenReturn(new LocalAttributeMap<>());
 
         val publisher = mock(ApplicationEventPublisher.class);
         this.serviceManager = new DefaultServicesManager(new InMemoryServiceRegistry(publisher), publisher, new HashSet<>());
@@ -127,7 +130,7 @@ public class LogoutActionTests extends AbstractWebflowActionsTests {
             .ticketGrantingTicket(new MockTicketGrantingTicket("casuser"))
             .build();
         logoutRequest.setStatus(LogoutRequestStatus.SUCCESS);
-        WebUtils.putLogoutRequests(this.requestContext, Collections.singletonList(logoutRequest));
+        WebUtils.putLogoutRequests(this.requestContext, List.of(logoutRequest));
         val properties = new LogoutProperties();
         this.logoutAction = new LogoutAction(getWebApplicationServiceFactory(), this.serviceManager, properties);
         val event = this.logoutAction.doExecute(this.requestContext);
@@ -142,7 +145,7 @@ public class LogoutActionTests extends AbstractWebflowActionsTests {
             .registeredService(RegisteredServiceTestUtils.getRegisteredService())
             .ticketGrantingTicket(new MockTicketGrantingTicket("casuser"))
             .build();
-        WebUtils.putLogoutRequests(this.requestContext, Collections.singletonList(logoutRequest));
+        WebUtils.putLogoutRequests(this.requestContext, List.of(logoutRequest));
         val properties = new LogoutProperties();
         this.logoutAction = new LogoutAction(getWebApplicationServiceFactory(), this.serviceManager, properties);
         val event = this.logoutAction.doExecute(this.requestContext);

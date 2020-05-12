@@ -9,12 +9,10 @@ import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
-import org.springframework.test.annotation.DirtiesContext;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -23,8 +21,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.security.auth.login.FailedLoginException;
 import javax.sql.DataSource;
-import java.util.Collections;
+
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -34,12 +33,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 4.0.0
  */
-@SpringBootTest(classes = {
-    RefreshAutoConfiguration.class,
-    DatabaseAuthenticationTestConfiguration.class
-})
-@DirtiesContext
-public class NamedQueryDatabaseAuthenticationHandlerTests {
+@Tag("JDBC")
+public class NamedQueryDatabaseAuthenticationHandlerTests extends BaseDatabaseAuthenticationHandlerTests {
 
     @Autowired
     @Qualifier("dataSource")
@@ -76,7 +71,7 @@ public class NamedQueryDatabaseAuthenticationHandlerTests {
     @SneakyThrows
     public void verifySuccess() {
         val sql = "SELECT * FROM cas_named_users where username=:username";
-        val map = CoreAuthenticationUtils.transformPrincipalAttributesListIntoMultiMap(Collections.singletonList("phone:phoneNumber"));
+        val map = CoreAuthenticationUtils.transformPrincipalAttributesListIntoMultiMap(List.of("phone:phoneNumber"));
         val q = new QueryDatabaseAuthenticationHandler("namedHandler",
             null, PrincipalFactoryUtils.newPrincipalFactory(), 0,
             this.dataSource, sql, "password",
@@ -93,7 +88,7 @@ public class NamedQueryDatabaseAuthenticationHandlerTests {
     @SneakyThrows
     public void verifySuccessWithCount() {
         val sql = "SELECT count(*) as total FROM cas_named_users where username=:username AND password=:password";
-        val map = CoreAuthenticationUtils.transformPrincipalAttributesListIntoMultiMap(Collections.singletonList("phone:phoneNumber"));
+        val map = CoreAuthenticationUtils.transformPrincipalAttributesListIntoMultiMap(List.of("phone:phoneNumber"));
         val q = new QueryDatabaseAuthenticationHandler("namedHandler",
             null, PrincipalFactoryUtils.newPrincipalFactory(), 0,
             this.dataSource, sql, null,

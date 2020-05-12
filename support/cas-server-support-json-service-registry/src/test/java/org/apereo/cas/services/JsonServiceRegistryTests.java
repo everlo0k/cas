@@ -3,9 +3,11 @@ package org.apereo.cas.services;
 import org.apereo.cas.services.replication.NoOpRegisteredServiceReplicationStrategy;
 import org.apereo.cas.services.resource.DefaultRegisteredServiceResourceNamingStrategy;
 import org.apereo.cas.services.util.RegisteredServiceJsonSerializer;
+import org.apereo.cas.util.io.WatcherService;
 
 import lombok.SneakyThrows;
 import lombok.val;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.ClassPathResource;
@@ -21,11 +23,12 @@ import static org.mockito.Mockito.*;
  * @author Misagh Moayyed
  * @since 4.1.0
  */
+@Tag("FileSystem")
 public class JsonServiceRegistryTests extends AbstractResourceBasedServiceRegistryTests {
     @SneakyThrows
     @Override
     public ServiceRegistry getNewServiceRegistry() {
-        dao = new JsonServiceRegistry(RESOURCE, true,
+        dao = new JsonServiceRegistry(RESOURCE, WatcherService.noOp(),
             mock(ApplicationEventPublisher.class),
             new NoOpRegisteredServiceReplicationStrategy(),
             new DefaultRegisteredServiceResourceNamingStrategy(),
@@ -35,8 +38,29 @@ public class JsonServiceRegistryTests extends AbstractResourceBasedServiceRegist
 
     @Test
     @SneakyThrows
+    public void verifyRegistry() {
+        val registry = new JsonServiceRegistry(RESOURCE, WatcherService.noOp(),
+            mock(ApplicationEventPublisher.class),
+            new NoOpRegisteredServiceReplicationStrategy(),
+            new DefaultRegisteredServiceResourceNamingStrategy(),
+            new ArrayList<>());
+        assertNotNull(registry.getName());
+        assertNotNull(registry.getExtensions());
+    }
+
+    @Test
+    @SneakyThrows
     public void verifyLegacyServiceDefinition() {
         val resource = new ClassPathResource("Legacy-10000003.json");
+        val serializer = new RegisteredServiceJsonSerializer();
+        val service = serializer.from(resource.getInputStream());
+        assertNotNull(service);
+    }
+
+    @Test
+    @SneakyThrows
+    public void verifyRequiredHandlersServiceDefinition() {
+        val resource = new ClassPathResource("RequiredHandlers-10000004.json");
         val serializer = new RegisteredServiceJsonSerializer();
         val service = serializer.from(resource.getInputStream());
         assertNotNull(service);

@@ -14,6 +14,7 @@ import org.apereo.cas.web.flow.resolver.CasDelegatingWebflowEventResolver;
 import org.apereo.cas.web.flow.resolver.CasWebflowEventResolver;
 
 import lombok.val;
+import org.ldaptive.SearchOperation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -33,7 +34,7 @@ import java.util.stream.Stream;
  * @author Misagh Moayyed
  * @since 5.0.0
  */
-@Configuration("spnegoWebflowActionsConfiguration")
+@Configuration(value = "spnegoWebflowActionsConfiguration", proxyBeanMethods = false)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class SpnegoWebflowActionsConfiguration {
 
@@ -56,9 +57,9 @@ public class SpnegoWebflowActionsConfiguration {
     @RefreshScope
     public Action spnego() {
         val spnegoProperties = casProperties.getAuthn().getSpnego();
-        return new SpnegoCredentialsAction(initialAuthenticationAttemptWebflowEventResolver.getIfAvailable(),
-            serviceTicketRequestWebflowEventResolver.getIfAvailable(),
-            adaptiveAuthenticationPolicy.getIfAvailable(),
+        return new SpnegoCredentialsAction(initialAuthenticationAttemptWebflowEventResolver.getObject(),
+            serviceTicketRequestWebflowEventResolver.getObject(),
+            adaptiveAuthenticationPolicy.getObject(),
             spnegoProperties.isNtlm(),
             spnegoProperties.isSend401OnAuthenticationFailure());
     }
@@ -95,15 +96,17 @@ public class SpnegoWebflowActionsConfiguration {
     @RefreshScope
     public Action ldapSpnegoClientAction() {
         val spnegoProperties = casProperties.getAuthn().getSpnego();
-        val connectionFactory = LdapUtils.newLdaptivePooledConnectionFactory(spnegoProperties.getLdap());
+        val connectionFactory = LdapUtils.newLdaptiveConnectionFactory(spnegoProperties.getLdap());
         val filter = LdapUtils.newLdaptiveSearchFilter(spnegoProperties.getLdap().getSearchFilter());
 
         val searchRequest = LdapUtils.newLdaptiveSearchRequest(spnegoProperties.getLdap().getBaseDn(), filter);
+        val searchOperation = new SearchOperation(connectionFactory, searchRequest);
+        searchOperation.setTemplate(filter);
+
         return new LdapSpnegoKnownClientSystemsFilterAction(RegexUtils.createPattern(spnegoProperties.getIpsToCheckPattern()),
             spnegoProperties.getAlternativeRemoteHostAttribute(),
             Beans.newDuration(spnegoProperties.getDnsTimeout()).toMillis(),
-            connectionFactory,
-            searchRequest,
+            searchOperation,
             spnegoProperties.getSpnegoAttributeName());
     }
 }

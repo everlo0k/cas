@@ -24,6 +24,7 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
      * The Event publisher.
      */
     private final transient ApplicationEventPublisher eventPublisher;
+
     /**
      * The Service registry listeners.
      */
@@ -65,10 +66,5 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
             serviceRegistryListeners.forEach(listener -> listener.postLoad(registeredService));
         }
         return registeredService;
-    }
-
-    @Override
-    public String getName() {
-        return this.getClass().getSimpleName();
     }
 }

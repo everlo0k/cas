@@ -13,6 +13,7 @@ import org.apereo.cas.config.CasCoreHttpConfiguration;
 import org.apereo.cas.config.CasCoreServicesAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
+import org.apereo.cas.config.CasCoreTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasCoreTicketsConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CasCoreWebConfiguration;
@@ -24,7 +25,7 @@ import org.apereo.cas.config.SurrogateLdapAuthenticationConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.services.web.config.CasThemesConfiguration;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 import org.apereo.cas.web.config.CasCookieConfiguration;
 import org.apereo.cas.web.flow.config.CasCoreWebflowConfiguration;
 import org.apereo.cas.web.flow.config.CasWebflowContextConfiguration;
@@ -41,7 +42,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * This is {@link SurrogateLdapAuthenticationServiceTests}.
@@ -65,11 +65,11 @@ import org.springframework.test.context.TestPropertySource;
     CasCoreHttpConfiguration.class,
     CasCoreUtilConfiguration.class,
     CasCoreTicketCatalogConfiguration.class,
+    CasCoreTicketIdGeneratorsConfiguration.class,
     CasCoreTicketsConfiguration.class,
     CasPersonDirectoryTestConfiguration.class,
     CasCoreAuthenticationConfiguration.class,
     CasCoreWebConfiguration.class,
-    CasWebApplicationServiceFactoryConfiguration.class,
     CasCoreServicesAuthenticationConfiguration.class,
     CasCoreServicesConfiguration.class,
     CasCoreWebflowConfiguration.class,
@@ -79,10 +79,8 @@ import org.springframework.test.context.TestPropertySource;
     CasCookieConfiguration.class,
     CasThemesConfiguration.class,
     CasCoreAuthenticationServiceSelectionStrategyConfiguration.class
-})
-@TestPropertySource(properties = {
-    "cas.authn.surrogate.ldap.ldapUrl=ldap://localhost:10389",
-    "cas.authn.surrogate.ldap.useSsl=false",
+}, properties = {
+    "cas.authn.surrogate.ldap.ldap-url=ldap://localhost:10389",
     "cas.authn.surrogate.ldap.baseDn=ou=surrogates,dc=example,dc=org",
     "cas.authn.surrogate.ldap.bindDn=cn=Directory Manager",
     "cas.authn.surrogate.ldap.bindCredential=password",
@@ -90,9 +88,9 @@ import org.springframework.test.context.TestPropertySource;
     "cas.authn.surrogate.ldap.surrogateSearchFilter=employeeType={surrogate}",
     "cas.authn.surrogate.ldap.memberAttributeName=mail",
     "cas.authn.surrogate.ldap.memberAttributeValueRegex=\\\\w+@example.org"
-    })
+})
 @Getter
-@EnabledIfContinuousIntegration
+@EnabledIfPortOpen(port = 10389)
 public class SurrogateLdapAuthenticationServiceTests extends BaseSurrogateAuthenticationServiceTests {
 
     private static final int LDAP_PORT = 10389;

@@ -10,25 +10,27 @@ import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.support.saml.OpenSamlConfigBean;
 import org.apereo.cas.ticket.TicketFactory;
-import org.apereo.cas.ticket.registry.TicketRegistry;
 import org.apereo.cas.util.CollectionUtils;
+import org.apereo.cas.validation.DelegatedAuthenticationAccessStrategyHelper;
+import org.apereo.cas.web.DefaultDelegatedAuthenticationNavigationController;
 import org.apereo.cas.web.DelegatedAuthenticationWebApplicationServiceFactory;
-import org.apereo.cas.web.DelegatedClientNavigationController;
+import org.apereo.cas.web.DelegatedClientIdentityProviderConfiguration;
 import org.apereo.cas.web.DelegatedClientWebflowManager;
 import org.apereo.cas.web.flow.CasWebflowConfigurer;
 import org.apereo.cas.web.flow.CasWebflowConstants;
-import org.apereo.cas.web.flow.CasWebflowExecutionPlan;
 import org.apereo.cas.web.flow.CasWebflowExecutionPlanConfigurer;
 import org.apereo.cas.web.flow.DelegatedAuthenticationClientLogoutAction;
 import org.apereo.cas.web.flow.DelegatedAuthenticationErrorViewResolver;
 import org.apereo.cas.web.flow.DelegatedAuthenticationWebflowConfigurer;
 import org.apereo.cas.web.flow.DelegatedClientAuthenticationAction;
+import org.apereo.cas.web.flow.DelegatedClientIdentityProviderConfigurationFunction;
 import org.apereo.cas.web.flow.SingleSignOnParticipationStrategy;
 import org.apereo.cas.web.flow.resolver.CasDelegatingWebflowEventResolver;
 import org.apereo.cas.web.flow.resolver.CasWebflowEventResolver;
 import org.apereo.cas.web.saml2.Saml2ClientMetadataController;
 import org.apereo.cas.web.support.ArgumentExtractor;
 
+import lombok.val;
 import org.pac4j.core.client.Clients;
 import org.pac4j.core.context.session.SessionStore;
 import org.springframework.beans.factory.ObjectProvider;
@@ -38,16 +40,18 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.web.servlet.error.ErrorViewResolver;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.webflow.definition.registry.FlowDefinitionRegistry;
 import org.springframework.webflow.engine.builder.support.FlowBuilderServices;
 import org.springframework.webflow.execution.Action;
+import org.springframework.webflow.execution.RequestContext;
 
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * This is {@link DelegatedAuthenticationWebflowConfiguration}.
@@ -84,10 +88,6 @@ public class DelegatedAuthenticationWebflowConfiguration {
     private ObjectProvider<ServicesManager> servicesManager;
 
     @Autowired
-    @Qualifier("ticketRegistry")
-    private ObjectProvider<TicketRegistry> ticketRegistry;
-
-    @Autowired
     private CasConfigurationProperties casProperties;
 
     @Autowired
@@ -110,7 +110,7 @@ public class DelegatedAuthenticationWebflowConfiguration {
     private ObjectProvider<FlowBuilderServices> flowBuilderServices;
 
     @Autowired
-    private ApplicationContext applicationContext;
+    private ConfigurableApplicationContext applicationContext;
 
     @Autowired
     @Qualifier("delegatedClientDistributedSessionStore")
@@ -144,38 +144,37 @@ public class DelegatedAuthenticationWebflowConfiguration {
     @ConditionalOnMissingBean(name = "pac4jErrorViewResolver")
     @RefreshScope
     public ErrorViewResolver pac4jErrorViewResolver() {
-        return new DelegatedAuthenticationErrorViewResolver(conventionErrorViewResolver.getIfAvailable());
+        return new DelegatedAuthenticationErrorViewResolver(conventionErrorViewResolver.getObject());
     }
 
     @ConditionalOnMissingBean(name = "delegatedAuthenticationClientLogoutAction")
     @Bean
-    @Lazy
     @RefreshScope
     public Action delegatedAuthenticationClientLogoutAction() {
-        return new DelegatedAuthenticationClientLogoutAction(builtClients.getIfAvailable(),
-            delegatedClientDistributedSessionStore.getIfAvailable());
+        return new DelegatedAuthenticationClientLogoutAction(builtClients.getObject(),
+            delegatedClientDistributedSessionStore.getObject());
     }
 
     @RefreshScope
     @ConditionalOnMissingBean(name = CasWebflowConstants.ACTION_ID_DELEGATED_AUTHENTICATION)
     @Bean
-    @Lazy
     public Action delegatedAuthenticationAction() {
         return new DelegatedClientAuthenticationAction(
-            initialAuthenticationAttemptWebflowEventResolver.getIfAvailable(),
-            serviceTicketRequestWebflowEventResolver.getIfAvailable(),
-            adaptiveAuthenticationPolicy.getIfAvailable(),
-            builtClients.getIfAvailable(),
-            servicesManager.getIfAvailable(),
-            registeredServiceDelegatedAuthenticationPolicyAuditableEnforcer.getIfAvailable(),
+            initialAuthenticationAttemptWebflowEventResolver.getObject(),
+            serviceTicketRequestWebflowEventResolver.getObject(),
+            adaptiveAuthenticationPolicy.getObject(),
+            builtClients.getObject(),
+            servicesManager.getObject(),
+            registeredServiceDelegatedAuthenticationPolicyAuditableEnforcer.getObject(),
             delegatedClientWebflowManager(),
-            authenticationSystemSupport.getIfAvailable(),
+            authenticationSystemSupport.getObject(),
             casProperties,
-            authenticationRequestServiceSelectionStrategies.getIfAvailable(),
-            centralAuthenticationService.getIfAvailable(),
-            webflowSingleSignOnParticipationStrategy.getIfAvailable(),
-            delegatedClientDistributedSessionStore.getIfAvailable(),
-            CollectionUtils.wrap(argumentExtractor.getIfAvailable()));
+            authenticationRequestServiceSelectionStrategies.getObject(),
+            centralAuthenticationService.getObject(),
+            webflowSingleSignOnParticipationStrategy.getObject(),
+            delegatedClientDistributedSessionStore.getObject(),
+            CollectionUtils.wrap(argumentExtractor.getObject()),
+            delegatedClientIdentityProviderConfigurationFunction());
     }
 
     @ConditionalOnMissingBean(name = "delegatedAuthenticationWebflowConfigurer")
@@ -183,9 +182,9 @@ public class DelegatedAuthenticationWebflowConfiguration {
     @DependsOn({"defaultWebflowConfigurer", "defaultLogoutWebflowConfigurer"})
     public CasWebflowConfigurer delegatedAuthenticationWebflowConfigurer() {
         return new DelegatedAuthenticationWebflowConfigurer(
-            flowBuilderServices.getIfAvailable(),
-            loginFlowDefinitionRegistry.getIfAvailable(),
-            logoutFlowDefinitionRegistry.getIfAvailable(),
+            flowBuilderServices.getObject(),
+            loginFlowDefinitionRegistry.getObject(),
+            logoutFlowDefinitionRegistry.getObject(),
             applicationContext,
             casProperties);
     }
@@ -194,36 +193,46 @@ public class DelegatedAuthenticationWebflowConfiguration {
     @RefreshScope
     @Bean
     public DelegatedClientWebflowManager delegatedClientWebflowManager() {
-        return new DelegatedClientWebflowManager(ticketRegistry.getIfAvailable(),
-            ticketFactory.getIfAvailable(),
+        return new DelegatedClientWebflowManager(centralAuthenticationService.getObject(),
+            ticketFactory.getObject(),
             casProperties,
-            authenticationRequestServiceSelectionStrategies.getIfAvailable(),
-            argumentExtractor.getIfAvailable()
+            authenticationRequestServiceSelectionStrategies.getObject(),
+            argumentExtractor.getObject()
         );
     }
 
     @Bean
     public Saml2ClientMetadataController saml2ClientMetadataController() {
-        return new Saml2ClientMetadataController(builtClients.getIfAvailable(), configBean.getIfAvailable());
+        return new Saml2ClientMetadataController(builtClients.getObject(), configBean.getObject());
     }
 
     @ConditionalOnMissingBean(name = "delegatedClientNavigationController")
     @Bean
-    public DelegatedClientNavigationController delegatedClientNavigationController() {
-        return new DelegatedClientNavigationController(builtClients.getIfAvailable(),
+    public DefaultDelegatedAuthenticationNavigationController delegatedClientNavigationController() {
+        return new DefaultDelegatedAuthenticationNavigationController(builtClients.getObject(),
             delegatedClientWebflowManager(),
-            delegatedClientDistributedSessionStore.getIfAvailable());
+            delegatedClientDistributedSessionStore.getObject());
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "delegatedCasWebflowExecutionPlanConfigurer")
     public CasWebflowExecutionPlanConfigurer delegatedCasWebflowExecutionPlanConfigurer() {
-        return new CasWebflowExecutionPlanConfigurer() {
-            @Override
-            public void configureWebflowExecutionPlan(final CasWebflowExecutionPlan plan) {
-                plan.registerWebflowConfigurer(delegatedAuthenticationWebflowConfigurer());
-            }
-        };
+        return plan -> plan.registerWebflowConfigurer(delegatedAuthenticationWebflowConfigurer());
+    }
+
+
+    @Bean
+    @RefreshScope
+    public Function<RequestContext, Set<DelegatedClientIdentityProviderConfiguration>> delegatedClientIdentityProviderConfigurationFunction() {
+        val helper = new DelegatedAuthenticationAccessStrategyHelper(this.servicesManager.getObject(),
+            registeredServiceDelegatedAuthenticationPolicyAuditableEnforcer.getObject());
+
+        return new DelegatedClientIdentityProviderConfigurationFunction(servicesManager.getObject(),
+            authenticationRequestServiceSelectionStrategies.getObject(),
+            builtClients.getObject(),
+            delegatedClientDistributedSessionStore.getObject(),
+            helper,
+            casProperties);
     }
 
     @Bean
@@ -232,11 +241,11 @@ public class DelegatedAuthenticationWebflowConfiguration {
         return () -> {
             if (!casProperties.getSso().isAllowMissingServiceParameter()) {
                 return CollectionUtils.wrap(
-                    new DelegatedAuthenticationWebApplicationServiceFactory(builtClients.getIfAvailable(),
+                    new DelegatedAuthenticationWebApplicationServiceFactory(builtClients.getObject(),
                         delegatedClientWebflowManager(),
-                        delegatedClientDistributedSessionStore.getIfAvailable()));
+                        delegatedClientDistributedSessionStore.getObject()));
             }
-            return new ArrayList<>();
+            return new ArrayList<>(0);
         };
     }
 }

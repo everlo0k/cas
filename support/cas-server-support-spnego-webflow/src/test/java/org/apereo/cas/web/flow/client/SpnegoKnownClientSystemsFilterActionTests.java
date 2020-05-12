@@ -4,6 +4,7 @@ import org.apereo.cas.util.RegexUtils;
 
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -22,14 +23,15 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 4.1
  */
+@Tag("Webflow")
 public class SpnegoKnownClientSystemsFilterActionTests {
 
     private static final String ALTERNATE_REMOTE_IP = "74.125.136.102";
 
     @Test
     public void ensureRemoteIpShouldBeChecked() {
-        val action =
-            new BaseSpnegoKnownClientSystemsFilterAction(RegexUtils.createPattern("^192\\.158\\..+"), StringUtils.EMPTY, 0);
+        val action =new BaseSpnegoKnownClientSystemsFilterAction(RegexUtils.createPattern("^192\\.158\\..+"),
+            StringUtils.EMPTY, 0);
 
         val ctx = new MockRequestContext();
         val req = new MockHttpServletRequest();
@@ -45,8 +47,7 @@ public class SpnegoKnownClientSystemsFilterActionTests {
 
     @Test
     public void ensureRemoteIpShouldNotBeChecked() {
-        val action =
-            new BaseSpnegoKnownClientSystemsFilterAction(RegexUtils.createPattern("^192\\.158\\..+"),
+        val action = new BaseSpnegoKnownClientSystemsFilterAction(RegexUtils.createPattern("^192\\.158\\..+"),
                 StringUtils.EMPTY, 0);
 
         val ctx = new MockRequestContext();
@@ -63,8 +64,7 @@ public class SpnegoKnownClientSystemsFilterActionTests {
 
     @Test
     public void ensureAltRemoteIpHeaderShouldBeChecked() {
-        val action =
-            new BaseSpnegoKnownClientSystemsFilterAction(RegexUtils.createPattern("^74\\.125\\..+"),
+        val action = new BaseSpnegoKnownClientSystemsFilterAction(RegexUtils.createPattern("^74\\.125\\..+"),
                 "alternateRemoteIp", 120);
 
         val ctx = new MockRequestContext();
@@ -82,8 +82,7 @@ public class SpnegoKnownClientSystemsFilterActionTests {
 
     @Test
     public void ensureHostnameShouldDoSpnego() {
-        val action =
-            new HostNameSpnegoKnownClientSystemsFilterAction(RegexUtils.createPattern(StringUtils.EMPTY),
+        val action = new HostNameSpnegoKnownClientSystemsFilterAction(RegexUtils.createPattern(".+"),
                 StringUtils.EMPTY, 0, "\\w+\\.\\w+\\.\\w+");
 
         val ctx = new MockRequestContext();

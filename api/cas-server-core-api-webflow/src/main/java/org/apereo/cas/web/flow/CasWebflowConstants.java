@@ -29,6 +29,11 @@ public interface CasWebflowConstants {
     String TRANSITION_ID_YES = "yes";
 
     /**
+     * The transition state 'prompt'.
+     */
+    String TRANSITION_ID_PROMPT = "prompt";
+
+    /**
      * The transition state 'finalize'.
      */
     String TRANSITION_ID_FINALIZE = "finalize";
@@ -82,6 +87,11 @@ public interface CasWebflowConstants {
      * TGT valid event ID={@value}.
      **/
     String TRANSITION_ID_TICKET_GRANTING_TICKET_VALID = "valid";
+
+    /**
+     * Transition id to generate service tickets.
+     */
+    String TRANSITION_ID_GENERATE_SERVICE_TICKET = "generateServiceTicket";
 
     /**
      * The transition state 'interruptSkipped'.
@@ -238,11 +248,6 @@ public interface CasWebflowConstants {
     String STATE_ID_REAL_SUBMIT = "realSubmit";
 
     /**
-     * 'gateway' state id.
-     */
-    String STATE_ID_GATEWAY = "gateway";
-
-    /**
      * 'finishMfaTrustedAuth' state id.
      */
     String STATE_ID_FINISH_MFA_TRUSTED_AUTH = "finishMfaTrustedAuth";
@@ -333,6 +338,11 @@ public interface CasWebflowConstants {
     String STATE_ID_VIEW_REDIR_UNAUTHZ_URL = "viewRedirectToUnauthorizedUrlView";
 
     /**
+     * The state 'mfaFailure'.
+     */
+    String STATE_ID_MFA_FAILURE = "mfaFailure";
+
+    /**
      * The state 'serviceUnauthorizedCheck'.
      */
     String STATE_ID_SERVICE_UNAUTHZ_CHECK = "serviceUnauthorizedCheck";
@@ -366,6 +376,19 @@ public interface CasWebflowConstants {
      * The state id 'hasServiceCheck'.
      */
     String STATE_ID_HAS_SERVICE_CHECK = "hasServiceCheck";
+
+    /**
+     * State id 'acceptableUsagePolicyView.
+     */
+    String STATE_ID_ACCEPTABLE_USAGE_POLICY_VIEW = "acceptableUsagePolicyView";
+    /**
+     * State id 'aupAcceptedAction.
+     */
+    String STATE_ID_AUP_ACCEPTED = "aupAcceptedAction";
+    /**
+     * State id 'acceptableUsagePolicyCheck.
+     */
+    String STATE_ID_AUP_CHECK = "acceptableUsagePolicyCheck";
 
     /**
      * The state id 'redirect'.
@@ -476,26 +499,46 @@ public interface CasWebflowConstants {
      * The view state 'showAuthenticationWarningMessages'.
      */
     String STATE_ID_SHOW_AUTHN_WARNING_MSGS = "showAuthenticationWarningMessages";
+
+    /**
+     * State id 'openIdSingleSignOnAction'.
+     */
+    String STATE_ID_OPEN_ID_SINGLE_SIGN_ON_ACTION = "openIdSingleSignOnAction";
+
+    /**
+     * The state id 'registerDeviceView'.
+     */
+    String STATE_ID_REGISTER_DEVICE = "registerDeviceView";
+
+    /**
+     * The state id 'spnego'.
+     */
+    String STATE_ID_SPNEGO = "spnego";
+    /**
+     * The state id 'startSpnegoAuthenticate'.
+     */
+    String STATE_ID_START_SPNEGO_AUTHENTICATE = "startSpnegoAuthenticate";
+    /**
+     * The state id 'evaluateClientRequest'.
+     */
+    String STATE_ID_EVALUATE_SPNEGO_CLIENT = "evaluateClientRequest";
+
+    /**
+     * The view state 'casPac4jStopWebflow'.
+     */
+    String STATE_ID_PAC4J_STOP_WEBFLOW = "casPac4jStopWebflow";
+
+    /**
+     * The view state 'casWsFedStopWebflow'.
+     */
+    String STATE_ID_WSFED_STOP_WEBFLOW = "casWsFedStopWebflow";
+
     /*
      ****************************************
      * Views.
      ****************************************
      */
-    /**
-     * The view id 'registerDeviceView'.
-     */
-    String VIEW_ID_REGISTER_DEVICE = "registerDeviceView";
-
-    /**
-     * The view state 'casPac4jStopWebflow'.
-     */
-    String VIEW_ID_PAC4J_STOP_WEBFLOW = "casPac4jStopWebflow";
-
-    /**
-     * The view state 'casWsFedStopWebflow'.
-     */
-    String VIEW_ID_WSFED_STOP_WEBFLOW = "casWsFedStopWebflow";
-
+    
     /**
      * The view state 'error'.
      */
@@ -600,17 +643,18 @@ public interface CasWebflowConstants {
      * View name used for form-login into admin/actuator endpoints.
      */
     String VIEW_ID_ENDPOINT_ADMIN_LOGIN_VIEW = "casAdminLoginView";
+
+    /**
+     * View id 'casDelegatedAuthnErrorView'.
+     */
+    String VIEW_ID_DELEGATED_AUTHN_ERROR_VIEW = "casDelegatedAuthnErrorView";
+
+
     /*
      ****************************************
      * Decisions.
      ****************************************
      */
-
-    /**
-     * The decision state 'checkRegistrationRequired'.
-     */
-    String DECISION_STATE_REQUIRE_REGISTRATION = "checkRegistrationRequired";
-
     /**
      * The decision state 'finishLogout'.
      */
@@ -620,6 +664,11 @@ public interface CasWebflowConstants {
      * Action to check if login should redirect to password reset subflow.
      */
     String DECISION_STATE_CHECK_FOR_PASSWORD_RESET_TOKEN_ACTION = "checkForPswdResetToken";
+
+    /**
+     * Action state 'selectFirstAction'.
+     */
+    String DECISION_STATE_OPEN_ID_SELECT_FIRST_ACTION = "selectFirstAction";
 
     /*
      ****************************************
@@ -637,6 +686,10 @@ public interface CasWebflowConstants {
      */
     String VAR_ID_MFA_PROVIDER_ID = "mfaProviderId";
 
+    /**
+     * The flow var id 'mfaTrustRecord'.
+     */
+    String VAR_ID_MFA_TRUST_RECORD = "mfaTrustRecord";
 
     /**
      * Event attribute id 'authenticationWarnings'.
@@ -666,7 +719,8 @@ public interface CasWebflowConstants {
     /**
      * Action id 'initialFlowSetupAction'.
      */
-    String ACTION_ID_INIT_FLOW_SETUP = "initialFlowSetupAction";
+    String ACTION_ID_INITIAL_FLOW_SETUP = "initialFlowSetupAction";
+
     /**
      * Action id 'verifyRequiredServiceAction'.
      */
@@ -736,4 +790,32 @@ public interface CasWebflowConstants {
      * Action id `renewAuthenticationRequestCheckAction`.
      */
     String ACTION_ID_RENEW_AUTHN_REQUEST = "renewAuthenticationRequestCheckAction";
+
+    /**
+     * Action id 'openIdSingleSignOnAction .
+     *
+     * @deprecated Since 6.2
+     */
+    @Deprecated(since = "6.2.0")
+    String ACTION_ID_OPEN_ID_SINGLE_SIGN_ON_ACTION = "openIdSingleSignOnAction";
+
+    /**
+     * Action id 'negociateSpneg .
+     */
+    String ACTION_ID_SPNEGO_NEGOTIATE = "negociateSpnego";
+
+    /**
+     * Action id 'acceptableUsagePolicyVerifyAction.
+     */
+    String ACTION_ID_AUP_VERIFY = "acceptableUsagePolicyVerifyAction";
+
+    /**
+     * Action id 'acceptableUsagePolicyRenderAction.
+     */
+    String ACTION_ID_AUP_RENDER = "acceptableUsagePolicyRenderAction";
+
+    /**
+     * Action id 'acceptableUsagePolicyVerifyServiceAction .
+     */
+    String ACTION_ID_AUP_VERIFY_SERVICE = "acceptableUsagePolicyVerifyServiceAction";
 }

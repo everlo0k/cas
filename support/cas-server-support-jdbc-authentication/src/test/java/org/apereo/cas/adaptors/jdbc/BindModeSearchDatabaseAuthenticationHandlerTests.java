@@ -6,12 +6,10 @@ import org.apereo.cas.services.ServicesManager;
 
 import lombok.SneakyThrows;
 import lombok.val;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.sql.DataSource;
@@ -25,16 +23,13 @@ import static org.mockito.Mockito.*;
  * @author Misagh Moayyed
  * @since 5.3.0
  */
-@SpringBootTest(classes = {
-    RefreshAutoConfiguration.class,
-    DatabaseAuthenticationTestConfiguration.class
-})
 @TestPropertySource(properties = {
     "database.user=casuser",
     "database.name:cas-bindmode-authentications",
-    "database.password=Mellon"})
-@DirtiesContext
-public class BindModeSearchDatabaseAuthenticationHandlerTests {
+    "database.password=Mellon"
+})
+@Tag("JDBC")
+public class BindModeSearchDatabaseAuthenticationHandlerTests extends BaseDatabaseAuthenticationHandlerTests {
     @Autowired
     @Qualifier("dataSource")
     private DataSource dataSource;

@@ -26,6 +26,15 @@ public interface AuthenticationEventExecutionPlan {
     void registerAuthenticationHandler(AuthenticationHandler handler);
 
     /**
+     * Register authentication handlers.
+     *
+     * @param handlers the handlers
+     */
+    default void registerAuthenticationHandlers(final List<? extends AuthenticationHandler> handlers) {
+        handlers.forEach(this::registerAuthenticationHandler);
+    }
+
+    /**
      * Register metadata populator.
      *
      * @param populator the populator
@@ -61,11 +70,25 @@ public interface AuthenticationEventExecutionPlan {
     void registerAuthenticationPolicy(AuthenticationPolicy authenticationPolicy);
 
     /**
+     * Register authentication policies.
+     *
+     * @param authenticationPolicy the authentication policy
+     */
+    void registerAuthenticationPolicies(Collection<AuthenticationPolicy> authenticationPolicy);
+
+    /**
      * Register authentication handler resolver.
      *
      * @param handlerResolver the handler resolver
      */
     void registerAuthenticationHandlerResolver(AuthenticationHandlerResolver handlerResolver);
+
+    /**
+     * Register authentication policy resolver.
+     *
+     * @param policyResolver the policy resolver
+     */
+    void registerAuthenticationPolicyResolver(AuthenticationPolicyResolver policyResolver);
 
     /**
      * Register authentication handler with principal resolver.
@@ -104,7 +127,7 @@ public interface AuthenticationEventExecutionPlan {
      * @param transaction the transaction
      * @return the authentication handlers for transaction
      */
-    Set<AuthenticationHandler> getAuthenticationHandlersForTransaction(AuthenticationTransaction transaction);
+    Set<AuthenticationHandler> getAuthenticationHandlers(AuthenticationTransaction transaction);
 
     /**
      * Gets authentication handlers.
@@ -144,7 +167,7 @@ public interface AuthenticationEventExecutionPlan {
      * @param transaction the transaction
      * @return the principal resolver for authentication transaction
      */
-    PrincipalResolver getPrincipalResolverForAuthenticationTransaction(AuthenticationHandler handler, AuthenticationTransaction transaction);
+    PrincipalResolver getPrincipalResolver(AuthenticationHandler handler, AuthenticationTransaction transaction);
 
     /**
      * Gets authentication policies.
@@ -155,10 +178,26 @@ public interface AuthenticationEventExecutionPlan {
     Collection<AuthenticationPolicy> getAuthenticationPolicies(AuthenticationTransaction transaction);
 
     /**
+     * Gets authentication policies.
+     *
+     * @param authentication the authentication
+     * @return the authentication policies
+     */
+    Collection<AuthenticationPolicy> getAuthenticationPolicies(Authentication authentication);
+
+    /**
      * Gets authentication handler resolvers.
      *
      * @param transaction the transaction
      * @return the authentication handler resolvers
      */
     Collection<AuthenticationHandlerResolver> getAuthenticationHandlerResolvers(AuthenticationTransaction transaction);
+
+    /**
+     * Gets authentication policy resolvers.
+     *
+     * @param transaction the transaction
+     * @return the authentication handler resolvers
+     */
+    Collection<AuthenticationPolicyResolver> getAuthenticationPolicyResolvers(AuthenticationTransaction transaction);
 }

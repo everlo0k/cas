@@ -8,7 +8,7 @@ import org.apereo.cas.authentication.AuthenticationTransaction;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.authentication.DefaultAuthenticationSystemSupport;
 import org.apereo.cas.authentication.DefaultAuthenticationTransactionManager;
-import org.apereo.cas.authentication.DefaultPrincipalElectionStrategy;
+import org.apereo.cas.authentication.principal.DefaultPrincipalElectionStrategy;
 import org.apereo.cas.authentication.principal.WebApplicationServiceFactory;
 import org.apereo.cas.rest.factory.DefaultTicketGrantingTicketResourceEntityResponseFactory;
 import org.apereo.cas.rest.factory.UsernamePasswordRestHttpRequestCredentialFactory;
@@ -18,6 +18,7 @@ import org.apereo.cas.ticket.registry.TicketRegistrySupport;
 
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -44,6 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @since 4.0.0
  */
 @ExtendWith(MockitoExtension.class)
+@Tag("RestfulApi")
 public class TicketGrantingTicketResourceTests {
 
     private static final String TICKETS_RESOURCE_URL = "/cas/v1/tickets";
@@ -148,10 +150,10 @@ public class TicketGrantingTicketResourceTests {
         this.mockMvc.perform(post(TICKETS_RESOURCE_URL)
             .param(USERNAME, TEST_VALUE)
             .param(PASSWORD, TEST_VALUE)
-            .accept(MediaType.APPLICATION_JSON_UTF8))
+            .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isCreated())
             .andExpect(header().string("Location", "http://localhost/cas/v1/tickets/TGT-1"))
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(content().string(expectedReturnEntityBody));
     }
 

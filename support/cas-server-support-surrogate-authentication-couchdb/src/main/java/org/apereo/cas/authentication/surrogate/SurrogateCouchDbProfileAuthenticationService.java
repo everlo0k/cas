@@ -11,8 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.Optional;
 
 /**
  * Uses {@link CouchDbProfileDocument} to store a list of the principals a user may surrogate.
@@ -33,8 +34,8 @@ public class SurrogateCouchDbProfileAuthenticationService extends BaseSurrogateA
     }
 
     @Override
-    protected boolean canAuthenticateAsInternal(final String surrogate, final Principal principal, final Service service) {
-        LOGGER.warn("User [{}] attempting surrogate for [{}] at [{}]", principal.getId(), surrogate, service.getId());
+    protected boolean canAuthenticateAsInternal(final String surrogate, final Principal principal, final Optional<Service> service) {
+        LOGGER.warn("User [{}] attempting surrogate for [{}]", principal.getId(), surrogate);
         val user = couchDb.findByUsername(principal.getId());
         LOGGER.debug("User [{}]", user);
         if (user == null) {
@@ -54,14 +55,14 @@ public class SurrogateCouchDbProfileAuthenticationService extends BaseSurrogateA
             return false;
         }
         if (userList.contains(surrogate)) {
-            LOGGER.warn("User [{}] becoming surrogate for [{}] at [{}]", principal.getId(), surrogate, service.getId());
+            LOGGER.warn("User [{}] becoming surrogate for [{}]", principal.getId(), surrogate);
             return true;
         }
         return false;
     }
 
     @Override
-    public List<String> getEligibleAccountsForSurrogateToProxy(final String username) {
+    public Collection<String> getEligibleAccountsForSurrogateToProxy(final String username) {
         LOGGER.debug("Listing eligible accounts for user [{}].", username);
         val user = couchDb.findByUsername(username);
         if (user == null) {

@@ -1,8 +1,11 @@
 package org.apereo.cas.monitor;
 
 import org.apereo.cas.config.CasCoreHttpConfiguration;
+import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
+import org.apereo.cas.config.CasCoreTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasCoreTicketsConfiguration;
+import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.EhcacheTicketRegistryConfiguration;
 import org.apereo.cas.config.EhcacheTicketRegistryTicketCatalogConfiguration;
 import org.apereo.cas.mock.MockServiceTicket;
@@ -12,14 +15,15 @@ import org.apereo.cas.services.RegisteredServiceTestUtils;
 import org.apereo.cas.ticket.registry.TicketRegistry;
 
 import lombok.val;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.stream.IntStream;
 
@@ -30,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * @author Marvin S. Addison
  * @since 3.5.1
+ * @deprecated Since 6.2
  */
 @SpringBootTest(classes = {
     RefreshAutoConfiguration.class,
@@ -38,12 +43,17 @@ import static org.junit.jupiter.api.Assertions.*;
     EhCacheMonitorConfiguration.class,
     CasCoreTicketCatalogConfiguration.class,
     CasCoreTicketsConfiguration.class,
-    CasCoreHttpConfiguration.class
-})
-@TestPropertySource(properties = {
+    CasCoreTicketIdGeneratorsConfiguration.class,
+    CasCoreServicesConfiguration.class,
+    CasCoreHttpConfiguration.class,
+    CasCoreUtilConfiguration.class,
+    MailSenderAutoConfiguration.class
+}, properties = {
     "cas.ticket.registry.ehcache.maxElementsOnDisk=100",
     "cas.ticket.registry.ehcache.maxElementsInMemory=100"
 })
+@Tag("Ehcache")
+@Deprecated(since = "6.2.0")
 public class EhCacheHealthIndicatorTests {
     @Autowired
     @Qualifier("ticketRegistry")
@@ -63,7 +73,7 @@ public class EhCacheHealthIndicatorTests {
          * above 10% free WARN threshold
          */
         IntStream.range(0, 95)
-            .forEach(i -> this.ticketRegistry.addTicket(new MockServiceTicket("T" + i, RegisteredServiceTestUtils.getService(),
+            .forEach(i -> this.ticketRegistry.addTicket(new MockServiceTicket("ST-" + i, RegisteredServiceTestUtils.getService(),
                 new MockTicketGrantingTicket("test"))));
 
         status = monitor.health();
@@ -74,7 +84,7 @@ public class EhCacheHealthIndicatorTests {
          * which should report WARN status
          */
         IntStream.range(95, 110).forEach(i -> {
-            val st = new MockServiceTicket("T" + i, RegisteredServiceTestUtils.getService(),
+            val st = new MockServiceTicket("ST-" + i, RegisteredServiceTestUtils.getService(),
                 new MockTicketGrantingTicket("test"));
             this.ticketRegistry.addTicket(st);
         });

@@ -26,6 +26,7 @@ import java.util.regex.Matcher;
  *
  * @author Misagh Moayyed
  * @since 5.1.0
+ * @deprecated Since 6.2
  */
 @Slf4j
 @Getter
@@ -34,6 +35,7 @@ import java.util.regex.Matcher;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Deprecated(since = "6.2.0")
 public class ScriptedRegisteredServiceAttributeReleasePolicy extends AbstractRegisteredServiceAttributeReleasePolicy {
 
     private static final long serialVersionUID = -979532578142774128L;
@@ -44,7 +46,7 @@ public class ScriptedRegisteredServiceAttributeReleasePolicy extends AbstractReg
         val script = matcherInline.group(1).trim();
         val args = CollectionUtils.wrap("attributes", attributes, "logger", LOGGER);
         val map = ScriptingUtils.executeGroovyScriptEngine(script, args, Map.class);
-        return ObjectUtils.defaultIfNull(map, new HashMap<>());
+        return ObjectUtils.defaultIfNull(map, new HashMap<>(0));
     }
 
     @Override
@@ -68,6 +70,6 @@ public class ScriptedRegisteredServiceAttributeReleasePolicy extends AbstractReg
     private Map<String, List<Object>> getScriptedAttributesFromFile(final Map<String, List<Object>> attributes) {
         val args = new Object[]{attributes, LOGGER};
         val map = ScriptingUtils.executeScriptEngine(this.scriptFile, args, Map.class);
-        return ObjectUtils.defaultIfNull(map, new HashMap<>());
+        return ObjectUtils.defaultIfNull(map, new HashMap<>(0));
     }
 }

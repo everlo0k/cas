@@ -1,9 +1,9 @@
 package org.apereo.cas.web.flow;
 
+import org.apereo.cas.adaptors.x509.authentication.X509CertificateExtractor;
 import org.apereo.cas.adaptors.x509.authentication.principal.X509CertificateCredential;
 import org.apereo.cas.authentication.Credential;
 import org.apereo.cas.authentication.adaptive.AdaptiveAuthenticationPolicy;
-import org.apereo.cas.web.extractcert.X509CertificateExtractor;
 import org.apereo.cas.web.flow.resolver.CasDelegatingWebflowEventResolver;
 import org.apereo.cas.web.flow.resolver.CasWebflowEventResolver;
 import org.apereo.cas.web.support.WebUtils;
@@ -39,8 +39,8 @@ public class X509CertificateCredentialsRequestHeaderAction extends X509Certifica
         if (x509Credential != null) {
             return x509Credential;
         }
-        val request = WebUtils.getHttpServletRequestFromExternalWebflowContext(context);
         if (x509CertificateExtractor != null) {
+            val request = WebUtils.getHttpServletRequestFromExternalWebflowContext(context);
             val certFromHeader = x509CertificateExtractor.extract(request);
             if (certFromHeader != null) {
                 LOGGER.debug("Certificate found in HTTP request via [{}]", x509CertificateExtractor.getClass().getName());

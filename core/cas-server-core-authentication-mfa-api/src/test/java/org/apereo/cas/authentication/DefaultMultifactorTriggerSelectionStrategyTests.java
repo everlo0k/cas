@@ -4,10 +4,11 @@ import org.apereo.cas.authentication.mfa.MultifactorAuthenticationTestUtils;
 import org.apereo.cas.authentication.mfa.TestMultifactorAuthenticationProvider;
 
 import lombok.val;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
-import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.*;
  * @author Misagh Moayyed
  * @since 6.0.0
  */
+@Tag("MFA")
 public class DefaultMultifactorTriggerSelectionStrategyTests {
     @Test
     public void verifyOperation() {
@@ -26,7 +28,7 @@ public class DefaultMultifactorTriggerSelectionStrategyTests {
         when(trigger.isActivated(any(), any(), any(), any()))
             .thenReturn(Optional.of(new TestMultifactorAuthenticationProvider()));
 
-        val strategy = new DefaultMultifactorTriggerSelectionStrategy(Collections.singletonList(trigger));
+        val strategy = new DefaultMultifactorTriggerSelectionStrategy(List.of(trigger));
         val result = strategy.resolve(new MockHttpServletRequest(), MultifactorAuthenticationTestUtils.getRegisteredService(),
             MultifactorAuthenticationTestUtils.getAuthentication("casuser"),
             MultifactorAuthenticationTestUtils.getService("https://www.example.org"));

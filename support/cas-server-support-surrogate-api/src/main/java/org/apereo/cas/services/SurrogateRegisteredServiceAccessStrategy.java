@@ -25,7 +25,7 @@ public class SurrogateRegisteredServiceAccessStrategy extends BaseSurrogateRegis
 
     private boolean surrogateEnabled;
 
-    private Map<String, Set<String>> surrogateRequiredAttributes = new HashMap<>();
+    private Map<String, Set<String>> surrogateRequiredAttributes = new HashMap<>(0);
 
     @Override
     public boolean doPrincipalAttributesAllowServiceAccess(final String principal, final Map<String, Object> attributes) {
@@ -39,7 +39,7 @@ public class SurrogateRegisteredServiceAccessStrategy extends BaseSurrogateRegis
      * Do principal attributes allow surrogate service access?.
      *
      * @param principalAttributes the principal attributes
-     * @return the boolean
+     * @return true/false
      */
     protected boolean doPrincipalAttributesAllowSurrogateServiceAccess(final Map<String, Object> principalAttributes) {
         if (!enoughRequiredAttributesAvailableToProcess(principalAttributes, this.surrogateRequiredAttributes)) {

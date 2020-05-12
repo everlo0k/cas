@@ -5,6 +5,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -22,22 +23,23 @@ import java.util.stream.Stream;
 @Getter
 @Setter
 @ToString
+@Accessors(chain = true)
 public class ActuatorEndpointProperties implements Serializable {
     private static final long serialVersionUID = -2463521198550485506L;
     /**
      * Required user roles.
      */
-    private List<String> requiredRoles = new ArrayList<>();
+    private List<String> requiredRoles = new ArrayList<>(0);
 
     /**
      * Required user authorities.
      */
-    private List<String> requiredAuthorities = new ArrayList<>();
+    private List<String> requiredAuthorities = new ArrayList<>(0);
 
     /**
      * Required ip addresses.
      */
-    private List<String> requiredIpAddresses = new ArrayList<>();
+    private List<String> requiredIpAddresses = new ArrayList<>(0);
 
     /**
      * Define the security access level of the endpoint.

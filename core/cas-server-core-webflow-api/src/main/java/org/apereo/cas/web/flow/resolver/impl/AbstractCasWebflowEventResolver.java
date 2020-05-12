@@ -34,8 +34,6 @@ import java.util.Set;
 @Getter
 public abstract class AbstractCasWebflowEventResolver implements CasWebflowEventResolver {
 
-    private static final String RESOLVED_AUTHENTICATION_EVENTS = "resolvedAuthenticationEvents";
-
     private static final String DEFAULT_MESSAGE_BUNDLE_PREFIX = "authenticationFailure.";
 
     private final CasWebflowEventResolutionConfigurationContext webflowEventResolutionConfigurationContext;
@@ -119,15 +117,7 @@ public abstract class AbstractCasWebflowEventResolver implements CasWebflowEvent
         return event;
     }
 
-    /**
-     * Put resolved events as attribute.
-     *
-     * @param context        the context
-     * @param resolvedEvents the resolved events
-     */
-    protected void putResolvedEventsAsAttribute(final RequestContext context, final Set<Event> resolvedEvents) {
-        context.getAttributes().put(RESOLVED_AUTHENTICATION_EVENTS, resolvedEvents);
-    }
+
 
     /**
      * Resolve service from authentication request.
@@ -148,16 +138,6 @@ public abstract class AbstractCasWebflowEventResolver implements CasWebflowEvent
     protected Service resolveServiceFromAuthenticationRequest(final RequestContext context) {
         val ctxService = WebUtils.getService(context);
         return resolveServiceFromAuthenticationRequest(ctxService);
-    }
-
-    /**
-     * Gets resolved events as attribute.
-     *
-     * @param context the context
-     * @return the resolved events as attribute
-     */
-    protected Set<Event> getResolvedEventsAsAttribute(final RequestContext context) {
-        return context.getAttributes().get(RESOLVED_AUTHENTICATION_EVENTS, Set.class);
     }
 
     /**

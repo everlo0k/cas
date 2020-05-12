@@ -27,6 +27,7 @@ import org.pac4j.core.profile.CommonProfile;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 
 /**
@@ -93,13 +94,16 @@ public class OAuth20CasAuthenticationBuilder {
                                 final JEEContext context,
                                 final Service service) {
 
-        val profileAttributes = CoreAuthenticationUtils.convertAttributeValuesToMultiValuedObjects(profile.getAttributes());
+        val attrs = new HashMap<>(profile.getAttributes());
+        attrs.putAll(profile.getAuthenticationAttributes());
+
+        val profileAttributes = CoreAuthenticationUtils.convertAttributeValuesToMultiValuedObjects(attrs);
         val newPrincipal = this.principalFactory.createPrincipal(profile.getId(), profileAttributes);
         LOGGER.debug("Created final principal [{}] after filtering attributes based on [{}]", newPrincipal, registeredService);
 
         val authenticator = profile.getClass().getCanonicalName();
         val metadata = new BasicCredentialMetaData(new BasicIdentifiableCredential(profile.getId()));
-        val handlerResult = new DefaultAuthenticationHandlerExecutionResult(authenticator, metadata, newPrincipal, new ArrayList<>());
+        val handlerResult = new DefaultAuthenticationHandlerExecutionResult(authenticator, metadata, newPrincipal, new ArrayList<>(0));
         val scopes = CollectionUtils.toCollection(context.getNativeRequest().getParameterValues(OAuth20Constants.SCOPE));
 
         val state = context.getRequestParameter(OAuth20Constants.STATE).map(String::valueOf).orElse(StringUtils.EMPTY);

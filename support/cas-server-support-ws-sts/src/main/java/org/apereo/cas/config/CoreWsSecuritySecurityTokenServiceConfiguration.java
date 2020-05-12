@@ -4,6 +4,7 @@ import org.apereo.cas.authentication.AuthenticationServiceSelectionStrategy;
 import org.apereo.cas.authentication.SecurityTokenServiceClientBuilder;
 import org.apereo.cas.authentication.SecurityTokenServiceTokenFetcher;
 import org.apereo.cas.configuration.CasConfigurationProperties;
+import org.apereo.cas.configuration.support.Beans;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.support.claims.CustomNamespaceWSFederationClaimsClaimsHandler;
 import org.apereo.cas.support.claims.NonWSFederationClaimsClaimsHandler;
@@ -20,6 +21,7 @@ import org.apereo.cas.ticket.SecurityTokenTicketFactory;
 import org.apereo.cas.ticket.UniqueTicketIdGenerator;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.DefaultUniqueTicketIdGenerator;
+import org.apereo.cas.util.cipher.CipherExecutorUtils;
 import org.apereo.cas.util.crypto.CipherExecutor;
 import org.apereo.cas.ws.idp.WSFederationConstants;
 
@@ -124,7 +126,7 @@ public class CoreWsSecuritySecurityTokenServiceConfiguration {
     @RefreshScope
     @Bean
     public List<TokenDelegationHandler> delegationHandlers() {
-        val handlers = new ArrayList<TokenDelegationHandler>();
+        val handlers = new ArrayList<TokenDelegationHandler>(2);
         handlers.add(new SAMLDelegationHandler());
         handlers.add(new X509TokenDelegationHandler());
         return handlers;
@@ -186,7 +188,6 @@ public class CoreWsSecuritySecurityTokenServiceConfiguration {
     @Bean
     public IssueOperation transportIssueDelegate() {
         val wsfed = casProperties.getAuthn().getWsfedIdp().getSts();
-        val idp = casProperties.getAuthn().getWsfedIdp().getIdp();
         val op = new TokenIssueOperation();
         op.setTokenProviders(transportTokenProviders());
         op.setServices(CollectionUtils.wrap(transportService()));
@@ -220,7 +221,7 @@ public class CoreWsSecuritySecurityTokenServiceConfiguration {
     @RefreshScope
     @Bean
     public List transportTokenValidators() {
-        val list = new ArrayList<Object>();
+        val list = new ArrayList<Object>(4);
         list.add(transportSamlTokenValidator());
         list.add(transportJwtTokenValidator());
         list.add(transportSecureContextTokenValidator());
@@ -232,7 +233,7 @@ public class CoreWsSecuritySecurityTokenServiceConfiguration {
     @RefreshScope
     @Bean
     public List transportTokenProviders() {
-        val list = new ArrayList<Object>();
+        val list = new ArrayList<Object>(3);
         list.add(transportSamlTokenProvider());
         list.add(transportJwtTokenProvider());
         list.add(transportSecureContextTokenProvider());
@@ -266,7 +267,8 @@ public class CoreWsSecuritySecurityTokenServiceConfiguration {
 
     @RefreshScope
     @Bean
-    public Map<String, RealmProperties> realms() {
+    @ConditionalOnMissingBean(name = "securityTokenServiceRealms")
+    public Map<String, RealmProperties> securityTokenServiceRealms() {
         val idp = casProperties.getAuthn().getWsfedIdp().getIdp();
         val realms = new HashMap<String, RealmProperties>();
         realms.put(idp.getRealmName(), casRealm());
@@ -283,7 +285,7 @@ public class CoreWsSecuritySecurityTokenServiceConfiguration {
     @Bean
     public JWTTokenProvider transportJwtTokenProvider() {
         val provider = new JWTTokenProvider();
-        provider.setRealmMap(realms());
+        provider.setRealmMap(securityTokenServiceRealms());
         provider.setSignToken(true);
         return provider;
     }
@@ -294,6 +296,9 @@ public class CoreWsSecuritySecurityTokenServiceConfiguration {
         val wsfed = casProperties.getAuthn().getWsfedIdp().getSts();
 
         val s = new DefaultSubjectProvider();
+        if (StringUtils.isNotBlank(wsfed.getSubjectNameQualifier())) {
+            s.setSubjectNameQualifier(wsfed.getSubjectNameQualifier());
+        }
         switch (wsfed.getSubjectNameIdFormat().trim().toLowerCase()) {
             case "email":
                 s.setSubjectNameIDFormat(NameID.EMAIL);
@@ -304,6 +309,9 @@ public class CoreWsSecuritySecurityTokenServiceConfiguration {
             case "transient":
                 s.setSubjectNameIDFormat(NameID.TRANSIENT);
                 break;
+            case "persistent":
+                s.setSubjectNameIDFormat(NameID.PERSISTENT);
+                break;
             case "unspecified":
             default:
                 s.setSubjectNameIDFormat(NameID.UNSPECIFIED);
@@ -311,13 +319,18 @@ public class CoreWsSecuritySecurityTokenServiceConfiguration {
         }
 
         val c = new DefaultConditionsProvider();
-        c.setAcceptClientLifetime(true);
+        c.setAcceptClientLifetime(wsfed.isConditionsAcceptClientLifetime());
+        c.setFailLifetimeExceedance(wsfed.isConditionsFailLifetimeExceedance());
+        c.setFutureTimeToLive(Beans.newDuration(wsfed.getConditionsFutureTimeToLive()).toSeconds());
+        c.setLifetime(Beans.newDuration(wsfed.getConditionsLifetime()).toSeconds());
+        c.setMaxLifetime(Beans.newDuration(wsfed.getConditionsMaxLifetime()).toSeconds());
 
         val provider = new SAMLTokenProvider();
         provider.setAttributeStatementProviders(CollectionUtils.wrap(new ClaimsAttributeStatementProvider()));
-        provider.setRealmMap(realms());
+        provider.setRealmMap(securityTokenServiceRealms());
         provider.setConditionsProvider(c);
         provider.setSubjectProvider(s);
+        provider.setSignToken(wsfed.isSignTokens());
         return provider;
     }
 
@@ -367,7 +380,7 @@ public class CoreWsSecuritySecurityTokenServiceConfiguration {
 
         val s = new StaticSTSProperties();
         s.setIssuer(getClass().getSimpleName());
-        s.setRealmParser(new UriRealmParser(realms()));
+        s.setRealmParser(new UriRealmParser(securityTokenServiceRealms()));
         s.setSignatureCryptoProperties(CryptoUtils.getSecurityProperties(wsfed.getSigningKeystoreFile(), wsfed.getSigningKeystorePassword()));
         s.setEncryptionCryptoProperties(CryptoUtils.getSecurityProperties(wsfed.getEncryptionKeystoreFile(), wsfed.getEncryptionKeystorePassword()));
 
@@ -391,8 +404,8 @@ public class CoreWsSecuritySecurityTokenServiceConfiguration {
     @Bean
     @RefreshScope
     public SecurityTokenServiceTokenFetcher securityTokenServiceTokenFetcher() {
-        return new SecurityTokenServiceTokenFetcher(servicesManager.getIfAvailable(),
-            wsFederationAuthenticationServiceSelectionStrategy.getIfAvailable(),
+        return new SecurityTokenServiceTokenFetcher(servicesManager.getObject(),
+            wsFederationAuthenticationServiceSelectionStrategy.getObject(),
             securityTokenServiceCredentialCipherExecutor(),
             securityTokenServiceClientBuilder());
     }
@@ -403,18 +416,14 @@ public class CoreWsSecuritySecurityTokenServiceConfiguration {
     public CipherExecutor securityTokenServiceCredentialCipherExecutor() {
         val wsfed = casProperties.getAuthn().getWsfedIdp().getSts();
         val crypto = wsfed.getCrypto();
-        return new SecurityTokenServiceCredentialCipherExecutor(crypto.getEncryption().getKey(),
-            crypto.getSigning().getKey(),
-            crypto.getAlg(),
-            crypto.getSigning().getKeySize(),
-            crypto.getEncryption().getKeySize());
+        return CipherExecutorUtils.newStringCipherExecutor(crypto, SecurityTokenServiceCredentialCipherExecutor.class);
     }
 
     @ConditionalOnMissingBean(name = "securityTokenTicketFactory")
     @Bean
     @RefreshScope
     public SecurityTokenTicketFactory securityTokenTicketFactory() {
-        return new DefaultSecurityTokenTicketFactory(securityTokenTicketIdGenerator(), grantingTicketExpirationPolicy.getIfAvailable());
+        return new DefaultSecurityTokenTicketFactory(securityTokenTicketIdGenerator(), grantingTicketExpirationPolicy.getObject());
     }
 
     @ConditionalOnMissingBean(name = "securityTokenTicketIdGenerator")

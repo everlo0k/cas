@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://user-images.githubusercontent.com/1205228/30969994-e2fe6bf0-a470-11e7-80f9-d54d1e4d348e.png">
+<img src="https://user-images.githubusercontent.com/2813838/66173345-91b00380-e604-11e9-95f4-546767cc134c.png">
 </p>
 
 # Central Authentication Service (CAS)
@@ -34,8 +34,8 @@ There is no need for special ceremony to create separate issues. The pull reques
 | Version         | Reference
 |------------|-----------------------------------
 | ![](https://img.shields.io/badge/Development-WIP-blue.svg?style=flat) | [Link](https://apereo.github.io/cas/development)
+| ![](https://img.shields.io/badge/6.1.x-Current-green.svg?style=flat) | [Link](https://apereo.github.io/cas/6.1.x)
 | ![](https://img.shields.io/badge/6.0.x-Current-green.svg?style=flat) | [Link](https://apereo.github.io/cas/6.0.x)
-| ![](https://img.shields.io/badge/5.3.x-Current-green.svg?style=flat) | [Link](https://apereo.github.io/cas/5.3.x)
 
 Additional resources are available as follows:
 
@@ -51,7 +51,6 @@ Additional resources are available as follows:
 [![Open Pull Requests](https://img.shields.io/github/issues-pr/apereo/cas.svg?style=flat)][contribute]
 [![codecov](https://codecov.io/gh/apereo/cas/branch/master/graph/badge.svg)](https://codecov.io/gh/apereo/cas)
 [![Build Status](https://api.travis-ci.org/apereo/cas.png?branch=master)](http://travis-ci.org/apereo/cas)
-[![Build status](https://ci.appveyor.com/api/projects/status/0tl79vsqd2ei9bng?svg=true)](https://ci.appveyor.com/project/apereo/cas)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.apereo.cas/cas-server-core/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/org.apereo.cas/cas-server-core)
 [![Github Releases](https://img.shields.io/github/release/apereo/cas.svg)](https://github.com/apereo/cas/releases)
 
@@ -84,7 +83,6 @@ The foundations of CAS are built upon: [Spring Boot](https://projects.spring.io/
 
 [![Codacy Badge](https://api.codacy.com/project/badge/grade/cc934b4c7d5d42d28e63757ff9e56d47)](http://bit.ly/1Uf6rwC)
 [![CLA assistant](https://cla-assistant.io/readme/badge/apereo/cas)](https://cla-assistant.io/apereo/cas)
-[![Dependency Status](https://dependencyci.com/github/apereo/cas/badge)](https://dependencyci.com/github/apereo/cas)
 [![Sonarqube Quality](https://sonarcloud.io/api/project_badges/measure?project=org.apereo.cas%3Acas-server&metric=alert_status)](https://sonarcloud.io/dashboard?id=org.apereo.cas%3Acas-server)
 [![Sonarqube Quality](https://sonarcloud.io/api/project_badges/measure?project=org.apereo.cas%3Acas-server&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=org.apereo.cas%3Acas-server)
 

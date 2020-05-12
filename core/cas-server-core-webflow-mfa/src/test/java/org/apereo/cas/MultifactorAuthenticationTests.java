@@ -15,6 +15,7 @@ import org.apereo.cas.services.RegisteredServiceTestUtils;
 import org.apereo.cas.ticket.UnsatisfiedAuthenticationPolicyException;
 
 import lombok.val;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,9 +32,13 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Marvin S. Addison
  * @since 4.0.0
  */
-@TestPropertySource(locations = "classpath:/core.properties",
-    properties = "cas.authn.policy.requiredHandlerAuthenticationPolicyEnabled=true")
+@TestPropertySource(properties = {
+    "cas.authn.policy.requiredHandlerAuthenticationPolicyEnabled=true",
+    "cas.authn.policy.any.tryAll=true",
+    "cas.ticket.st.timeToKillInSeconds=30"
+})
 @Import(CasMultifactorTestAuthenticationEventExecutionPlanConfiguration.class)
+@Tag("Webflow")
 public class MultifactorAuthenticationTests extends BaseCasWebflowMultifactorAuthenticationTests {
 
     private static final Service NORMAL_SERVICE = newService("https://example.com/normal/");

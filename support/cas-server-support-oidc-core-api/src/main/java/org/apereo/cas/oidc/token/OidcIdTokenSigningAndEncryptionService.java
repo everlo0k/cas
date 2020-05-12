@@ -7,9 +7,8 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
-import org.jose4j.jwk.RsaJsonWebKey;
+import org.jose4j.jwk.PublicJsonWebKey;
 import org.jose4j.jws.AlgorithmIdentifiers;
-import org.jose4j.jws.JsonWebSignature;
 
 import java.util.Optional;
 
@@ -22,8 +21,8 @@ import java.util.Optional;
 @Slf4j
 public class OidcIdTokenSigningAndEncryptionService extends BaseOidcJsonWebKeyTokenSigningAndEncryptionService {
 
-    public OidcIdTokenSigningAndEncryptionService(final LoadingCache<String, Optional<RsaJsonWebKey>> defaultJsonWebKeystoreCache,
-                                                  final LoadingCache<OAuthRegisteredService, Optional<RsaJsonWebKey>> serviceJsonWebKeystoreCache,
+    public OidcIdTokenSigningAndEncryptionService(final LoadingCache<String, Optional<PublicJsonWebKey>> defaultJsonWebKeystoreCache,
+                                                  final LoadingCache<OAuthRegisteredService, Optional<PublicJsonWebKey>> serviceJsonWebKeystoreCache,
                                                   final String issuer) {
         super(defaultJsonWebKeystoreCache, serviceJsonWebKeystoreCache, issuer);
     }
@@ -38,17 +37,21 @@ public class OidcIdTokenSigningAndEncryptionService extends BaseOidcJsonWebKeyTo
     }
 
     @Override
-    protected String encryptToken(final OidcRegisteredService svc, final JsonWebSignature jws, final String innerJwt) {
-        val jsonWebKey = getJsonWebKeyForEncryption(svc);
-        return encryptToken(svc.getIdTokenEncryptionAlg(), svc.getIdTokenEncryptionEncoding(),
-            jws.getKeyIdHeaderValue(), jsonWebKey.getPublicKey(), innerJwt);
+    protected String encryptToken(final OAuthRegisteredService service, final String innerJwt) {
+        if (service instanceof OidcRegisteredService) {
+            val svc = OidcRegisteredService.class.cast(service);
+            val jsonWebKey = getJsonWebKeyForEncryption(svc);
+            return encryptToken(svc.getIdTokenEncryptionAlg(), svc.getIdTokenEncryptionEncoding(),
+                jsonWebKey.getKeyId(), jsonWebKey.getPublicKey(), innerJwt);
+        }
+        return innerJwt;
     }
 
     /**
      * Should sign token for service?
      *
      * @param svc the svc
-     * @return the boolean
+     * @return true/false
      */
     @Override
     public boolean shouldSignToken(final OAuthRegisteredService svc) {
@@ -62,13 +65,7 @@ public class OidcIdTokenSigningAndEncryptionService extends BaseOidcJsonWebKeyTo
         }
         return false;
     }
-
-    /**
-     * Should encrypt token for service?
-     *
-     * @param svc the svc
-     * @return the boolean
-     */
+    
     @Override
     public boolean shouldEncryptToken(final OAuthRegisteredService svc) {
         if (svc instanceof OidcRegisteredService) {

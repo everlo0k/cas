@@ -24,7 +24,7 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
  * @author Misagh Moayyed
  * @since 5.0.0
  */
-@Configuration("restServicesConfiguration")
+@Configuration(value = "restServicesConfiguration", proxyBeanMethods = false)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class RestServicesConfiguration {
 
@@ -52,17 +52,13 @@ public class RestServicesConfiguration {
     @Bean
     public RegisteredServiceResource registeredServiceResourceRestController() {
         val rest = casProperties.getRest();
-        if (StringUtils.isBlank(rest.getAttributeName())) {
-            throw new BeanCreationException("No attribute name is defined to enforce authorization when adding services via CAS REST APIs. "
-                + "This is likely due to misconfiguration in CAS settings where the attribute name definition is absent");
+        if (StringUtils.isBlank(rest.getAttributeName()) || StringUtils.isBlank(rest.getAttributeValue())) {
+            throw new BeanCreationException("No attribute name or value is defined to enforce authorization when adding services via CAS REST APIs. "
+                + "This is likely due to misconfiguration in CAS settings where the attribute name/value definition is absent");
         }
-        if (StringUtils.isBlank(rest.getAttributeValue())) {
-            throw new BeanCreationException("No attribute value is defined to enforce authorization when adding services via CAS REST APIs. "
-                + "This is likely due to misconfiguration in CAS settings where the attribute value definition is absent");
-        }
-        return new RegisteredServiceResource(authenticationSystemSupport.getIfAvailable(),
-            webApplicationServiceFactory.getIfAvailable(),
-            servicesManager.getIfAvailable(),
+        return new RegisteredServiceResource(authenticationSystemSupport.getObject(),
+            webApplicationServiceFactory.getObject(),
+            servicesManager.getObject(),
             rest.getAttributeName(),
             rest.getAttributeValue());
     }

@@ -5,9 +5,8 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -25,14 +24,16 @@ import java.util.stream.Stream;
 @RequiresModule(name = "cas-server-support-oidc")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class OidcProperties implements Serializable {
 
     private static final long serialVersionUID = 813028615694269276L;
 
     /**
-     * Timeout that indicates how long should the JWKS file be kept in cache.
+     * Configuration properties managing the jwks settings for OIDC.
      */
-    private int jwksCacheInMinutes = 60;
+    @NestedConfigurationProperty
+    private OidcJsonWebKeystoreProperties jwks = new OidcJsonWebKeystoreProperties();
 
     /**
      * OIDC issuer.
@@ -46,18 +47,6 @@ public class OidcProperties implements Serializable {
     private int skew = 5;
 
     /**
-     * Path to the JWKS file resource used to handle signing/encryption of authentication tokens.
-     */
-    @RequiredProperty
-    private transient Resource jwksFile = new FileSystemResource("/etc/cas/config/keystore.jwks");
-
-    /**
-     * The key size for the generated jwks. This is an algorithm-specific metric,
-     * such as modulus length, specified in number of bits.
-     */
-    private int jwksKeySize = 2048;
-
-    /**
      * Whether dynamic registration operates in {@code OPEN} or {@code PROTECTED} mode.
      */
     private String dynamicClientRegistrationMode;
@@ -65,7 +54,8 @@ public class OidcProperties implements Serializable {
     /**
      * List of supported scopes.
      */
-    private List<String> scopes = Stream.of("openid", "profile", "email", "address", "phone", "offline_access").collect(Collectors.toList());
+    private List<String> scopes = Stream.of("openid", "profile", "email", "address", "phone", "offline_access")
+        .collect(Collectors.toList());
 
     /**
      * List of supported claims.
@@ -84,14 +74,14 @@ public class OidcProperties implements Serializable {
      * Mapping of user-defined scopes. Key is the new scope name
      * and value is a comma-separated list of claims mapped to the scope.
      */
-    private Map<String, String> userDefinedScopes = new HashMap<>();
+    private Map<String, String> userDefinedScopes = new HashMap<>(0);
 
     /**
      * Map fixed claims to CAS attributes.
      * Key is the existing claim name for a scope and value is the new attribute
      * that should take its place and value.
      */
-    private Map<String, String> claimsMap = new HashMap<>();
+    private Map<String, String> claimsMap = new HashMap<>(0);
 
     /**
      * Supported response types.
@@ -168,8 +158,19 @@ public class OidcProperties implements Serializable {
         Stream.of("client_secret_basic", "client_secret_post", "client_secret_jwt", "private_key_jwt").collect(Collectors.toList());
 
     /**
+     * List of PKCE code challenge methods supported.
+     */
+    private List<String> codeChallengeMethodsSupported = Stream.of("plain", "S256").collect(Collectors.toList());
+
+    /**
      * OIDC webfinger protocol settings.
      */
     @NestedConfigurationProperty
     private OidcWebFingerProperties webfinger = new OidcWebFingerProperties();
+
+    /**
+     * OIDC logout configuration.
+     */
+    @NestedConfigurationProperty
+    private OidcLogoutProperties logout = new OidcLogoutProperties();
 }

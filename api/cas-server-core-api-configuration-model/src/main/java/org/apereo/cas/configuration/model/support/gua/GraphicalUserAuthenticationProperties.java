@@ -7,6 +7,8 @@ import org.apereo.cas.configuration.support.SpringResourceProperties;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
 
@@ -21,6 +23,7 @@ import java.io.Serializable;
 @RequiresModule(name = "cas-server-support-gua")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class GraphicalUserAuthenticationProperties implements Serializable {
 
     private static final long serialVersionUID = 7527953699378415460L;
@@ -33,10 +36,13 @@ public class GraphicalUserAuthenticationProperties implements Serializable {
     /**
      * Locate GUA settings and images from a static image.
      */
+    @NestedConfigurationProperty
     private SpringResourceProperties resource = new SpringResourceProperties();
 
     @Getter
     @Setter
+    @Accessors(chain = true)
+    @RequiresModule(name = "cas-server-support-gua")
     public static class Ldap extends AbstractLdapSearchProperties {
 
         private static final long serialVersionUID = 4666838063728336692L;

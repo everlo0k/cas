@@ -12,6 +12,7 @@ import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.ticket.registry.TicketRegistrySupport;
 import org.apereo.cas.web.cookie.CasCookieBuilder;
 import org.apereo.cas.web.report.AuditLogEndpoint;
+import org.apereo.cas.web.report.CasApplicationContextReloadEndpoint;
 import org.apereo.cas.web.report.CasInfoEndpointContributor;
 import org.apereo.cas.web.report.CasReleaseAttributesReportEndpoint;
 import org.apereo.cas.web.report.CasResolveAttributesReportEndpoint;
@@ -27,14 +28,12 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.endpoint.condition.ConditionalOnAvailableEndpoint;
-import org.springframework.boot.actuate.autoconfigure.jdbc.DataSourceHealthIndicatorAutoConfiguration;
 import org.springframework.boot.actuate.health.HealthEndpoint;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationContext;
+import org.springframework.cloud.context.refresh.ContextRefresher;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 
 /**
  * This this {@link CasReportsConfiguration}.
@@ -43,11 +42,9 @@ import org.springframework.context.annotation.Import;
  * @author Dmitriy Kopylenko
  * @since 5.3.0
  */
-@Configuration("casReportsConfiguration")
+@Configuration(value = "casReportsConfiguration", proxyBeanMethods = false)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class CasReportsConfiguration {
-
-
     @Autowired
     @Qualifier("defaultTicketRegistrySupport")
     private ObjectProvider<TicketRegistrySupport> ticketRegistrySupport;
@@ -61,7 +58,7 @@ public class CasReportsConfiguration {
     private ObjectProvider<AuditTrailExecutionPlan> auditTrailExecutionPlan;
 
     @Autowired
-    private ApplicationContext applicationContext;
+    private ConfigurableApplicationContext applicationContext;
 
     @Autowired
     @Qualifier("defaultAuthenticationSystemSupport")
@@ -90,6 +87,9 @@ public class CasReportsConfiguration {
     @Qualifier("principalFactory")
     private ObjectProvider<PrincipalFactory> principalFactory;
 
+    @Autowired
+    private ObjectProvider<ContextRefresher> contextRefresher;
+
     @Bean
     @ConditionalOnAvailableEndpoint
     public SpringWebflowEndpoint springWebflowEndpoint() {
@@ -99,19 +99,19 @@ public class CasReportsConfiguration {
     @Bean
     @ConditionalOnAvailableEndpoint
     public AuditLogEndpoint auditLogEndpoint() {
-        return new AuditLogEndpoint(auditTrailExecutionPlan.getIfAvailable(), casProperties);
+        return new AuditLogEndpoint(auditTrailExecutionPlan.getObject(), casProperties);
     }
 
     @Bean
     @ConditionalOnAvailableEndpoint
     public RegisteredServicesEndpoint registeredServicesReportEndpoint() {
-        return new RegisteredServicesEndpoint(casProperties, servicesManager.getIfAvailable());
+        return new RegisteredServicesEndpoint(casProperties, servicesManager.getObject());
     }
 
     @Bean
     @ConditionalOnAvailableEndpoint
     public ExportRegisteredServicesEndpoint exportRegisteredServicesEndpoint() {
-        return new ExportRegisteredServicesEndpoint(casProperties, servicesManager.getIfAvailable());
+        return new ExportRegisteredServicesEndpoint(casProperties, servicesManager.getObject());
     }
 
     @Bean
@@ -122,47 +122,41 @@ public class CasReportsConfiguration {
     @Bean
     @ConditionalOnAvailableEndpoint
     public SingleSignOnSessionsEndpoint singleSignOnSessionsEndpoint() {
-        return new SingleSignOnSessionsEndpoint(centralAuthenticationService.getIfAvailable(), casProperties);
+        return new SingleSignOnSessionsEndpoint(centralAuthenticationService.getObject(), casProperties);
     }
 
     @Bean
     @ConditionalOnAvailableEndpoint
     public SingleSignOnSessionStatusEndpoint singleSignOnSessionStatusEndpoint() {
-        return new SingleSignOnSessionStatusEndpoint(ticketGrantingTicketCookieGenerator.getIfAvailable(), ticketRegistrySupport.getIfAvailable());
+        return new SingleSignOnSessionStatusEndpoint(ticketGrantingTicketCookieGenerator.getObject(), ticketRegistrySupport.getObject());
     }
 
     @Bean
     @ConditionalOnAvailableEndpoint
     public StatisticsEndpoint statisticsReportEndpoint() {
-        return new StatisticsEndpoint(centralAuthenticationService.getIfAvailable(), casProperties);
+        return new StatisticsEndpoint(centralAuthenticationService.getObject(), casProperties);
     }
 
     @Bean
     @ConditionalOnAvailableEndpoint
     public CasResolveAttributesReportEndpoint resolveAttributesReportEndpoint() {
-        return new CasResolveAttributesReportEndpoint(casProperties, defaultPrincipalResolver.getIfAvailable());
+        return new CasResolveAttributesReportEndpoint(casProperties, defaultPrincipalResolver.getObject());
     }
 
     @Bean
     @ConditionalOnAvailableEndpoint
     public CasReleaseAttributesReportEndpoint releaseAttributesReportEndpoint() {
         return new CasReleaseAttributesReportEndpoint(casProperties,
-            servicesManager.getIfAvailable(),
-            authenticationSystemSupport.getIfAvailable(),
-            webApplicationServiceFactory.getIfAvailable(),
-            principalFactory.getIfAvailable());
+            servicesManager.getObject(),
+            authenticationSystemSupport.getObject(),
+            webApplicationServiceFactory.getObject(),
+            principalFactory.getObject());
     }
 
-    /**
-     * This this {@link ConditionalDataSourceHealthIndicatorConfiguration}.
-     *
-     * @author Misagh Moayyed
-     * @since 6.0.0
-     */
-    @ConditionalOnBean(name = "dataSource")
-    @Configuration("conditionalDataSourceHealthIndicatorConfiguration")
-    @Import(DataSourceHealthIndicatorAutoConfiguration.class)
-    public static class ConditionalDataSourceHealthIndicatorConfiguration {
+    @Bean
+    @ConditionalOnAvailableEndpoint
+    public CasApplicationContextReloadEndpoint casApplicationContextReloadEndpoint() {
+        return new CasApplicationContextReloadEndpoint(casProperties, contextRefresher.getObject());
     }
 
     /**

@@ -3,7 +3,9 @@ package org.apereo.cas.ws.idp;
 import org.apereo.cas.util.CollectionUtils;
 
 import lombok.Getter;
+import lombok.val;
 import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -143,9 +145,14 @@ public enum WSFederationClaims {
      * Contains uri boolean.
      *
      * @param claimUri the claim uri
-     * @return the boolean
+     * @return true/false
      */
     public static boolean containsUri(final String claimUri) {
         return Arrays.stream(WSFederationClaims.values()).anyMatch(c -> c.getUri().equalsIgnoreCase(claimUri));
+    }
+
+    public String getClaim() {
+        val idx = StringUtils.lastIndexOf(this.uri, '/');
+        return this.uri.substring(idx + 1);
     }
 }

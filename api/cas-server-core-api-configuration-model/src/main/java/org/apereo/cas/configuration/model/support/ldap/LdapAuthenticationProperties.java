@@ -6,6 +6,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import java.util.List;
 @RequiresModule(name = "cas-server-support-ldap")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class LdapAuthenticationProperties extends AbstractLdapAuthenticationProperties {
 
     private static final long serialVersionUID = -5357843463521189892L;
@@ -68,7 +70,7 @@ public class LdapAuthenticationProperties extends AbstractLdapAuthenticationProp
      * Attributes can be virtually remapped to multiple names.
      * Example {@code cn:commonName,givenName,eduPersonTargettedId:SOME_IDENTIFIER}
      */
-    private List principalAttributeList = new ArrayList<>();
+    private List principalAttributeList = new ArrayList<>(0);
 
     /**
      * Sets a flag that determines whether multiple values are allowed for the {@link #principalAttributeId}.
@@ -81,7 +83,7 @@ public class LdapAuthenticationProperties extends AbstractLdapAuthenticationProp
     /**
      * List of additional attributes to retrieve, if any.
      */
-    private List additionalAttributes = new ArrayList<>();
+    private List additionalAttributes = new ArrayList<>(0);
 
     /**
      * Flag to indicate whether CAS should block authentication

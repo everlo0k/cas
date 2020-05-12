@@ -8,12 +8,13 @@ import org.apereo.cas.ticket.registry.TicketRegistry;
 import org.apereo.cas.web.cookie.CasCookieBuilder;
 import org.apereo.cas.web.cookie.CookieGenerationContext;
 
-import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
+
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -23,7 +24,7 @@ import java.util.Optional;
  * @author Misagh Moayyed
  * @since 5.1.0
  */
-@NoArgsConstructor
+@UtilityClass
 public class CookieUtils {
 
     /**
@@ -86,10 +87,12 @@ public class CookieUtils {
     private static CookieGenerationContext.CookieGenerationContextBuilder buildCookieGenerationContextBuilder(final CookieProperties cookie) {
         return CookieGenerationContext.builder()
             .name(cookie.getName())
-            .path(cookie.getPath())
+            .path(StringUtils.defaultString(cookie.getPath(), "/"))
             .maxAge(cookie.getMaxAge())
             .secure(cookie.isSecure())
             .domain(cookie.getDomain())
+            .comment(cookie.getComment())
+            .sameSitePolicy(cookie.getSameSitePolicy())
             .httpOnly(cookie.isHttpOnly());
     }
 }

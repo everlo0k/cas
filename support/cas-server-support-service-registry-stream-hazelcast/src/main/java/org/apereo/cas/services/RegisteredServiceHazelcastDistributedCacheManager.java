@@ -3,7 +3,7 @@ package org.apereo.cas.services;
 import org.apereo.cas.util.cache.DistributedCacheObject;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
+import com.hazelcast.map.IMap;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RegisteredServiceHazelcastDistributedCacheManager extends
     BaseDistributedCacheManager<RegisteredService, DistributedCacheObject<RegisteredService>> {
-
 
     private final HazelcastInstance instance;
     private final IMap<String, DistributedCacheObject<RegisteredService>> mapInstance;

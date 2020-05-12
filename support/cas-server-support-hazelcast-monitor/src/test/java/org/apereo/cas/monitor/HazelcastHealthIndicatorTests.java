@@ -12,6 +12,7 @@ import org.apereo.cas.config.CasCoreHttpConfiguration;
 import org.apereo.cas.config.CasCoreServicesAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
+import org.apereo.cas.config.CasCoreTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasCoreTicketsConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CasCoreWebConfiguration;
@@ -22,20 +23,22 @@ import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguratio
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.monitor.config.HazelcastMonitorConfiguration;
 
+import com.hazelcast.internal.memory.MemoryStats;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.Arrays;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * This is {@link HazelcastHealthIndicatorTests}.
@@ -45,10 +48,12 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest(classes = {
     RefreshAutoConfiguration.class,
+    MailSenderAutoConfiguration.class,
     HazelcastTicketRegistryConfiguration.class,
     HazelcastTicketRegistryTicketCatalogConfiguration.class,
     HazelcastMonitorConfiguration.class,
     CasCoreTicketsConfiguration.class,
+    CasCoreTicketIdGeneratorsConfiguration.class,
     CasCoreTicketCatalogConfiguration.class,
     CasCoreUtilConfiguration.class,
     CasPersonDirectoryConfiguration.class,
@@ -64,11 +69,14 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreConfiguration.class,
     CasCoreAuthenticationServiceSelectionStrategyConfiguration.class,
     CasCoreServicesConfiguration.class,
-    CasCoreLogoutConfiguration.class,
     CasCoreWebConfiguration.class,
     CasWebApplicationServiceFactoryConfiguration.class
-})
-@TestPropertySource(properties = "cas.ticket.registry.hazelcast.cluster.instanceName=testlocalmonitor")
+},
+    properties = {
+        "cas.ticket.registry.hazelcast.cluster.instanceName=testlocalmonitor",
+        "spring.mail.host=localhost",
+        "spring.mail.port=25000"
+    })
 public class HazelcastHealthIndicatorTests {
     @Autowired
     @Qualifier("hazelcastHealthIndicator")
@@ -79,7 +87,7 @@ public class HazelcastHealthIndicatorTests {
         val health = hazelcastHealthIndicator.health();
         val status = health.getStatus();
         assertTrue(Arrays.asList(Status.UP, Status.OUT_OF_SERVICE).contains(status),
-            "Status should be UP or OUT_OF_SERVICE but was" + status);
+            () -> "Status should be UP or OUT_OF_SERVICE but was" + status);
 
         val details = health.getDetails();
         assertTrue(details.containsKey("name"));
@@ -94,5 +102,15 @@ public class HazelcastHealthIndicatorTests {
             }
         });
         assertNotNull(hazelcastHealthIndicator.toString());
+    }
+
+    @Test
+    public void verifyFreeHeapPercentageCalculation() {
+        val memoryStats = mock(MemoryStats.class);
+        when(memoryStats.getFreeHeap()).thenReturn(125_555_248L);
+        when(memoryStats.getCommittedHeap()).thenReturn(251_658_240L);
+        val statistics = new HazelcastHealthIndicator.HazelcastStatistics(null, 1, memoryStats);
+
+        assertEquals(49, statistics.getPercentFree());
     }
 }

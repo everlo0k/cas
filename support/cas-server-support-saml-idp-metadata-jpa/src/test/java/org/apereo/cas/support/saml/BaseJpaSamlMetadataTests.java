@@ -17,6 +17,7 @@ import org.apereo.cas.config.CasCoreTicketsConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CasCoreWebConfiguration;
 import org.apereo.cas.config.CasDefaultServiceTicketIdGeneratorsConfiguration;
+import org.apereo.cas.config.CasHibernateJpaConfiguration;
 import org.apereo.cas.config.CasPersonDirectoryConfiguration;
 import org.apereo.cas.config.CoreSamlConfiguration;
 import org.apereo.cas.config.SamlIdPAuthenticationServiceSelectionStrategyConfiguration;
@@ -34,14 +35,20 @@ import org.apereo.cas.support.saml.services.idp.metadata.cache.resolver.SamlRegi
 import org.apereo.cas.validation.config.CasCoreValidationConfiguration;
 import org.apereo.cas.web.config.CasCookieConfiguration;
 import org.apereo.cas.web.flow.config.CasCoreWebflowConfiguration;
+import org.apereo.cas.web.flow.config.CasWebflowContextConfiguration;
 
 import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
+import org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
@@ -50,44 +57,14 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  * @author Misagh Moayyed
  * @since 6.0.0
  */
-@SpringBootTest(classes = {
-    SamlIdPJpaRegisteredServiceMetadataConfiguration.class,
-    SamlIdPJpaIdPMetadataConfiguration.class,
-    CasDefaultServiceTicketIdGeneratorsConfiguration.class,
-    CasCoreTicketIdGeneratorsConfiguration.class,
-    CasWebApplicationServiceFactoryConfiguration.class,
-    CasCoreAuthenticationConfiguration.class,
-    CasCoreServicesAuthenticationConfiguration.class,
-    CasCoreAuthenticationPolicyConfiguration.class,
-    CasCoreAuthenticationPrincipalConfiguration.class,
-    CasCoreAuthenticationMetadataConfiguration.class,
-    CasCoreAuthenticationSupportConfiguration.class,
-    CasCoreAuthenticationHandlersConfiguration.class,
-    CasCoreHttpConfiguration.class,
-    CasCoreServicesConfiguration.class,
-    CasCoreWebConfiguration.class,
-    CasCoreWebflowConfiguration.class,
-    SamlIdPConfiguration.class,
-    SamlIdPAuthenticationServiceSelectionStrategyConfiguration.class,
-    SamlIdPEndpointsConfiguration.class,
-    SamlIdPMetadataConfiguration.class,
-    RefreshAutoConfiguration.class,
-    AopAutoConfiguration.class,
-    CasCoreAuthenticationConfiguration.class,
-    CasCoreServicesAuthenticationConfiguration.class,
-    CasCoreTicketsConfiguration.class,
-    CasCoreTicketCatalogConfiguration.class,
-    CasCoreLogoutConfiguration.class,
-    CasCookieConfiguration.class,
-    CasCoreValidationConfiguration.class,
-    CasCoreConfiguration.class,
-    CasCoreAuthenticationServiceSelectionStrategyConfiguration.class,
-    CoreSamlConfiguration.class,
-    CasPersonDirectoryConfiguration.class,
-    CasCoreUtilConfiguration.class})
+@SpringBootTest(classes = BaseJpaSamlMetadataTests.SharedTestConfiguration.class)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @EnableTransactionManagement(proxyTargetClass = true)
 @Tag("SAML")
+@TestPropertySource(properties = {
+    "cas.jdbc.showSql=true",
+    "cas.authn.saml-dp.metadata.location=file:${#systemProperties['java.io.tmpdir']}/saml"
+})
 public abstract class BaseJpaSamlMetadataTests {
     @Autowired
     @Qualifier("jpaSamlRegisteredServiceMetadataResolver")
@@ -100,4 +77,49 @@ public abstract class BaseJpaSamlMetadataTests {
     @Autowired
     @Qualifier("samlIdPMetadataLocator")
     protected SamlIdPMetadataLocator samlIdPMetadataLocator;
+
+    @ImportAutoConfiguration({
+        RefreshAutoConfiguration.class,
+        MailSenderAutoConfiguration.class,
+        AopAutoConfiguration.class
+    })
+    @SpringBootConfiguration
+    @Import({
+        SamlIdPJpaRegisteredServiceMetadataConfiguration.class,
+        SamlIdPJpaIdPMetadataConfiguration.class,
+        CasHibernateJpaConfiguration.class,
+        CasDefaultServiceTicketIdGeneratorsConfiguration.class,
+        CasCoreTicketIdGeneratorsConfiguration.class,
+        CasWebApplicationServiceFactoryConfiguration.class,
+        CasCoreAuthenticationConfiguration.class,
+        CasCoreServicesAuthenticationConfiguration.class,
+        CasCoreAuthenticationPolicyConfiguration.class,
+        CasCoreAuthenticationPrincipalConfiguration.class,
+        CasCoreAuthenticationMetadataConfiguration.class,
+        CasCoreAuthenticationSupportConfiguration.class,
+        CasCoreAuthenticationHandlersConfiguration.class,
+        CasCoreHttpConfiguration.class,
+        CasCoreServicesConfiguration.class,
+        CasCoreWebConfiguration.class,
+        CasCoreWebflowConfiguration.class,
+        CasWebflowContextConfiguration.class,
+        SamlIdPConfiguration.class,
+        SamlIdPAuthenticationServiceSelectionStrategyConfiguration.class,
+        SamlIdPEndpointsConfiguration.class,
+        SamlIdPMetadataConfiguration.class,
+        RefreshAutoConfiguration.class,
+        AopAutoConfiguration.class,
+        CasCoreTicketsConfiguration.class,
+        CasCoreTicketCatalogConfiguration.class,
+        CasCoreLogoutConfiguration.class,
+        CasCookieConfiguration.class,
+        CasCoreValidationConfiguration.class,
+        CasCoreConfiguration.class,
+        CasCoreAuthenticationServiceSelectionStrategyConfiguration.class,
+        CoreSamlConfiguration.class,
+        CasPersonDirectoryConfiguration.class,
+        CasCoreUtilConfiguration.class
+    })
+    static class SharedTestConfiguration {
+    }
 }

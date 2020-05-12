@@ -43,9 +43,9 @@ The current implementation provides support for:
 | `/oidc/jwks`                              | Contains the server’s public signing keys, which clients may use to verify the digital signatures of access tokens and ID tokens issued by CAS.
 | `/oidc/authorize`                         | Authorization requests are handled here.
 | `/oidc/profile`                           | User profile requests are handled here.
-| `/oidc/introspect`                        | Query CAS to detect the status of a given access token via [introspection](https://tools.ietf.org/html/rfc7662).
+| `/oidc/introspect`                        | Query CAS to detect the status of a given access token via [introspection](https://tools.ietf.org/html/rfc7662). This endpoint expects HTTP basic authentication with OIDC service `client_id` and `client_secret` associated as username and password.
 | `/oidc/accessToken`, `/oidc/token`        | Produces authorized access tokens.
-| `/oidc/revoke`                            | [Revoke](https://tools.ietf.org/html/rfc7009) access or refresh tokens.
+| `/oidc/revoke`                            | [Revoke](https://tools.ietf.org/html/rfc7009) access or refresh tokens. This endpoint expects HTTP basic authentication with OIDC service `client_id` and `client_secret` associated as username and password.
 | `/oidc/register`                          | Register clients via the [dynamic client registration](https://tools.ietf.org/html/draft-ietf-oauth-dyn-reg-management-01) protocol.
 
 ## Register Clients
@@ -75,7 +75,6 @@ The following fields are specifically available for OpenID connect services:
 | `clientId`                    | Required. The identifier for this client application.
 | `clientSecret`                | Required. The secret for this client application.
 | `serviceId`                   | Required. The authorized redirect URI for this OIDC client.
-| `implicit`                    | Optional. Whether the response produced for this service should be [implicit](https://openid.net/specs/openid-connect-implicit-1_0.html).
 | `supportedGrantTypes`         | Optional. Collection of supported grant types for this service.
 | `supportedResponseTypes`      | Optional. Collection of supported response types for this service.
 | `signIdToken`                 | Optional. Whether ID tokens should be signed. Default is `true`.
@@ -412,7 +411,7 @@ To see the relevant list of CAS properties, please [review this guide](../config
 
 #### REST UserInfo Repository
 
-The REST repository allows the CAS server to reach to a remote REST endpoint via the configured HTTP method to fetch user accout information.
+The REST repository allows the CAS server to reach to a remote REST endpoint via the configured HTTP method to fetch user account information.
 
 Query data is passed via either `email` or `username` HTTP headers. The response that is returned must be accompanied by a `200`
 status code where the body should contain `Map` representing the user account information. All other responses will lead to a `404` 

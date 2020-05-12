@@ -1,15 +1,12 @@
 package org.apereo.cas.web.flow.executor;
 
-import org.apereo.cas.configuration.model.webapp.WebflowProperties;
+import org.apereo.cas.configuration.model.core.web.flow.WebflowProperties;
 import org.apereo.cas.configuration.support.Beans;
 import org.apereo.cas.util.crypto.CipherExecutor;
 
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
-import org.apereo.spring.webflow.plugin.ClientFlowExecutionRepository;
-import org.apereo.spring.webflow.plugin.EncryptedTranscoder;
-import org.apereo.spring.webflow.plugin.Transcoder;
 import org.springframework.webflow.conversation.impl.SessionBindingConversationManager;
 import org.springframework.webflow.definition.registry.FlowDefinitionRegistry;
 import org.springframework.webflow.engine.impl.FlowExecutionImplFactory;

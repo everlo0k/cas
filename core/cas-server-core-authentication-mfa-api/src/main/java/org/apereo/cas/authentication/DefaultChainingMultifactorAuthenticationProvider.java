@@ -4,10 +4,11 @@ import org.apereo.cas.authentication.bypass.DefaultChainingMultifactorAuthentica
 import org.apereo.cas.authentication.bypass.MultifactorAuthenticationProviderBypassEvaluator;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.springframework.core.OrderComparator;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,27 +20,23 @@ import java.util.List;
  * @author Misagh Moayyed
  * @since 6.1.0
  */
-@Slf4j
 @ToString
 @Getter
 @Setter
+@RequiredArgsConstructor
 public class DefaultChainingMultifactorAuthenticationProvider implements ChainingMultifactorAuthenticationProvider {
     private static final long serialVersionUID = -3199297701531604341L;
 
-    private final List<MultifactorAuthenticationProvider> multifactorAuthenticationProviders = new ArrayList<>();
+    private final List<MultifactorAuthenticationProvider> multifactorAuthenticationProviders = new ArrayList<>(0);
 
     private final MultifactorAuthenticationFailureModeEvaluator failureModeEvaluator;
-
-    public DefaultChainingMultifactorAuthenticationProvider(final MultifactorAuthenticationFailureModeEvaluator failureModeEvaluator) {
-        this.failureModeEvaluator = failureModeEvaluator;
-    }
 
     @Override
     public MultifactorAuthenticationProviderBypassEvaluator getBypassEvaluator() {
         val bypass = new DefaultChainingMultifactorAuthenticationBypassProvider();
         getMultifactorAuthenticationProviders()
             .stream()
-            .sorted()
+            .sorted(OrderComparator.INSTANCE)
             .map(MultifactorAuthenticationProvider::getBypassEvaluator)
             .forEach(bypass::addMultifactorAuthenticationProviderBypassEvaluator);
         return bypass;
@@ -52,14 +49,8 @@ public class DefaultChainingMultifactorAuthenticationProvider implements Chainin
         return provider;
     }
 
-    
     @Override
     public void addMultifactorAuthenticationProviders(final Collection<MultifactorAuthenticationProvider> providers) {
         multifactorAuthenticationProviders.addAll(providers);
-    }
-
-    @Override
-    public MultifactorAuthenticationFailureModeEvaluator getFailureModeEvaluator() {
-        return failureModeEvaluator;
     }
 }

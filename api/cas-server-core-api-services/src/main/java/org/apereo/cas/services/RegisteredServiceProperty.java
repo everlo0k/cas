@@ -94,6 +94,10 @@ public interface RegisteredServiceProperty extends Serializable {
          **/
         TOKEN_AS_SERVICE_TICKET("jwtAsServiceTicket", "false"),
         /**
+         * Indicate the cipher strategy for JWT service tickets to determine order of signing/encryption operations.
+         **/
+        TOKEN_AS_SERVICE_TICKET_CIPHER_STRATEGY_TYPE("jwtAsServiceTicketCipherStrategyType", "ENCRYPT_AND_SIGN"),
+        /**
          * Produce a signed JWT as a response when generating service tickets using the provided signing key.
          **/
         TOKEN_AS_SERVICE_TICKET_SIGNING_KEY("jwtAsServiceTicketSigningKey", StringUtils.EMPTY),
@@ -105,6 +109,18 @@ public interface RegisteredServiceProperty extends Serializable {
          * Produce a signed JWT as a response when generating access tokens using the provided signing key.
          **/
         ACCESS_TOKEN_AS_JWT_SIGNING_KEY("accessTokenAsJwtSigningKey", StringUtils.EMPTY),
+        /**
+         * Indicate the cipher strategy for JWTs as access tokens, to determine order of signing/encryption operations.
+         */
+        ACCESS_TOKEN_AS_JWT_CIPHER_STRATEGY_TYPE("accessTokenAsJwtCipherStrategyType", "ENCRYPT_AND_SIGN"),
+        /**
+         * Enable signing JWTs as a response when generating access tokens using the provided signing key.
+         **/
+        ACCESS_TOKEN_AS_JWT_SIGNING_ENABLED("accessTokenAsJwtSigningEnabled", "true"),
+        /**
+         * Enable encryption of JWTs as a response when generating access tokens using the provided encryption key.
+         **/
+        ACCESS_TOKEN_AS_JWT_ENCRYPTION_ENABLED("accessTokenAsJwtEncryptionEnabled", "false"),
         /**
          * Produce an encrypted JWT as a response when generating access tokens using the provided encryption key.
          **/
@@ -171,6 +187,7 @@ public interface RegisteredServiceProperty extends Serializable {
         HTTP_HEADER_ENABLE_XSS_PROTECTION("httpHeaderEnableXSSProtection", "true");
 
         private final String propertyName;
+
         private final String defaultValue;
 
         /**
@@ -277,7 +294,7 @@ public interface RegisteredServiceProperty extends Serializable {
                     return BooleanUtils.toBoolean(prop.getValue());
                 }
             }
-            return false;
+            return BooleanUtils.toBoolean(getDefaultValue());
         }
 
         /**

@@ -4,7 +4,7 @@ import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.web.flow.configurer.AbstractCasWebflowConfigurer;
 
 import lombok.val;
-import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.webflow.definition.registry.FlowDefinitionRegistry;
 import org.springframework.webflow.engine.ActionState;
 import org.springframework.webflow.engine.builder.support.FlowBuilderServices;
@@ -33,20 +33,24 @@ import org.springframework.webflow.engine.builder.support.FlowBuilderServices;
  */
 public class X509WebflowConfigurer extends AbstractCasWebflowConfigurer {
 
-    private static final String EVENT_ID_START_X509 = "startX509Authenticate";
+    /**
+     * State id to start X.509 authentication.
+     */
+    public static final String STATE_ID_START_X509 = "startX509Authenticate";
 
     public X509WebflowConfigurer(final FlowBuilderServices flowBuilderServices,
                                  final FlowDefinitionRegistry loginFlowDefinitionRegistry,
-                                 final ApplicationContext applicationContext,
+                                 final ConfigurableApplicationContext applicationContext,
                                  final CasConfigurationProperties casProperties) {
         super(flowBuilderServices, loginFlowDefinitionRegistry, applicationContext, casProperties);
+        setOrder(casProperties.getAuthn().getX509().getWebflow().getOrder());
     }
 
     @Override
     protected void doInitialize() {
         val flow = getLoginFlow();
         if (flow != null) {
-            val actionState = createActionState(flow, EVENT_ID_START_X509, createEvaluateAction("x509Check"));
+            val actionState = createActionState(flow, STATE_ID_START_X509, createEvaluateAction("x509Check"));
             val transitionSet = actionState.getTransitionSet();
             transitionSet.add(createTransition(CasWebflowConstants.TRANSITION_ID_SUCCESS, CasWebflowConstants.STATE_ID_CREATE_TICKET_GRANTING_TICKET));
             transitionSet.add(createTransition(CasWebflowConstants.TRANSITION_ID_WARN, CasWebflowConstants.TRANSITION_ID_WARN));
@@ -56,7 +60,7 @@ public class X509WebflowConfigurer extends AbstractCasWebflowConfigurer {
             actionState.getExitActionList().add(createEvaluateAction(CasWebflowConstants.ACTION_ID_CLEAR_WEBFLOW_CREDENTIALS));
 
             val state = getState(flow, CasWebflowConstants.STATE_ID_INIT_LOGIN_FORM, ActionState.class);
-            createTransitionForState(state, CasWebflowConstants.TRANSITION_ID_SUCCESS, EVENT_ID_START_X509, true);
+            createTransitionForState(state, CasWebflowConstants.TRANSITION_ID_SUCCESS, STATE_ID_START_X509, true);
         }
     }
 }

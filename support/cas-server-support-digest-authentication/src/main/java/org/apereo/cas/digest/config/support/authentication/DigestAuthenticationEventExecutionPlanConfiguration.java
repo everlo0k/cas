@@ -42,21 +42,23 @@ public class DigestAuthenticationEventExecutionPlanConfiguration {
 
     @ConditionalOnMissingBean(name = "digestAuthenticationPrincipalFactory")
     @Bean
+    @RefreshScope
     public PrincipalFactory digestAuthenticationPrincipalFactory() {
         return PrincipalFactoryUtils.newPrincipalFactory();
     }
 
     @Bean
     @RefreshScope
+    @ConditionalOnMissingBean(name = "digestAuthenticationHandler")
     public AuthenticationHandler digestAuthenticationHandler() {
         val digest = casProperties.getAuthn().getDigest();
-        return new DigestAuthenticationHandler(digest.getName(), servicesManager.getIfAvailable(),
+        return new DigestAuthenticationHandler(digest.getName(), servicesManager.getObject(),
             digestAuthenticationPrincipalFactory(), digest.getOrder());
     }
 
     @ConditionalOnMissingBean(name = "digestAuthenticationEventExecutionPlanConfigurer")
     @Bean
     public AuthenticationEventExecutionPlanConfigurer digestAuthenticationEventExecutionPlanConfigurer() {
-        return plan -> plan.registerAuthenticationHandlerWithPrincipalResolver(digestAuthenticationHandler(), defaultPrincipalResolver.getIfAvailable());
+        return plan -> plan.registerAuthenticationHandlerWithPrincipalResolver(digestAuthenticationHandler(), defaultPrincipalResolver.getObject());
     }
 }

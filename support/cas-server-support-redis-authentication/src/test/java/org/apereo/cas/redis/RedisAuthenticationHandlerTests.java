@@ -9,16 +9,19 @@ import org.apereo.cas.config.CasCoreAuthenticationMetadataConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationPolicyConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationPrincipalConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationSupportConfiguration;
+import org.apereo.cas.config.CasCoreConfiguration;
 import org.apereo.cas.config.CasCoreHttpConfiguration;
 import org.apereo.cas.config.CasCoreServicesAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
+import org.apereo.cas.config.CasCoreTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasCoreTicketsConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CasCoreWebConfiguration;
 import org.apereo.cas.config.CasPersonDirectoryConfiguration;
 import org.apereo.cas.config.RedisAuthenticationConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
+import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.DigestUtils;
 
@@ -34,7 +37,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.test.context.TestPropertySource;
 import redis.embedded.RedisServer;
 
 import javax.security.auth.login.AccountExpiredException;
@@ -63,21 +65,22 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreAuthenticationHandlersConfiguration.class,
     CasCoreHttpConfiguration.class,
     CasCoreTicketCatalogConfiguration.class,
+    CasCoreTicketIdGeneratorsConfiguration.class,
     CasCoreTicketsConfiguration.class,
     CasCoreServicesConfiguration.class,
     CasWebApplicationServiceFactoryConfiguration.class,
     CasPersonDirectoryConfiguration.class,
     CasCoreWebConfiguration.class,
-    CasWebApplicationServiceFactoryConfiguration.class,
+    CasCoreLogoutConfiguration.class,
+    CasCoreConfiguration.class,
     RefreshAutoConfiguration.class
-})
-@EnableScheduling
-@TestPropertySource(properties = {
+}, properties = {
     "cas.authn.redis.host=localhost",
     "cas.authn.redis.port=6377",
     "cas.authn.redis.password-encoder.type=DEFAULT",
     "cas.authn.redis.password-encoder.encoding-algorithm=SHA-512"
 })
+@EnableScheduling
 @Tag("Redis")
 public class RedisAuthenticationHandlerTests {
     private static RedisServer REDIS_SERVER;

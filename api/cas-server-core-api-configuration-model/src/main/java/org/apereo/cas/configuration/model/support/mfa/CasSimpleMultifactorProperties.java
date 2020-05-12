@@ -6,6 +6,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
@@ -17,6 +18,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 @RequiresModule(name = "cas-server-support-simple-mfa")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class CasSimpleMultifactorProperties extends BaseMultifactorProviderProperties {
     /**
      * Provider id by default.
@@ -30,6 +32,16 @@ public class CasSimpleMultifactorProperties extends BaseMultifactorProviderPrope
      */
     private long timeToKillInSeconds = 30;
 
+    /**
+     * The length of the generated token.
+     */
+    private int tokenLength = 6;
+
+    /**
+     * Indicates whether this provider should support trusted devices.
+     */
+    private boolean trustedDeviceEnabled;
+    
     /**
      * Email settings for notifications.
      */

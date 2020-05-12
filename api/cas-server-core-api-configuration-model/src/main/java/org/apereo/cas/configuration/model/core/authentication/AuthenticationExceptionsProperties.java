@@ -4,6 +4,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import java.util.List;
 @RequiresModule(name = "cas-server-core-authentication", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class AuthenticationExceptionsProperties implements Serializable {
 
     private static final long serialVersionUID = -2385347572099983874L;
@@ -32,5 +34,5 @@ public class AuthenticationExceptionsProperties implements Serializable {
      * To map custom exceptions, one would need map the exception, they can be defined here
      * and then linked to custom messages.
      */
-    private List<Class<? extends Exception>> exceptions = new ArrayList<>();
+    private List<Class<? extends Exception>> exceptions = new ArrayList<>(0);
 }

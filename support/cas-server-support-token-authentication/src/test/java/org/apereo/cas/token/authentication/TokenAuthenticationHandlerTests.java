@@ -7,16 +7,19 @@ import org.apereo.cas.config.CasCoreAuthenticationMetadataConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationPolicyConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationPrincipalConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationSupportConfiguration;
+import org.apereo.cas.config.CasCoreConfiguration;
 import org.apereo.cas.config.CasCoreHttpConfiguration;
 import org.apereo.cas.config.CasCoreServicesAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
+import org.apereo.cas.config.CasCoreTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasCoreTicketsConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CasCoreWebConfiguration;
 import org.apereo.cas.config.CasPersonDirectoryConfiguration;
 import org.apereo.cas.config.TokenAuthenticationConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
+import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.services.DefaultRegisteredServiceProperty;
 import org.apereo.cas.services.RegisteredService;
 import org.apereo.cas.services.RegisteredServiceProperty;
@@ -37,10 +40,11 @@ import org.pac4j.jwt.config.signature.SecretSignatureConfiguration;
 import org.pac4j.jwt.profile.JwtGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,7 +57,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 5.2.0
  */
-@SpringBootTest(classes = {RefreshAutoConfiguration.class,
+@SpringBootTest(classes = {
+    RefreshAutoConfiguration.class,
+    MailSenderAutoConfiguration.class,
     CasCoreAuthenticationPrincipalConfiguration.class,
     CasCoreAuthenticationPolicyConfiguration.class,
     CasCoreAuthenticationMetadataConfiguration.class,
@@ -65,13 +71,19 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreTicketCatalogConfiguration.class,
     CasCoreTicketsConfiguration.class,
     CasCoreWebConfiguration.class,
-    CasWebApplicationServiceFactoryConfiguration.class,
     TokenAuthenticationHandlerTests.TestTokenAuthenticationConfiguration.class,
     CasPersonDirectoryConfiguration.class,
     CasCoreAuthenticationConfiguration.class,
+    CasCoreTicketIdGeneratorsConfiguration.class,
     CasCoreServicesAuthenticationConfiguration.class,
     CasCoreServicesConfiguration.class,
-    TokenAuthenticationConfiguration.class})
+    CasCoreLogoutConfiguration.class,
+    CasCoreConfiguration.class,
+    TokenAuthenticationConfiguration.class
+}, properties = {
+    "spring.mail.host=localhost",
+    "spring.mail.port=25000"
+})
 public class TokenAuthenticationHandlerTests {
     private static final RandomStringGenerator RANDOM_STRING_GENERATOR = new DefaultRandomStringGenerator();
     private static final String SIGNING_SECRET = RANDOM_STRING_GENERATOR.getNewString(256);
@@ -97,7 +109,7 @@ public class TokenAuthenticationHandlerTests {
         assertEquals(result.getPrincipal().getId(), profile.getId());
     }
 
-    @Configuration("TokenAuthenticationTests")
+    @TestConfiguration("TokenAuthenticationTests")
     public static class TestTokenAuthenticationConfiguration {
         @Bean
         public List inMemoryRegisteredServices() {

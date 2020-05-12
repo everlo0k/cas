@@ -11,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 /**
@@ -23,7 +22,6 @@ import lombok.val;
 @RequiredArgsConstructor
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 @ToString
-@Slf4j
 @Getter
 public class SurrogateAuthenticationExpirationPolicyBuilder implements ExpirationPolicyBuilder<TicketGrantingTicket> {
     private static final long serialVersionUID = -3597980180617072826L;
@@ -58,7 +56,8 @@ public class SurrogateAuthenticationExpirationPolicyBuilder implements Expiratio
         val surrogatePolicy = new HardTimeoutExpirationPolicy(su.getTgt().getTimeToKillInSeconds());
         val policy = new SurrogateSessionExpirationPolicy();
         policy.addPolicy(SurrogateSessionExpirationPolicy.POLICY_NAME_SURROGATE, surrogatePolicy);
-        policy.addPolicy(SurrogateSessionExpirationPolicy.POLICY_NAME_DEFAULT, ticketGrantingTicketExpirationPolicyBuilder.buildTicketExpirationPolicy());
+        policy.addPolicy(SurrogateSessionExpirationPolicy.POLICY_NAME_DEFAULT,
+            ticketGrantingTicketExpirationPolicyBuilder.buildTicketExpirationPolicy());
         return policy;
     }
 }

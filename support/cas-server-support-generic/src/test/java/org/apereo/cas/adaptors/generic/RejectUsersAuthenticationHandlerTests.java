@@ -6,6 +6,7 @@ import org.apereo.cas.authentication.credential.UsernamePasswordCredential;
 
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import javax.security.auth.login.AccountNotFoundException;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Scott Battaglia
  * @since 3.0.0
  */
+@Tag("FileSystem")
 public class RejectUsersAuthenticationHandlerTests {
     private final RejectUsersAuthenticationHandler authenticationHandler;
 
@@ -53,7 +55,7 @@ public class RejectUsersAuthenticationHandlerTests {
     }
 
     @Test
-    public void verifyFailsUserInMap() throws Exception {
+    public void verifyFailsUserInMap() {
         val c = new UsernamePasswordCredential();
 
         c.setUsername("scott");
@@ -75,7 +77,7 @@ public class RejectUsersAuthenticationHandlerTests {
     }
 
     @Test
-    public void verifyPassesNullUserName() throws Exception {
+    public void verifyPassesNullUserName() {
         val c = new UsernamePasswordCredential();
 
         c.setUsername(null);
@@ -87,7 +89,7 @@ public class RejectUsersAuthenticationHandlerTests {
     }
 
     @Test
-    public void verifyPassesNullUserNameAndPassword() throws Exception {
+    public void verifyPassesNullUserNameAndPassword() {
         assertThrows(AccountNotFoundException.class, () -> {
             this.authenticationHandler.authenticate(new UsernamePasswordCredential());
         });

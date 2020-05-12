@@ -55,7 +55,7 @@ public abstract class BaseOAuth20TokenRequestValidator implements OAuth20TokenRe
      *
      * @param registeredService the registered service
      * @param type              the type
-     * @return the boolean
+     * @return true/false
      */
     protected boolean isGrantTypeSupportedBy(final OAuthRegisteredService registeredService, final OAuth20GrantTypes type) {
         return isGrantTypeSupportedBy(registeredService, type.getType());
@@ -104,7 +104,8 @@ public abstract class BaseOAuth20TokenRequestValidator implements OAuth20TokenRe
      * @param userProfile the profile
      * @return true/false
      */
-    protected boolean validateInternal(final JEEContext context, final String grantType,
+    protected boolean validateInternal(final JEEContext context,
+                                       final String grantType,
                                        final ProfileManager manager,
                                        final UserProfile userProfile) {
         return false;

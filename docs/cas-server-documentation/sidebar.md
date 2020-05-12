@@ -8,6 +8,7 @@ layout: null
     *   [Security Guide](/$version/planning/Security-Guide.html)
     *   [Upgrade Guide](/$version/planning/Upgrade-Guide.html)
     *   [Release Policy](/cas/developer/Release-Policy.html)
+    *   [Release Schedule](https://github.com/apereo/cas/milestones)
     *   [Maintenance Policy](/cas/developer/Maintenance-Policy.html)
 
 * [Installation](#casinstallation)
@@ -60,6 +61,8 @@ layout: null
         *   [Digest](/$version/installation/Digest-Authentication.html)
         *   [MongoDb](/$version/installation/MongoDb-Authentication.html)
         *   [Redis](/$version/installation/Redis-Authentication.html)
+        *   [Azure Active Directory](/$version/installation/Azure-ActiveDirectory-Authentication.html)
+        *   [Okta](/$version/installation/Okta-Authentication.html)
         *   [Pac4J](/$version/installation/Pac4j-Authentication.html)
         *   [Whitelist](/$version/installation/Whitelist-Authentication.html)
         *   [Blacklist](/$version/installation/Blacklist-Authentication.html)
@@ -78,12 +81,14 @@ layout: null
     
 * [Attributes](#casattributes)
     *   [Attribute Resolution](/$version/integration/Attribute-Resolution.html)
+        *   [Definitions](/$version/integration/Attribute-Definitions.html)
     *   [Attribute Release](/$version/integration/Attribute-Release.html)
         *   [Principal Id](/$version/integration/Attribute-Release-PrincipalId.html)
         *   [Release Policies](/$version/integration/Attribute-Release-Policies.html)
         *   [Value Filters](/$version/integration/Attribute-Value-Release-Policies.html)
         *   [Consent](/$version/integration/Attribute-Release-Consent.html)
         *   [Caching](/$version/integration/Attribute-Release-Caching.html)
+        *   [Definitions](/$version/integration/Attribute-Definitions.html)
         
 * [Multifactor Authentication](#mfaauthn)
     *   [Overview](/$version/mfa/Configuring-Multifactor-Authentication.html)
@@ -147,7 +152,7 @@ layout: null
     *   [HTTP Security Headers](/$version/services/Configuring-Service-Http-Security-Headers.html)
     *   [Contacts & Owners](/$version/services/Configuring-Service-Contacts.html)
     *   [Expiration Policy](/$version/services/Configuring-Service-Expiration-Policy.html)
-    *   [Required Authentication](/$version/services/Configuring-Service-Required-AuthN.html)
+    *   [Authentication Policy](/$version/services/Configuring-Service-AuthN-Policy.html)
     *   [Environments](/$version/services/Configuring-Service-Environments.html)
     *   [Replication](/$version/services/Configuring-Service-Replication.html)
     *   [Storage](#persistencesvcreg)
@@ -193,9 +198,13 @@ layout: null
     *   [Views](/$version/ux/User-Interface-Customization-Views.html)
     *   [Localization](/$version/ux/User-Interface-Customization-Localization.html)
     *   [Dynamic Themes](/$version/ux/User-Interface-Customization-Themes.html)
-    *   [Acceptable Usage Policy](/$version/webflow/Webflow-Customization-AUP.html)
-    *   [Interrupt Notifications](/$version/webflow/Webflow-Customization-Interrupt.html)
     *   [Dynamic Decorations](/$version/webflow/Webflow-Customization-Decorators.html)
+
+* [Acceptable Usage Policy](#aup)
+    *   [Overview](/$version/webflow/Webflow-Customization-AUP.html)
+
+* [Interrupt Notifications](#interrupt_notifications)
+    *   [Overview](/$version/webflow/Webflow-Customization-Interrupt.html)
         
 *   [Webflow Management](#webflowmgmt)
     *   [Overview](/$version/webflow/Webflow-Customization.html) 
@@ -252,3 +261,5 @@ layout: null
     *   [Code Conventions](/cas/developer/Code-Conventions.html)
     *   [Release Process](/cas/developer/Release-Process.html)
     *   [Build Process](/cas/developer/Build-Process.html)
+        *   [6.x](/cas/developer/Build-Process-6X.html)
+        *   [5.x](/cas/developer/Build-Process-5X.html)

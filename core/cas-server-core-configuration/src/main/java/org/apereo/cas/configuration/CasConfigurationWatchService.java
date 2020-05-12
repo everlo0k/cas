@@ -14,6 +14,7 @@ import lombok.val;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 
 import java.io.Closeable;
 import java.io.File;
@@ -28,10 +29,13 @@ import java.io.File;
 @RequiredArgsConstructor
 public class CasConfigurationWatchService implements Closeable {
     private final ComposableFunction<File, AbstractCasEvent> createConfigurationCreatedEvent = file -> new CasConfigurationCreatedEvent(this, file.toPath());
+
     private final ComposableFunction<File, AbstractCasEvent> createConfigurationModifiedEvent = file -> new CasConfigurationModifiedEvent(this, file.toPath());
+
     private final ComposableFunction<File, AbstractCasEvent> createConfigurationDeletedEvent = file -> new CasConfigurationDeletedEvent(this, file.toPath());
 
     private final CasConfigurationPropertiesEnvironmentManager configurationPropertiesEnvironmentManager;
+
     private final ApplicationEventPublisher eventPublisher;
 
     private PathWatcherService configurationDirectoryWatch;
@@ -49,6 +53,7 @@ public class CasConfigurationWatchService implements Closeable {
      * @param event the event
      */
     @EventListener
+    @Async
     public void runPathWatchServices(final ApplicationReadyEvent event) {
         watchConfigurationDirectoryIfNeeded();
         watchConfigurationFileIfNeeded();
@@ -58,7 +63,7 @@ public class CasConfigurationWatchService implements Closeable {
         val configFile = configurationPropertiesEnvironmentManager.getStandaloneProfileConfigurationFile();
         if (configFile != null && configFile.exists()) {
             LOGGER.debug("Starting to watch configuration file [{}]", configFile);
-            this.configurationFileWatch = new FileWatcherService(configFile,
+            this.configurationFileWatch = new FileWatcherService(configFile.getParentFile(),
                 createConfigurationCreatedEvent.andNext(eventPublisher::publishEvent),
                 createConfigurationModifiedEvent.andNext(eventPublisher::publishEvent),
                 createConfigurationDeletedEvent.andNext(eventPublisher::publishEvent));
@@ -77,8 +82,7 @@ public class CasConfigurationWatchService implements Closeable {
             configurationDirectoryWatch.start(configDirectory.getName());
         }
     }
-
-
+    
     private void closeWatchServices() {
         if (configurationDirectoryWatch != null) {
             configurationDirectoryWatch.close();

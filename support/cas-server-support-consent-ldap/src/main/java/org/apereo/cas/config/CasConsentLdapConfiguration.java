@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
  * @author Arnold Bergner
  * @since 5.2.0
  */
-@Configuration("casConsentLdapConfiguration")
+@Configuration(value = "casConsentLdapConfiguration", proxyBeanMethods = false)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class CasConsentLdapConfiguration {
 
@@ -27,7 +27,7 @@ public class CasConsentLdapConfiguration {
     @Bean
     public ConsentRepository consentRepository() {
         val ldap = casProperties.getConsent().getLdap();
-        val connectionFactory = LdapUtils.newLdaptivePooledConnectionFactory(ldap);
+        val connectionFactory = LdapUtils.newLdaptiveConnectionFactory(ldap);
         return new LdapConsentRepository(connectionFactory, ldap);
     }
 }

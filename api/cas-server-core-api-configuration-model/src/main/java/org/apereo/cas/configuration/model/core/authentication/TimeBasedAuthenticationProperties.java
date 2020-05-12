@@ -4,6 +4,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import java.util.List;
 @RequiresModule(name = "cas-server-core-authentication", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class TimeBasedAuthenticationProperties implements Serializable {
 
     private static final long serialVersionUID = 3826749727400569308L;
@@ -40,5 +42,5 @@ public class TimeBasedAuthenticationProperties implements Serializable {
     /**
      * Trigger mfa on the following days of the week.
      */
-    private List<String> onDays = new ArrayList<>();
+    private List<String> onDays = new ArrayList<>(0);
 }

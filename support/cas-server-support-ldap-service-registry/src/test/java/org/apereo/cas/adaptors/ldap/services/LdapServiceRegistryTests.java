@@ -1,7 +1,8 @@
 package org.apereo.cas.adaptors.ldap.services;
 
-import org.apereo.cas.adaptors.ldap.LdapIntegrationTestsOperations;
-import org.apereo.cas.util.junit.DisabledIfContinuousIntegration;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
+
+import org.springframework.test.context.TestPropertySource;
 
 /**
  * Unit test for {@link LdapServiceRegistry} class.
@@ -10,10 +11,12 @@ import org.apereo.cas.util.junit.DisabledIfContinuousIntegration;
  * @author Marvin S. Addison
  * @since 4.0.0
  */
-@DisabledIfContinuousIntegration
+@TestPropertySource(properties = {
+    "cas.service-registry.ldap.poolPassivator=NONE",
+    "cas.service-registry.ldap.bindDn=cn=Directory Manager",
+    "cas.service-registry.ldap.bindCredential=password",
+    "cas.service-registry.ldap.objectClass=account"
+})
+@EnabledIfPortOpen(port = 10389)
 public class LdapServiceRegistryTests extends BaseLdapServiceRegistryTests {
-
-    public static void bootstrap() throws Exception {
-        LdapIntegrationTestsOperations.initDirectoryServer(10389);
-    }
 }

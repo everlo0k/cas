@@ -12,6 +12,7 @@ import org.apereo.cas.config.CasCoreHttpConfiguration;
 import org.apereo.cas.config.CasCoreServicesAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
+import org.apereo.cas.config.CasCoreTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasCoreTicketsConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CasCoreWebConfiguration;
@@ -21,6 +22,7 @@ import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.services.web.config.CasThemesConfiguration;
 import org.apereo.cas.util.MockWebServer;
+import org.apereo.cas.web.CaptchaValidator;
 import org.apereo.cas.web.config.CasCookieConfiguration;
 import org.apereo.cas.web.flow.config.CasCaptchaConfiguration;
 import org.apereo.cas.web.flow.config.CasCoreWebflowConfiguration;
@@ -28,10 +30,12 @@ import org.apereo.cas.web.flow.config.CasWebflowContextConfiguration;
 
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.core.io.ByteArrayResource;
@@ -56,6 +60,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(classes = {
     CasCaptchaConfiguration.class,
     RefreshAutoConfiguration.class,
+    MailSenderAutoConfiguration.class,
     CasCoreAuthenticationPrincipalConfiguration.class,
     CasCoreAuthenticationPolicyConfiguration.class,
     CasCoreAuthenticationMetadataConfiguration.class,
@@ -69,7 +74,6 @@ import static org.junit.jupiter.api.Assertions.*;
     CasPersonDirectoryTestConfiguration.class,
     CasCoreAuthenticationConfiguration.class,
     CasCoreWebConfiguration.class,
-    CasWebApplicationServiceFactoryConfiguration.class,
     CasCoreServicesAuthenticationConfiguration.class,
     CasCoreServicesConfiguration.class,
     CasCoreWebflowConfiguration.class,
@@ -78,10 +82,16 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreLogoutConfiguration.class,
     CasCookieConfiguration.class,
     CasThemesConfiguration.class,
+    CasCoreTicketIdGeneratorsConfiguration.class,
     CasCoreAuthenticationServiceSelectionStrategyConfiguration.class
 },
-    properties = "cas.googleRecaptcha.verifyUrl=http://localhost:9294"
+    properties = {
+        "cas.google-recaptcha.verifyUrl=http://localhost:9294",
+        "spring.mail.host=localhost",
+        "spring.mail.port=25000"
+    }
 )
+@Tag("Webflow")
 public class ValidateCaptchaActionTests {
     @Autowired
     @Qualifier("validateCaptchaAction")
@@ -93,7 +103,7 @@ public class ValidateCaptchaActionTests {
         val request = new MockHttpServletRequest();
 
         val data = "{\"success\": true }";
-        request.addParameter(ValidateCaptchaAction.REQUEST_PARAM_RECAPTCHA_RESPONSE, data);
+        request.addParameter(CaptchaValidator.REQUEST_PARAM_RECAPTCHA_RESPONSE, data);
 
         context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, new MockHttpServletResponse()));
 

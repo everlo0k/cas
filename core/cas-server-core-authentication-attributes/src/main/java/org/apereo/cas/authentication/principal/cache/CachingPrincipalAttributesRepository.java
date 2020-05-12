@@ -18,6 +18,7 @@ import lombok.val;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Wrapper around an attribute repository where attributes cached for a configurable period
@@ -68,7 +69,7 @@ public class CachingPrincipalAttributesRepository extends AbstractPrincipalAttri
         LOGGER.trace("Principal attributes extracted for [{}] are [{}]", principal.getId(), principalAttributes);
 
         if (areAttributeRepositoryIdsDefined()) {
-            val personDirectoryAttributes = retrievePersonAttributesFromAttributeRepository(principal.getId());
+            val personDirectoryAttributes = retrievePersonAttributesFromAttributeRepository(principal);
             LOGGER.debug("Found [{}] attributes for principal [{}] from the attribute repository.", personDirectoryAttributes.size(), principal.getId());
 
             LOGGER.debug("Merging current principal attributes with that of the repository via strategy [{}]", mergeStrategy);
@@ -114,9 +115,10 @@ public class CachingPrincipalAttributesRepository extends AbstractPrincipalAttri
      * @return the cache instance from application context
      */
     @JsonIgnore
-    public PrincipalAttributesRepositoryCache getCacheInstanceFromApplicationContext() {
+    public static PrincipalAttributesRepositoryCache getCacheInstanceFromApplicationContext() {
         val ctx = ApplicationContextProvider.getApplicationContext();
-        return ctx.getBean("principalAttributesRepositoryCache", PrincipalAttributesRepositoryCache.class);
+        return Objects.requireNonNull(ctx)
+            .getBean("principalAttributesRepositoryCache", PrincipalAttributesRepositoryCache.class);
     }
 
 }

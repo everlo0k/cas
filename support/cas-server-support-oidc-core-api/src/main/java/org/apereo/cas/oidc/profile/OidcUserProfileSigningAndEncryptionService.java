@@ -5,12 +5,10 @@ import org.apereo.cas.services.OidcRegisteredService;
 import org.apereo.cas.support.oauth.services.OAuthRegisteredService;
 
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
-import org.jose4j.jwk.RsaJsonWebKey;
+import org.jose4j.jwk.PublicJsonWebKey;
 import org.jose4j.jws.AlgorithmIdentifiers;
-import org.jose4j.jws.JsonWebSignature;
 
 import java.util.Optional;
 
@@ -20,29 +18,31 @@ import java.util.Optional;
  * @author Misagh Moayyed
  * @since 6.1.0
  */
-@Slf4j
 public class OidcUserProfileSigningAndEncryptionService extends BaseOidcJsonWebKeyTokenSigningAndEncryptionService {
     /**
      * Default encoding for user-info encrypted responses.
      */
     public static final String USER_INFO_RESPONSE_ENCRYPTION_ENCODING_DEFAULT = "A128CBC-HS256";
 
-    public OidcUserProfileSigningAndEncryptionService(final LoadingCache<String, Optional<RsaJsonWebKey>> defaultJsonWebKeystoreCache,
-                                                      final LoadingCache<OAuthRegisteredService, Optional<RsaJsonWebKey>> serviceJsonWebKeystoreCache,
+    public OidcUserProfileSigningAndEncryptionService(final LoadingCache<String, Optional<PublicJsonWebKey>> defaultJsonWebKeystoreCache,
+                                                      final LoadingCache<OAuthRegisteredService, Optional<PublicJsonWebKey>> serviceJsonWebKeystoreCache,
                                                       final String issuer) {
         super(defaultJsonWebKeystoreCache, serviceJsonWebKeystoreCache, issuer);
     }
 
     @Override
-    protected String encryptToken(final OidcRegisteredService svc,
-                                  final JsonWebSignature jws,
+    protected String encryptToken(final OAuthRegisteredService service,
                                   final String innerJwt) {
-        val jsonWebKey = getJsonWebKeyForEncryption(svc);
-        return encryptToken(svc.getUserInfoEncryptedResponseAlg(),
-            svc.getUserInfoEncryptedResponseEncoding(),
-            jws.getKeyIdHeaderValue(),
-            jsonWebKey.getPublicKey(),
-            innerJwt);
+        if (service instanceof OidcRegisteredService) {
+            val svc = OidcRegisteredService.class.cast(service);
+            val jsonWebKey = getJsonWebKeyForEncryption(svc);
+            return encryptToken(svc.getUserInfoEncryptedResponseAlg(),
+                svc.getUserInfoEncryptedResponseEncoding(),
+                jsonWebKey.getKeyId(),
+                jsonWebKey.getPublicKey(),
+                innerJwt);
+        }
+        return innerJwt;
     }
 
     @Override
@@ -67,7 +67,8 @@ public class OidcUserProfileSigningAndEncryptionService extends BaseOidcJsonWebK
     public boolean shouldEncryptToken(final OAuthRegisteredService svc) {
         if (svc instanceof OidcRegisteredService) {
             val service = (OidcRegisteredService) svc;
-            return StringUtils.isNotBlank(service.getUserInfoEncryptedResponseAlg());
+            return StringUtils.isNotBlank(service.getUserInfoEncryptedResponseAlg())
+                && !StringUtils.equalsIgnoreCase(service.getUserInfoEncryptedResponseAlg(), AlgorithmIdentifiers.NONE);
         }
         return false;
     }

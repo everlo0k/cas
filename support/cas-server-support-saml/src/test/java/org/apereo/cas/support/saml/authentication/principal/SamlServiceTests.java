@@ -47,6 +47,7 @@ import static org.mockito.Mockito.*;
 @Tag("SAML")
 public class SamlServiceTests extends AbstractOpenSamlTests {
     private static final File JSON_FILE = new File(FileUtils.getTempDirectoryPath(), "samlService.json");
+
     private static final ObjectMapper MAPPER = new ObjectMapper().findAndRegisterModules();
 
     @Autowired

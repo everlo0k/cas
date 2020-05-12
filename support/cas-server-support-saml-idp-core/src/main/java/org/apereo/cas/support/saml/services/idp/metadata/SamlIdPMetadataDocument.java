@@ -5,21 +5,18 @@ import org.apereo.cas.util.EncodingUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.Type;
 import org.springframework.data.annotation.Id;
 
 import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Lob;
-import javax.persistence.Table;
+import javax.persistence.MappedSuperclass;
+import javax.persistence.Transient;
 
 /**
  * This is {@link SamlIdPMetadataDocument}.
@@ -27,30 +24,31 @@ import javax.persistence.Table;
  * @author Misagh Moayyed
  * @since 6.0.0
  */
-@Entity
-@Table(name = "SamlIdPMetadataDocument")
+@MappedSuperclass
 @Getter
 @Setter
 @AllArgsConstructor
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 public class SamlIdPMetadataDocument {
 
     /**
      * The Id.
      */
-    @javax.persistence.Id
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "native")
-    @GenericGenerator(name = "native", strategy = "native")
     @Column(name = "id", columnDefinition = "BIGINT")
     @JsonProperty
+    @Transient
     private long id = -1;
+
+    @Column(name = "appliesTo", unique = true, length = 512)
+    @JsonProperty
+    private String appliesTo = "CAS";
 
     /**
      * The Metadata.
      */
     @Lob
-    @Type(type = "org.hibernate.type.StringNVarcharType")
-    @Column(name = "metadata", length = 8_000)
+    @Column(name = "metadata", length = 10_000)
     @JsonProperty
     private String metadata;
 
@@ -58,7 +56,6 @@ public class SamlIdPMetadataDocument {
      * The Signing certificate.
      */
     @Lob
-    @Type(type = "org.hibernate.type.StringNVarcharType")
     @Column(name = "signingCertificate", length = 3_000)
     @JsonProperty
     private String signingCertificate;
@@ -67,7 +64,6 @@ public class SamlIdPMetadataDocument {
      * The Signing key.
      */
     @Lob
-    @Type(type = "org.hibernate.type.StringNVarcharType")
     @Column(name = "signingKey", length = 3_000)
     @JsonProperty
     private String signingKey;
@@ -76,7 +72,6 @@ public class SamlIdPMetadataDocument {
      * The Encryption certificate.
      */
     @Lob
-    @Type(type = "org.hibernate.type.StringNVarcharType")
     @Column(name = "encryptionCertificate", length = 3_000)
     @JsonProperty
     private String encryptionCertificate;
@@ -85,7 +80,6 @@ public class SamlIdPMetadataDocument {
      * The Encryption key.
      */
     @Lob
-    @Type(type = "org.hibernate.type.StringNVarcharType")
     @Column(name = "encryptionKey", length = 3_000)
     @JsonProperty
     private String encryptionKey;

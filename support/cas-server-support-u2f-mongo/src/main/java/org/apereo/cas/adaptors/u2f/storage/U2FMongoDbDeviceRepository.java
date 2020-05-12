@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
@@ -47,7 +48,8 @@ public class U2FMongoDbDeviceRepository extends BaseU2FDeviceRepository {
     @Override
     public Collection<? extends DeviceRegistration> getRegisteredDevices(final String username) {
         try {
-            val expirationDate = LocalDate.now().minus(this.expirationTime, DateTimeUtils.toChronoUnit(this.expirationTimeUnit));
+            val expirationDate = LocalDate.now(ZoneId.systemDefault())
+                .minus(this.expirationTime, DateTimeUtils.toChronoUnit(this.expirationTimeUnit));
             val query = new Query();
             query.addCriteria(Criteria.where("username").is(username).and("createdDate").gte(expirationDate));
             return this.mongoTemplate.find(query, U2FDeviceRegistration.class, this.collectionName)
@@ -70,15 +72,10 @@ public class U2FMongoDbDeviceRepository extends BaseU2FDeviceRepository {
 
     @Override
     public void registerDevice(final String username, final DeviceRegistration registration) {
-        authenticateDevice(username, registration);
-    }
-
-    @Override
-    public void authenticateDevice(final String username, final DeviceRegistration registration) {
         val record = new U2FDeviceRegistration();
         record.setUsername(username);
-        record.setRecord(getCipherExecutor().encode(registration.toJson()));
-        record.setCreatedDate(LocalDate.now());
+        record.setRecord(getCipherExecutor().encode(registration.toJsonWithAttestationCert()));
+        record.setCreatedDate(LocalDate.now(ZoneId.systemDefault()));
         this.mongoTemplate.save(record, this.collectionName);
     }
 
@@ -90,7 +87,7 @@ public class U2FMongoDbDeviceRepository extends BaseU2FDeviceRepository {
     @Override
     public void clean() {
         try {
-            val expirationDate = LocalDate.now().minus(this.expirationTime, DateTimeUtils.toChronoUnit(this.expirationTimeUnit));
+            val expirationDate = LocalDate.now(ZoneId.systemDefault()).minus(this.expirationTime, DateTimeUtils.toChronoUnit(this.expirationTimeUnit));
             LOGGER.debug("Cleaning up expired U2F device registrations based on expiration date [{}]", expirationDate);
 
             val query = new Query();

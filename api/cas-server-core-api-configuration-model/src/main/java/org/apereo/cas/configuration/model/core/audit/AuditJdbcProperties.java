@@ -6,6 +6,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
@@ -17,6 +18,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 @RequiresModule(name = "cas-server-support-audit-jdbc")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class AuditJdbcProperties extends AbstractJpaProperties {
 
     private static final long serialVersionUID = 4227475246873515918L;
@@ -39,20 +41,6 @@ public class AuditJdbcProperties extends AbstractJpaProperties {
      * functionality no longer substrings the audit record.
      */
     private int columnLength = 100;
-
-    /**
-     * Defines the isolation level for transactions.
-     *
-     * @see org.springframework.transaction.TransactionDefinition
-     */
-    private String isolationLevelName = "ISOLATION_READ_COMMITTED";
-
-    /**
-     * Defines the propagation behavior for transactions.
-     *
-     * @see org.springframework.transaction.TransactionDefinition
-     */
-    private String propagationBehaviorName = "PROPAGATION_REQUIRED";
 
     /**
      * Scheduler settings to indicate how often the cleaner is reloaded.

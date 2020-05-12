@@ -1,8 +1,8 @@
 package org.apereo.cas.services;
 
 import org.apereo.cas.CoreAttributesTestUtils;
-import org.apereo.cas.authentication.principal.DefaultPrincipalFactory;
 import org.apereo.cas.authentication.principal.Principal;
+import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.authentication.principal.cache.CachingPrincipalAttributesRepository;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
@@ -17,6 +17,7 @@ import org.apereo.services.persondir.support.MergingPersonAttributeDaoImpl;
 import org.apereo.services.persondir.support.StubPersonAttributeDao;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -41,16 +42,26 @@ import static org.mockito.Mockito.*;
  */
 @SpringBootTest(classes = {
     RefreshAutoConfiguration.class,
+    MailSenderAutoConfiguration.class,
     CasCoreUtilConfiguration.class
+}, properties = {
+    "spring.mail.host=localhost",
+    "spring.mail.port=25000"
 })
 public class RegisteredServiceAttributeReleasePolicyTests {
 
     private static final String ATTR_1 = "attr1";
+
     private static final String ATTR_2 = "attr2";
+
     private static final String ATTR_3 = "attr3";
+
     private static final String VALUE_1 = "value1";
+
     private static final String VALUE_2 = "value2";
+
     private static final String NEW_ATTR_1_VALUE = "newAttr1";
+
     private static final String PRINCIPAL_ID = "principalId";
 
     @Autowired
@@ -206,13 +217,13 @@ public class RegisteredServiceAttributeReleasePolicyTests {
         stub.setId("SampleStubRepository");
 
         val dao = new MergingPersonAttributeDaoImpl();
-        dao.setPersonAttributeDaos(Collections.singletonList(stub));
+        dao.setPersonAttributeDaos(List.of(stub));
 
         ApplicationContextProvider.registerBeanIntoApplicationContext(this.applicationContext, dao, "attributeRepository");
 
         val repository = new CachingPrincipalAttributesRepository(TimeUnit.MILLISECONDS.name(), 100);
         repository.setAttributeRepositoryIds(Set.of(stub.getId()));
-        val p = new DefaultPrincipalFactory().createPrincipal("uid", Collections.singletonMap("mail", List.of("final@example.com")));
+        val p = PrincipalFactoryUtils.newPrincipalFactory().createPrincipal("uid", Collections.singletonMap("mail", List.of("final@example.com")));
 
         policy.setPrincipalAttributesRepository(repository);
 
@@ -239,11 +250,12 @@ public class RegisteredServiceAttributeReleasePolicyTests {
         stub.setId("SampleStubRepository");
 
         val dao = new MergingPersonAttributeDaoImpl();
-        dao.setPersonAttributeDaos(Collections.singletonList(stub));
+        dao.setPersonAttributeDaos(List.of(stub));
 
         ApplicationContextProvider.registerBeanIntoApplicationContext(this.applicationContext, dao, "attributeRepository");
         val repository = new CachingPrincipalAttributesRepository(TimeUnit.MILLISECONDS.name(), 0);
-        val p = new DefaultPrincipalFactory().createPrincipal("uid", Collections.singletonMap("mail", List.of("final@example.com")));
+        val p = PrincipalFactoryUtils.newPrincipalFactory().createPrincipal("uid",
+            Collections.singletonMap("mail", List.of("final@example.com")));
 
         repository.setAttributeRepositoryIds(CollectionUtils.wrapSet("SampleStubRepository".toUpperCase()));
         policy.setPrincipalAttributesRepository(repository);
@@ -272,7 +284,8 @@ public class RegisteredServiceAttributeReleasePolicyTests {
         assertFalse(policy.isAuthorizedToReleaseCredentialPassword());
         assertFalse(policy.isAuthorizedToReleaseProxyGrantingTicket());
 
-        val p = new DefaultPrincipalFactory().createPrincipal("uid", Collections.singletonMap("mail", List.of("final@example.com")));
+        val p = PrincipalFactoryUtils.newPrincipalFactory()
+            .createPrincipal("uid", Collections.singletonMap("mail", List.of("final@example.com")));
         val attrs = policy.getConsentableAttributes(p, CoreAttributesTestUtils.getService(), CoreAttributesTestUtils.getRegisteredService());
         assertEquals(p.getAttributes(), attrs);
 

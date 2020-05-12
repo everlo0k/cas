@@ -8,10 +8,13 @@ import org.apereo.cas.adaptors.u2f.storage.U2FJsonResourceDeviceRepository;
 import org.apereo.cas.adaptors.u2f.storage.U2FRestResourceDeviceRepository;
 import org.apereo.cas.authentication.PseudoPlatformTransactionManager;
 import org.apereo.cas.configuration.CasConfigurationProperties;
+import org.apereo.cas.util.cipher.CipherExecutorUtils;
 import org.apereo.cas.util.crypto.CipherExecutor;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.yubico.u2f.U2F;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
@@ -35,7 +38,7 @@ import java.util.Map;
  * @author Misagh Moayyed
  * @since 5.1.0
  */
-@Configuration("u2fConfiguration")
+@Configuration(value = "u2fConfiguration", proxyBeanMethods = true)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @Slf4j
 public class U2FConfiguration {
@@ -55,6 +58,12 @@ public class U2FConfiguration {
     public U2FDeviceRepositoryCleanerScheduler u2fDeviceRepositoryCleanerScheduler(
         @Qualifier("u2fDeviceRepository") final U2FDeviceRepository storage) {
         return new U2FDeviceRepositoryCleanerScheduler(storage);
+    }
+
+    @ConditionalOnMissingBean(name = "u2fService")
+    @Bean
+    public U2F u2fService() {
+        return new U2F();
     }
 
     @ConditionalOnMissingBean(name = "u2fDeviceRepository")
@@ -87,7 +96,7 @@ public class U2FConfiguration {
         final LoadingCache<String, Map<String, String>> userStorage =
             Caffeine.newBuilder()
                 .expireAfterWrite(u2f.getExpireDevices(), u2f.getExpireDevicesTimeUnit())
-                .build(key -> new HashMap<>());
+                .build(key -> new HashMap<>(0));
         return new U2FInMemoryDeviceRepository(userStorage, requestStorage);
     }
 
@@ -96,12 +105,7 @@ public class U2FConfiguration {
     public CipherExecutor u2fRegistrationRecordCipherExecutor() {
         val crypto = casProperties.getAuthn().getMfa().getU2f().getCrypto();
         if (crypto.isEnabled()) {
-            return new U2FAuthenticationRegistrationRecordCipherExecutor(
-                crypto.getEncryption().getKey(),
-                crypto.getSigning().getKey(),
-                crypto.getAlg(),
-                crypto.getSigning().getKeySize(),
-                crypto.getEncryption().getKeySize());
+            return CipherExecutorUtils.newStringCipherExecutor(crypto, U2FAuthenticationRegistrationRecordCipherExecutor.class);
         }
         LOGGER.info("U2F registration record encryption/signing is turned off and "
             + "MAY NOT be safe in a production environment. "
@@ -113,12 +117,9 @@ public class U2FConfiguration {
     /**
      * The device cleaner scheduler.
      */
+    @RequiredArgsConstructor
     public static class U2FDeviceRepositoryCleanerScheduler {
         private final U2FDeviceRepository repository;
-
-        public U2FDeviceRepositoryCleanerScheduler(final U2FDeviceRepository repository) {
-            this.repository = repository;
-        }
 
         @Scheduled(initialDelayString = "${cas.authn.mfa.u2f.cleaner.schedule.startDelay:PT20S}",
             fixedDelayString = "${cas.authn.mfa.u2f.cleaner.schedule.repeatInterval:PT15M}")

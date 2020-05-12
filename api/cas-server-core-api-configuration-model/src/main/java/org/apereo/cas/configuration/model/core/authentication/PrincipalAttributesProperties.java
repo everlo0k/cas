@@ -1,9 +1,11 @@
 package org.apereo.cas.configuration.model.core.authentication;
 
+import org.apereo.cas.configuration.model.support.azuread.AzureActiveDirectoryAttributesProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -34,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 @RequiresModule(name = "cas-server-core-authentication", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class PrincipalAttributesProperties implements Serializable {
 
     private static final long serialVersionUID = -4515569588579072890L;
@@ -72,6 +75,20 @@ public class PrincipalAttributesProperties implements Serializable {
     private String merger = "REPLACE";
 
     /**
+     * Indicates how the results of multiple attribute repositories should
+     * be aggregated together. Accepted values are {@code MERGE}, or {@code CASCADE}.
+     * <ul>
+     * <li>{@code MERGE}: Default. Designed to query multiple repositories
+     * in order and merge the results into a single result set.</li>
+     * <li>{@code CASCADE}: Query multiple repositories in order and merge the results into
+     * a single result set. As each repository is queried
+     * the attributes from the first query in the result set are
+     * used as the query for the next repository. </li>
+     * </ul>
+     */
+    private String aggregation = "MERGE";
+
+    /**
      * CAS provides the ability to release a bundle of principal attributes to all services by default.
      * This bundle is not defined on a per-service basis and is always combined with attributes
      * produced by the specific release policy of the service, such that for instance,
@@ -79,37 +96,42 @@ public class PrincipalAttributesProperties implements Serializable {
      * and additionally allow other specific principal attributes for only some applications
      * per their attribute release policy.
      */
-    private Set<String> defaultAttributesToRelease = new HashSet<>();
+    private Set<String> defaultAttributesToRelease = new HashSet<>(0);
 
     /**
      * Retrieve attributes from multiple JDBC repositories.
      */
-    private List<JdbcPrincipalAttributesProperties> jdbc = new ArrayList<>();
+    private List<JdbcPrincipalAttributesProperties> jdbc = new ArrayList<>(0);
+
+    /**
+     * Retrieve attributes from multiple Microsoft Graph instances.
+     */
+    private List<AzureActiveDirectoryAttributesProperties> azureActiveDirectory = new ArrayList<>(0);
 
     /**
      * Retrieve attributes from multiple REST endpoints.
      */
-    private List<RestPrincipalAttributesProperties> rest = new ArrayList<>();
+    private List<RestPrincipalAttributesProperties> rest = new ArrayList<>(0);
 
     /**
      * Retrieve attributes from multiple Groovy scripts.
      */
-    private List<GroovyPrincipalAttributesProperties> groovy = new ArrayList<>();
+    private List<GroovyPrincipalAttributesProperties> groovy = new ArrayList<>(0);
 
     /**
      * Retrieve attributes from multiple LDAP servers.
      */
-    private List<LdapPrincipalAttributesProperties> ldap = new ArrayList<>();
+    private List<LdapPrincipalAttributesProperties> ldap = new ArrayList<>(0);
 
     /**
      * Retrieve attributes from multiple JSON file repositories.
      */
-    private List<JsonPrincipalAttributesProperties> json = new ArrayList<>();
+    private List<JsonPrincipalAttributesProperties> json = new ArrayList<>(0);
 
     /**
      * Retrieve attributes from redis repositories.
      */
-    private List<RedisPrincipalAttributesProperties> redis = new ArrayList<>();
+    private List<RedisPrincipalAttributesProperties> redis = new ArrayList<>(0);
 
     /**
      * Retrieve attributes from Couchbase repositories.
@@ -119,7 +141,7 @@ public class PrincipalAttributesProperties implements Serializable {
     /**
      * Retrieve attributes from multiple scripted repositories.
      */
-    private List<ScriptedPrincipalAttributesProperties> script = new ArrayList<>();
+    private List<ScriptedPrincipalAttributesProperties> script = new ArrayList<>(0);
 
     /**
      * Use stubbed attribute definitions as the underlying attribute repository source.

@@ -4,13 +4,13 @@ import org.apereo.cas.authentication.credential.HttpBasedServiceCredential;
 import org.apereo.cas.authentication.credential.UsernamePasswordCredential;
 import org.apereo.cas.authentication.handler.support.SimpleTestUsernamePasswordAuthenticationHandler;
 import org.apereo.cas.authentication.metadata.BasicCredentialMetaData;
-import org.apereo.cas.authentication.principal.DefaultPrincipalFactory;
 import org.apereo.cas.authentication.principal.Principal;
 import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.authentication.principal.WebApplicationService;
 import org.apereo.cas.services.RegisteredService;
 import org.apereo.cas.services.RegisteredServiceAccessStrategy;
+import org.apereo.cas.services.RegisteredServiceAuthenticationPolicy;
 import org.apereo.cas.util.CollectionUtils;
 
 import lombok.experimental.UtilityClass;
@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.mockito.Mockito.*;
 
@@ -42,8 +43,6 @@ public class CoreAuthenticationTestUtils {
     public static final String CONST_GOOD_URL = "https://github.com/";
 
     private static final String CONST_PASSWORD = "test1";
-
-    private static final DefaultPrincipalFactory PRINCIPAL_FACTORY = new DefaultPrincipalFactory();
 
     public static UsernamePasswordCredential getCredentialsWithSameUsernameAndPassword() {
         return getCredentialsWithSameUsernameAndPassword(CONST_USERNAME);
@@ -122,7 +121,7 @@ public class CoreAuthenticationTestUtils {
 
     public static Principal getPrincipal(final String name) {
         val backingMap = getAttributeRepository().getBackingMap();
-        return getPrincipal(name, (Map) backingMap);
+        return getPrincipal(name, backingMap);
     }
 
     public static Principal getPrincipal(final String name, final Map<String, List<Object>> attributes) {
@@ -159,7 +158,7 @@ public class CoreAuthenticationTestUtils {
         return new DefaultAuthenticationBuilder(principal)
             .addCredential(meta)
             .setAuthenticationDate(authnDate)
-            .addSuccess("testHandler", new DefaultAuthenticationHandlerExecutionResult(handler, meta))
+            .addSuccess(handler.getName(), new DefaultAuthenticationHandlerExecutionResult(handler, meta))
             .setAttributes(attributes)
             .build();
     }
@@ -178,6 +177,10 @@ public class CoreAuthenticationTestUtils {
         val access = mock(RegisteredServiceAccessStrategy.class);
         when(access.isServiceAccessAllowed()).thenReturn(true);
         when(service.getAccessStrategy()).thenReturn(access);
+
+        val authnPolicy = mock(RegisteredServiceAuthenticationPolicy.class);
+        when(authnPolicy.getRequiredAuthenticationHandlers()).thenReturn(Set.of());
+        when(service.getAuthenticationPolicy()).thenReturn(authnPolicy);
         return service;
     }
 
@@ -222,7 +225,7 @@ public class CoreAuthenticationTestUtils {
 
     public static Principal mockPrincipal(final String attrName, final String... attrValues) {
         val attributes = (Map) Collections.singletonMap(attrName, CollectionUtils.toCollection(attrValues, ArrayList.class));
-        return PRINCIPAL_FACTORY.createPrincipal("user", attributes);
+        return PrincipalFactoryUtils.newPrincipalFactory().createPrincipal("user", attributes);
     }
 
     public static AuthenticationBuilder getAuthenticationBuilder() {
@@ -234,6 +237,17 @@ public class CoreAuthenticationTestUtils {
         val handler = new SimpleTestUsernamePasswordAuthenticationHandler();
         return new DefaultAuthenticationBuilder(principal)
             .addCredential(meta)
-            .addSuccess("test", new DefaultAuthenticationHandlerExecutionResult(handler, meta));
+            .addSuccess(handler.getName(), new DefaultAuthenticationHandlerExecutionResult(handler, meta));
+    }
+
+    public static AuthenticationBuilder getAuthenticationBuilder(final Principal principal,
+                                                                 final Map<Credential, ? extends AuthenticationHandler> handlers,
+                                                                 final Map<String, List<Object>> attributes) {
+        val builder = new DefaultAuthenticationBuilder(principal).setAttributes(attributes);
+        handlers.forEach((credential, handler) -> {
+            builder.addSuccess(handler.getName(), new DefaultAuthenticationHandlerExecutionResult(handler, new BasicCredentialMetaData(credential)));
+            builder.addCredential(new BasicCredentialMetaData(credential));
+        });
+        return builder;
     }
 }

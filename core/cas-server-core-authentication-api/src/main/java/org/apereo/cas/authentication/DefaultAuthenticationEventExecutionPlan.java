@@ -7,7 +7,7 @@ import org.apereo.cas.util.CollectionUtils;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.springframework.core.OrderComparator;
+import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,18 +27,73 @@ import java.util.stream.IntStream;
  */
 @Slf4j
 public class DefaultAuthenticationEventExecutionPlan implements AuthenticationEventExecutionPlan {
-    private final List<AuthenticationMetaDataPopulator> authenticationMetaDataPopulatorList = new ArrayList<>();
-    private final List<AuthenticationPostProcessor> authenticationPostProcessors = new ArrayList<>();
-    private final List<AuthenticationPreProcessor> authenticationPreProcessors = new ArrayList<>();
+    private static final int MAP_SIZE = 8;
 
-    private final List<AuthenticationPolicy> authenticationPolicies = new ArrayList<>();
-    private final List<AuthenticationHandlerResolver> authenticationHandlerResolvers = new ArrayList<>();
+    private final List<AuthenticationMetaDataPopulator> authenticationMetaDataPopulatorList = new ArrayList<>(0);
 
-    private final Map<AuthenticationHandler, PrincipalResolver> authenticationHandlerPrincipalResolverMap = new LinkedHashMap<>();
+    private final List<AuthenticationPostProcessor> authenticationPostProcessors = new ArrayList<>(0);
+
+    private final List<AuthenticationPreProcessor> authenticationPreProcessors = new ArrayList<>(0);
+
+    private final List<AuthenticationPolicy> authenticationPolicies = new ArrayList<>(0);
+
+    private final List<AuthenticationHandlerResolver> authenticationHandlerResolvers = new ArrayList<>(0);
+
+    private final List<AuthenticationPolicyResolver> authenticationPolicyResolvers = new ArrayList<>(0);
+
+    private final Map<AuthenticationHandler, PrincipalResolver> authenticationHandlerPrincipalResolverMap = new LinkedHashMap<>(MAP_SIZE);
 
     @Override
     public void registerAuthenticationHandler(final AuthenticationHandler handler) {
         registerAuthenticationHandlerWithPrincipalResolver(handler, null);
+    }
+
+    @Override
+    public void registerAuthenticationMetadataPopulator(final AuthenticationMetaDataPopulator populator) {
+        LOGGER.trace("Registering metadata populator [{}] into the execution plan", populator);
+        authenticationMetaDataPopulatorList.add(populator);
+    }
+
+    @Override
+    public void registerAuthenticationPostProcessor(final AuthenticationPostProcessor processor) {
+        LOGGER.debug("Registering authentication post processor [{}] into the execution plan", processor);
+        authenticationPostProcessors.add(processor);
+    }
+
+    @Override
+    public void registerAuthenticationPreProcessor(final AuthenticationPreProcessor processor) {
+        LOGGER.debug("Registering authentication pre processor [{}] into the execution plan", processor);
+        authenticationPreProcessors.add(processor);
+    }
+
+    @Override
+    public void registerAuthenticationMetadataPopulators(final Collection<AuthenticationMetaDataPopulator> populators) {
+        populators.forEach(this::registerAuthenticationMetadataPopulator);
+    }
+
+    @Override
+    public void registerAuthenticationPolicy(final AuthenticationPolicy authenticationPolicy) {
+        this.authenticationPolicies.add(authenticationPolicy);
+    }
+
+    @Override
+    public void registerAuthenticationPolicies(final Collection<AuthenticationPolicy> authenticationPolicy) {
+        this.authenticationPolicies.addAll(authenticationPolicy);
+    }
+
+    @Override
+    public void registerAuthenticationHandlerResolver(final AuthenticationHandlerResolver handlerResolver) {
+        this.authenticationHandlerResolvers.add(handlerResolver);
+    }
+
+    @Override
+    public void registerAuthenticationPolicyResolver(final AuthenticationPolicyResolver policyResolver) {
+        this.authenticationPolicyResolvers.add(policyResolver);
+    }
+
+    @Override
+    public void registerAuthenticationHandlerWithPrincipalResolver(final Map<AuthenticationHandler, PrincipalResolver> plan) {
+        plan.forEach(this::registerAuthenticationHandlerWithPrincipalResolver);
     }
 
     @Override
@@ -49,11 +104,6 @@ public class DefaultAuthenticationEventExecutionPlan implements AuthenticationEv
             LOGGER.trace("Registering handler [{}] principal resolver [{}] into the execution plan", handler.getName(), principalResolver.getName());
         }
         this.authenticationHandlerPrincipalResolverMap.put(handler, principalResolver);
-    }
-
-    @Override
-    public void registerAuthenticationHandlerWithPrincipalResolver(final Map<AuthenticationHandler, PrincipalResolver> plan) {
-        plan.forEach(this::registerAuthenticationHandlerWithPrincipalResolver);
     }
 
     @Override
@@ -73,26 +123,7 @@ public class DefaultAuthenticationEventExecutionPlan implements AuthenticationEv
     }
 
     @Override
-    public void registerAuthenticationMetadataPopulator(final AuthenticationMetaDataPopulator populator) {
-        LOGGER.trace("Registering metadata populator [{}] into the execution plan", populator);
-        authenticationMetaDataPopulatorList.add(populator);
-    }
-
-    @Override
-    public void registerAuthenticationMetadataPopulators(final Collection<AuthenticationMetaDataPopulator> populators) {
-        populators.forEach(this::registerAuthenticationMetadataPopulator);
-    }
-
-    @Override
-    public Collection<AuthenticationMetaDataPopulator> getAuthenticationMetadataPopulators(final AuthenticationTransaction transaction) {
-        val list = new ArrayList<AuthenticationMetaDataPopulator>(this.authenticationMetaDataPopulatorList);
-        OrderComparator.sort(list);
-        LOGGER.debug("Sorted and registered metadata populators for this transaction are [{}]", list);
-        return list;
-    }
-
-    @Override
-    public @NonNull Set<AuthenticationHandler> getAuthenticationHandlersForTransaction(final AuthenticationTransaction transaction) {
+    public @NonNull Set<AuthenticationHandler> getAuthenticationHandlers(final AuthenticationTransaction transaction) {
         val handlers = getAuthenticationHandlers();
         LOGGER.debug("Candidate/Registered authentication handlers for this transaction are [{}]", handlers);
         val handlerResolvers = getAuthenticationHandlerResolvers(transaction);
@@ -122,67 +153,84 @@ public class DefaultAuthenticationEventExecutionPlan implements AuthenticationEv
     @Override
     public Set<AuthenticationHandler> getAuthenticationHandlers() {
         val handlers = authenticationHandlerPrincipalResolverMap.keySet().toArray(AuthenticationHandler[]::new);
-        OrderComparator.sortIfNecessary(handlers);
+        AnnotationAwareOrderComparator.sortIfNecessary(handlers);
         return new LinkedHashSet<>(CollectionUtils.wrapList(handlers));
     }
 
     @Override
-    public PrincipalResolver getPrincipalResolverForAuthenticationTransaction(final AuthenticationHandler handler,
-                                                                              final AuthenticationTransaction transaction) {
-        return authenticationHandlerPrincipalResolverMap.get(handler);
-    }
-
-    @Override
-    public void registerAuthenticationPostProcessor(final AuthenticationPostProcessor processor) {
-        LOGGER.debug("Registering authentication post processor [{}] into the execution plan", processor);
-        authenticationPostProcessors.add(processor);
+    public Collection<AuthenticationMetaDataPopulator> getAuthenticationMetadataPopulators(final AuthenticationTransaction transaction) {
+        val list = new ArrayList<AuthenticationMetaDataPopulator>(this.authenticationMetaDataPopulatorList);
+        AnnotationAwareOrderComparator.sort(list);
+        LOGGER.debug("Sorted and registered metadata populators for this transaction are [{}]", list);
+        return list;
     }
 
     @Override
     public Collection<AuthenticationPostProcessor> getAuthenticationPostProcessors(final AuthenticationTransaction transaction) {
         val list = new ArrayList<AuthenticationPostProcessor>(this.authenticationPostProcessors);
-        OrderComparator.sort(list);
-        LOGGER.debug("Sorted and registered authentication post processors for this transaction are [{}]", list);
+        AnnotationAwareOrderComparator.sort(list);
+        LOGGER.trace("Sorted and registered authentication post processors for this transaction are [{}]", list);
         return list;
-    }
-
-    @Override
-    public void registerAuthenticationPreProcessor(final AuthenticationPreProcessor processor) {
-        LOGGER.debug("Registering authentication pre processor [{}] into the execution plan", processor);
-        authenticationPreProcessors.add(processor);
     }
 
     @Override
     public Collection<AuthenticationPreProcessor> getAuthenticationPreProcessors(final AuthenticationTransaction transaction) {
         val list = new ArrayList<AuthenticationPreProcessor>(this.authenticationPreProcessors);
-        OrderComparator.sort(list);
-        LOGGER.debug("Sorted and registered authentication pre processors for this transaction are [{}]", list);
+        AnnotationAwareOrderComparator.sort(list);
+        LOGGER.trace("Sorted and registered authentication pre processors for this transaction are [{}]", list);
         return list;
     }
 
     @Override
-    public void registerAuthenticationPolicy(final AuthenticationPolicy authenticationPolicy) {
-        this.authenticationPolicies.add(authenticationPolicy);
-    }
-
-    @Override
-    public void registerAuthenticationHandlerResolver(final AuthenticationHandlerResolver handlerResolver) {
-        this.authenticationHandlerResolvers.add(handlerResolver);
+    public PrincipalResolver getPrincipalResolver(final AuthenticationHandler handler,
+                                                  final AuthenticationTransaction transaction) {
+        return authenticationHandlerPrincipalResolverMap.get(handler);
     }
 
     @Override
     public Collection<AuthenticationPolicy> getAuthenticationPolicies(final AuthenticationTransaction transaction) {
+        val handlerResolvers = getAuthenticationPolicyResolvers(transaction);
+        LOGGER.debug("Authentication policy resolvers for this transaction are [{}]", handlerResolvers);
+
         val list = new ArrayList<AuthenticationPolicy>(this.authenticationPolicies);
-        OrderComparator.sort(list);
-        LOGGER.debug("Sorted and registered authentication policies for this transaction are [{}]", list);
+        AnnotationAwareOrderComparator.sort(list);
+        LOGGER.trace("Candidate authentication policies for this transaction are [{}]", list);
+
+        val resolvedPolicies = handlerResolvers.stream()
+            .filter(r -> r.supports(transaction))
+            .map(r -> r.resolve(transaction))
+            .flatMap(Set::stream)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        if (resolvedPolicies.isEmpty()) {
+            LOGGER.debug("Authentication policy resolvers produced no candidate authentication handler. Using default policies");
+            return list;
+        }
+        LOGGER.debug("Resolved authentication policies are [{}]", resolvedPolicies);
+        return resolvedPolicies;
+    }
+
+    @Override
+    public Collection<AuthenticationPolicy> getAuthenticationPolicies(final Authentication authentication) {
+        val list = new ArrayList<AuthenticationPolicy>(this.authenticationPolicies);
+        AnnotationAwareOrderComparator.sort(list);
+        LOGGER.trace("Sorted and registered authentication policies for this assertion are [{}]", list);
         return list;
     }
 
     @Override
     public Collection<AuthenticationHandlerResolver> getAuthenticationHandlerResolvers(final AuthenticationTransaction transaction) {
         val list = new ArrayList<AuthenticationHandlerResolver>(this.authenticationHandlerResolvers);
-        OrderComparator.sort(list);
-        LOGGER.debug("Sorted and registered authentication handler resolvers for this transaction are [{}]", list);
+        AnnotationAwareOrderComparator.sort(list);
+        LOGGER.trace("Sorted and registered authentication handler resolvers for this transaction are [{}]", list);
+        return list;
+    }
+
+    @Override
+    public Collection<AuthenticationPolicyResolver> getAuthenticationPolicyResolvers(final AuthenticationTransaction transaction) {
+        val list = new ArrayList<AuthenticationPolicyResolver>(this.authenticationPolicyResolvers);
+        AnnotationAwareOrderComparator.sort(list);
+        LOGGER.trace("Sorted and registered authentication policy resolvers for this transaction are [{}]", list);
         return list;
     }
 }

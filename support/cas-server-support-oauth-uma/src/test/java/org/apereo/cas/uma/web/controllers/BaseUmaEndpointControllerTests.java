@@ -1,9 +1,9 @@
 package org.apereo.cas.uma.web.controllers;
 
+import org.apereo.cas.AbstractOAuth20Tests;
 import org.apereo.cas.config.CasOAuthUmaComponentSerializationConfiguration;
 import org.apereo.cas.config.CasOAuthUmaConfiguration;
 import org.apereo.cas.support.oauth.OAuth20Constants;
-import org.apereo.cas.support.oauth.web.AbstractOAuth20Tests;
 import org.apereo.cas.uma.ticket.resource.ResourceSetPolicy;
 import org.apereo.cas.uma.ticket.resource.ResourceSetPolicyPermission;
 import org.apereo.cas.uma.web.controllers.authz.UmaAuthorizationRequestEndpointController;
@@ -52,7 +52,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.0.0
  */
-@Tag("OAuth")
+@Tag("UMA")
 @Import({CasOAuthUmaConfiguration.class, CasOAuthUmaComponentSerializationConfiguration.class})
 @TestPropertySource(properties = "cas.authn.uma.requestingPartyToken.jwksFile=classpath:uma-keystore.jwks")
 @Slf4j

@@ -1,8 +1,45 @@
+def testCategories = [
+    "Cassandra", "CosmosDb", "Couchbase", "CouchDb",
+    "Ehcache", "FileSystem", "Ignite", "InfluxDb",
+    "Ldap", "Mail", "MariaDb", "Memcached", "JDBC",
+    "MongoDb", "MsSqlServer", "MySQL", "Postgres", "Redis",
+    "Radius", "AmazonWebServices", "RestfulApi", "Groovy",
+    "OAuth", "OIDC", "SAML", "UMA", "Oracle", "JMS",
+    "ZooKeeper", "Webflow", "DynamoDb", "MFA", "Kafka"
+] as String[]
+
+if (hasTestsOfCategory(project, "Kafka")) {
+    task testKafka(type: Test) {
+        enabled = shouldTest(project, "Kafka")
+        useJUnitPlatform {
+            includeTags "Kafka"
+        }
+    }
+}
+
+if (hasTestsOfCategory(project, "MFA")) {
+    task testMFA(type: Test) {
+        enabled = shouldTest(project, "MFA")
+        useJUnitPlatform {
+            includeTags "MFA"
+        }
+    }
+}
+
 if (hasTestsOfCategory(project, "Cassandra")) {
     task testCassandra(type: Test) {
         enabled = shouldTest(project, "Cassandra")
         useJUnitPlatform {
             includeTags "Cassandra"
+        }
+    }
+}
+
+if (hasTestsOfCategory(project, "Webflow")) {
+    task testWebflow(type: Test) {
+        enabled = shouldTest(project, "Webflow")
+        useJUnitPlatform {
+            includeTags "Webflow"
         }
     }
 }
@@ -16,8 +53,26 @@ if (hasTestsOfCategory(project, "CosmosDb")) {
     }
 }
 
+if (hasTestsOfCategory(project, "ZooKeeper")) {
+    task testZooKeeper(type: Test) {
+        enabled = shouldTest(project, "ZooKeeper")
+        useJUnitPlatform {
+            includeTags "ZooKeeper"
+        }
+    }
+}
+
+if (hasTestsOfCategory(project, "JMS")) {
+    task testJMS(type: Test) {
+        enabled = shouldTest(project, "JMS")
+        useJUnitPlatform {
+            includeTags "JMS"
+        }
+    }
+}
+
 if (hasTestsOfCategory(project, "AmazonWebServices")) {
-    task testAWSS3(type: Test) {
+    task testAWS(type: Test) {
         enabled = shouldTest(project, "AmazonWebServices")
         useJUnitPlatform {
             includeTags "AmazonWebServices"
@@ -97,6 +152,15 @@ if (hasTestsOfCategory(project, "DynamoDb")) {
     }
 }
 
+if (hasTestsOfCategory(project, "Ehcache")) {
+    task testEhcache(type: Test) {
+        enabled = shouldTest(project, "Ehcache")
+        useJUnitPlatform {
+            includeTags "Ehcache"
+        }
+    }
+}
+
 if (hasTestsOfCategory(project, "FileSystem")) {
     task testFileSystem(type: Test) {
         enabled = shouldTest(project, "FileSystem")
@@ -126,6 +190,15 @@ if (hasTestsOfCategory(project, "InfluxDb")) {
         enabled = shouldTest(project, "InfluxDb")
         useJUnitPlatform {
             includeTags "InfluxDb"
+        }
+    }
+}
+
+if (hasTestsOfCategory(project, "Oracle")) {
+    task testOracle(type: Test) {
+        enabled = shouldTest(project, "Oracle")
+        useJUnitPlatform {
+            includeTags "Oracle"
         }
     }
 }
@@ -203,6 +276,15 @@ if (hasTestsOfCategory(project, "OAuth")) {
     }
 }
 
+if (hasTestsOfCategory(project, "UMA")) {
+    task testUma(type: Test) {
+        enabled = shouldTest(project, "UMA")
+        useJUnitPlatform {
+            includeTags "UMA"
+        }
+    }
+}
+
 if (hasTestsOfCategory(project, "OIDC")) {
     task testOIDC(type: Test) {
         enabled = shouldTest(project, "OIDC")
@@ -221,16 +303,20 @@ if (hasTestsOfCategory(project, "SAML")) {
     }
 }
 
+if (hasTestsOfCategory(project, "JDBC")) {
+    task testJDBC(type: Test) {
+        enabled = shouldTest(project, "JDBC")
+        useJUnitPlatform {
+            includeTags "JDBC"
+        }
+    }
+}
+
 test {
     useJUnitPlatform {
-        excludeTags "Cassandra", "CosmosDb", "Couchbase", "DynamoDb",
-                "FileSystem", "Ignite", "InfluxDb", "CouchDb",
-                "Ldap", "Mail", "MariaDb", "Memcached",
-                "MongoDb", "MsSqlServer", "MySQL", "Postgres", "Redis",
-                "Radius", "AmazonWebServices", "RestfulApi", "Groovy",
-                "OAuth", "OIDC", "SAML"
+        excludeTags testCategories
     }
-    enabled = "SIMPLE".equalsIgnoreCase(rootProject.testCategoryType) && !Boolean.getBoolean("skipTests")
+    enabled = rootProject.testCategoryType != null && rootProject.testCategoryType.toLowerCase().contains("simple") && !Boolean.getBoolean("skipTests")
 }
 
 tasks.withType(Test) {
@@ -239,12 +325,13 @@ tasks.withType(Test) {
 
     doFirst {
         maxParallelForks = project.ext.properties.get("maxParallelForksForTests", 4)
-        if (maxParallelForks != 2) {
+        if (maxParallelForks != 4) {
             logger.info "Maximum number of parallel forks is set to ${maxParallelForks}"
         }
     }
-
     systemProperty("spring.main.banner-mode", "off")
+    systemProperty("CI", System.getProperty("CI"))
+
     failFast = true
     jvmArgs.addAll(["-Xms512m", "-Xmx4g"])
     classpath = it.classpath + files("${projectDir}/src/main/resources") + files("${projectDir}/src/test/resources")
@@ -255,10 +342,20 @@ tasks.withType(Test) {
         showExceptions = true
         showCauses = true
     }
+    if (!Boolean.getBoolean("skipTestRetry")) {
+        retry {
+            maxRetries = 3
+            maxFailures = 5
+            failOnPassedAfterRetry = false
+        }
+    }
+    jacoco {
+        excludes = rootProject.excludedFilesFromTestCoverage
+    }
 }
 
 def shouldTest(Project project, String category) {
-    !Boolean.getBoolean("skipTests") && category.equalsIgnoreCase(rootProject.testCategoryType) && hasTestsOfCategory(project, category)
+    !Boolean.getBoolean("skipTests") && rootProject.testCategoryType != null && rootProject.testCategoryType.toLowerCase().contains(category.toLowerCase()) && hasTestsOfCategory(project, category)
 }
 
 def hasTestsOfCategory(Project project, String category) {
@@ -284,3 +381,4 @@ def hasTestsOfCategory(Project project, String category) {
     }
     res.contains(category)
 }
+

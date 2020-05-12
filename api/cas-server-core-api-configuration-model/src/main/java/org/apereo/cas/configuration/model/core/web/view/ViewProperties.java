@@ -5,6 +5,7 @@ import org.apereo.cas.configuration.support.RestEndpointProperties;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
@@ -22,6 +23,7 @@ import java.util.Map;
 @RequiresModule(name = "cas-server-core-web", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class ViewProperties implements Serializable {
 
     private static final long serialVersionUID = 2719748442042197738L;
@@ -39,12 +41,12 @@ public class ViewProperties implements Serializable {
      * to carry additional metadata and tags.
      * Key is the name of the custom field.
      */
-    private Map<String, CustomLoginField> customLoginFormFields = new LinkedHashMap<>();
+    private Map<String, CustomLoginField> customLoginFormFields = new LinkedHashMap<>(0);
 
     /**
      * Comma separated paths to where CAS templates may be found.
      */
-    private List<String> templatePrefixes = new ArrayList<>();
+    private List<String> templatePrefixes = new ArrayList<>(1);
 
     /**
      * CAS1 views and locations.

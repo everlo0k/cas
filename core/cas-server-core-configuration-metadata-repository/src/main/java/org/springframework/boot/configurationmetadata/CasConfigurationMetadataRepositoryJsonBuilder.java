@@ -3,12 +3,12 @@ package org.springframework.boot.configurationmetadata;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * This is {@link CasConfigurationMetadataRepositoryJsonBuilder}
@@ -23,7 +23,7 @@ public class CasConfigurationMetadataRepositoryJsonBuilder {
 
     private final JsonReader reader = new JsonReader();
 
-    private final List<SimpleConfigurationMetadataRepository> repositories = new ArrayList<>();
+    private final List<SimpleConfigurationMetadataRepository> repositories = new ArrayList<>(0);
 
     CasConfigurationMetadataRepositoryJsonBuilder(final Charset defaultCharset) {
         this.defaultCharset = defaultCharset;
@@ -105,7 +105,7 @@ public class CasConfigurationMetadataRepositoryJsonBuilder {
         val name = idx > 0 ? item.getId().substring(0, idx) : StringUtils.EMPTY;
 
         return metadata.getSources().stream()
-            .filter(source -> source.getType().equals(item.getSourceType()) && name.equals(source.getGroupId()))
+            .filter(source -> Objects.equals(source.getType(), item.getSourceType()) && name.equals(source.getGroupId()))
             .findFirst()
             .orElse(null);
 
@@ -144,9 +144,8 @@ public class CasConfigurationMetadataRepositoryJsonBuilder {
      *
      * @param inputStreams the source input streams
      * @return a new {@link ConfigurationMetadataRepositoryJsonBuilder} instance.
-     * @throws IOException on error
      */
-    public static CasConfigurationMetadataRepositoryJsonBuilder create(final InputStream... inputStreams) throws IOException {
+    public static CasConfigurationMetadataRepositoryJsonBuilder create(final InputStream... inputStreams) {
         var builder = create();
         for (val inputStream : inputStreams) {
             builder = builder.withJsonResource(inputStream);

@@ -11,6 +11,13 @@
   },
   "ignoreDeps": [
     "com.github.coova:jradius",
+    "net.jradius:jradius-extras",
+    "net.jradius:jradius-apps",
+    "net.jradius:jradius-dictionary",
+    "net.jradius:jradius-client",
+    "net.jradius:jradius-extended",
+    "net.jradius:jradius-core",
+    "net.jradius:jradius-server",
     "com.mebigfatguy.fb-contrib:fb-contrib"
   ],
   "packageRules": [
@@ -30,6 +37,12 @@
       "groupName": "SpringBoot",
       "packagePatterns": [
         "^org.springframework.boot:"
+      ]
+    },
+    {
+      "groupName": "AspectJ",
+      "packagePatterns": [
+        "^org.aspectj:"
       ]
     },
     {
@@ -184,6 +197,7 @@
     },
     {
       "groupName": "AmazonSDK",
+      "extends": ["schedule:weekly"],
       "packagePatterns": [
         "^com.amazonaws:"
       ]
@@ -191,13 +205,21 @@
     {
       "groupName": "ApacheCXF",
       "packagePatterns": [
-        "^org.apache.cxf:"
+        "^org.apache.cxf:",
+        "^org.apache.cxf.services.sts:"
       ]
     },
     {
       "groupName": "Swagger",
       "packagePatterns": [
         "^io.swagger:"
+      ]
+    },
+    {
+      "groupName": "Jersey",
+      "packagePatterns": [
+        "^org.glassfish.jersey.security:",
+        "^org.glassfish.jersey.inject:"
       ]
     }
   ]

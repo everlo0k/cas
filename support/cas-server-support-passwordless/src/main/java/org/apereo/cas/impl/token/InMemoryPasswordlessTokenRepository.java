@@ -4,8 +4,8 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 /**
  * This is {@link InMemoryPasswordlessTokenRepository}.
@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class InMemoryPasswordlessTokenRepository extends BasePasswordlessTokenRepository {
     private static final int INITIAL_CACHE_SIZE = 50;
+
     private static final long MAX_CACHE_SIZE = 100_000_000;
 
     private final LoadingCache<String, String> storage;
@@ -25,7 +26,7 @@ public class InMemoryPasswordlessTokenRepository extends BasePasswordlessTokenRe
         this.storage = Caffeine.newBuilder()
             .initialCapacity(INITIAL_CACHE_SIZE)
             .maximumSize(MAX_CACHE_SIZE)
-            .expireAfterWrite(tokenExpirationInSeconds, TimeUnit.SECONDS)
+            .expireAfterWrite(Duration.ofSeconds(tokenExpirationInSeconds))
             .build(s -> {
                 LOGGER.error("Load operation of the cache is not supported.");
                 return null;
@@ -50,5 +51,10 @@ public class InMemoryPasswordlessTokenRepository extends BasePasswordlessTokenRe
     @Override
     public void saveToken(final String username, final String token) {
         this.storage.put(username, token);
+    }
+
+    @Override
+    public void clean() {
+        this.storage.cleanUp();
     }
 }

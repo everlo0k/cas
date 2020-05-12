@@ -6,9 +6,11 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,9 +24,15 @@ import java.util.stream.Stream;
 @RequiresModule(name = "cas-server-core-audit", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class AuditProperties implements Serializable {
 
     private static final long serialVersionUID = 3946106584608417663L;
+
+    /**
+     * Whether auditing functionality should be enabled.
+     */
+    private boolean enabled = true;
 
     /**
      * Retrieve audit records from storage, starting from now
@@ -133,4 +141,12 @@ public class AuditProperties implements Serializable {
      * CAS actions.
      */
     private List<String> supportedActions = Stream.of("*").collect(Collectors.toList());
+
+    /**
+     * Indicate a list of supported audit actions that should be excluded,
+     * filtered and ignored by CAS audit managers. Each supported action
+     * can be treated as a regular expression to match against built-in
+     * CAS actions.
+     */
+    private List<String> excludedActions = new ArrayList<>();
 }

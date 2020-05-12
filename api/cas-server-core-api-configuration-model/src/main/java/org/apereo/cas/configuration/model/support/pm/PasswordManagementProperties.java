@@ -2,9 +2,11 @@ package org.apereo.cas.configuration.model.support.pm;
 
 import org.apereo.cas.configuration.model.core.authentication.PasswordEncoderProperties;
 import org.apereo.cas.configuration.model.core.util.EncryptionJwtSigningJwtCryptographyProperties;
+import org.apereo.cas.configuration.model.core.web.flow.WebflowAutoConfigurationProperties;
 import org.apereo.cas.configuration.model.support.email.EmailProperties;
 import org.apereo.cas.configuration.model.support.jpa.AbstractJpaProperties;
-import org.apereo.cas.configuration.model.support.ldap.AbstractLdapSearchProperties;
+import org.apereo.cas.configuration.model.support.sms.SmsProperties;
+import org.apereo.cas.configuration.support.RequiredProperty;
 import org.apereo.cas.configuration.support.RequiresModule;
 import org.apereo.cas.configuration.support.SpringResourceProperties;
 import org.apereo.cas.util.crypto.CipherExecutor;
@@ -12,11 +14,12 @@ import org.apereo.cas.util.crypto.CipherExecutor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This is {@link PasswordManagementProperties}.
@@ -28,6 +31,7 @@ import java.util.Map;
 @Getter
 @Setter
 @NoArgsConstructor
+@Accessors(chain = true)
 public class PasswordManagementProperties implements Serializable {
 
     private static final long serialVersionUID = -260644582798411176L;
@@ -52,7 +56,7 @@ public class PasswordManagementProperties implements Serializable {
     /**
      * Manage account passwords in LDAP.
      */
-    private Ldap ldap = new Ldap();
+    private List<LdapPasswordManagementProperties> ldap = new ArrayList<>();
 
     /**
      * Manage account passwords in database.
@@ -89,9 +93,16 @@ public class PasswordManagementProperties implements Serializable {
      */
     private Groovy groovy = new Groovy();
 
+    /**
+     * The webflow configuration.
+     */
+    @NestedConfigurationProperty
+    private WebflowAutoConfigurationProperties webflow = new WebflowAutoConfigurationProperties(200);
+
     @RequiresModule(name = "cas-server-support-pm-jdbc")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Jdbc extends AbstractJpaProperties {
 
         private static final long serialVersionUID = 4746591112640513465L;
@@ -113,6 +124,11 @@ public class PasswordManagementProperties implements Serializable {
         private String sqlFindEmail;
 
         /**
+         * SQL query to locate the user phone number.
+         */
+        private String sqlFindPhone;
+
+        /**
          * SQL query to locate the user via email.
          */
         private String sqlFindUser;
@@ -126,6 +142,7 @@ public class PasswordManagementProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-pm-rest")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Rest implements Serializable {
 
         private static final long serialVersionUID = 5262948164099973872L;
@@ -134,6 +151,11 @@ public class PasswordManagementProperties implements Serializable {
          * Endpoint URL to use when locating email addresses.
          */
         private String endpointUrlEmail;
+
+        /**
+         * Endpoint URL to use when locating phone numbers.
+         */
+        private String endpointUrlPhone;
 
         /**
          * Endpoint URL to use when locating user names.
@@ -153,48 +175,20 @@ public class PasswordManagementProperties implements Serializable {
         /**
          * Username for Basic-Auth at the password management endpoints.
          */
+        @RequiredProperty
         private String endpointUsername;
 
         /**
          * Password for Basic-Auth at the password management endpoints.
          */
+        @RequiredProperty
         private String endpointPassword;
-    }
-
-    @RequiresModule(name = "cas-server-support-pm-ldap")
-    @Getter
-    @Setter
-    public static class Ldap extends AbstractLdapSearchProperties {
-
-        private static final long serialVersionUID = -2610186056194686825L;
-
-        /**
-         * Collection of attribute names that indicate security questions answers.
-         * This is done via a key-value structure where the key is the attribute name
-         * for the security question and the value is the attribute name for the answer linked to the question.
-         */
-        private Map<String, String> securityQuestionsAttributes = new LinkedHashMap<>();
-
-        /**
-         * The specific variant of LDAP
-         * based on which update operations will be constructed.
-         */
-        private LdapType type = LdapType.AD;
-
-        /**
-         * Username attribute required by LDAP.
-         */
-        private String usernameAttribute = "uid";
-
-        /**
-         * Search filter used to look up usernames by email.
-         */
-        private String searchFilterUsername;
     }
 
     @RequiresModule(name = "cas-server-support-pm-webflow")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class ForgotUsername implements Serializable {
         private static final long serialVersionUID = 4850199066765183587L;
 
@@ -214,6 +208,7 @@ public class PasswordManagementProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-pm-webflow")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class PasswordHistory implements Serializable {
         private static final long serialVersionUID = 2211199066765183587L;
 
@@ -232,6 +227,7 @@ public class PasswordManagementProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-pm-webflow")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Reset implements Serializable {
 
         private static final long serialVersionUID = 3453970349530670459L;
@@ -249,10 +245,26 @@ public class PasswordManagementProperties implements Serializable {
         private EmailProperties mail = new EmailProperties();
 
         /**
+         * SMS settings for notifications.
+         */
+        @NestedConfigurationProperty
+        private SmsProperties sms = new SmsProperties();
+
+        /**
          * Whether reset operations require security questions,
          * or should they be marked as optional.
          */
         private boolean securityQuestionsEnabled = true;
+
+        /**
+         * Whether the Password Management Token will contain the server IP Address.
+         */
+        private boolean includeServerIpAddress = true;
+
+        /**
+         * Whether the Password Management Token will contain the client IP Address.
+         */
+        private boolean includeClientIpAddress = true;
 
         /**
          * How long in minutes should the password expiration link remain valid.
@@ -271,6 +283,7 @@ public class PasswordManagementProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-pm")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Groovy extends SpringResourceProperties {
         private static final long serialVersionUID = 8079027843747126083L;
     }
@@ -278,6 +291,7 @@ public class PasswordManagementProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-pm")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Json extends SpringResourceProperties {
 
         private static final long serialVersionUID = 1129426669588789974L;

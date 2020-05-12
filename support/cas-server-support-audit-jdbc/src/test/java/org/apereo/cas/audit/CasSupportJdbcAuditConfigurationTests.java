@@ -4,17 +4,18 @@ import org.apereo.cas.audit.config.CasSupportJdbcAuditConfiguration;
 import org.apereo.cas.audit.spi.BaseAuditConfigurationTests;
 import org.apereo.cas.audit.spi.config.CasCoreAuditConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
+import org.apereo.cas.config.CasHibernateJpaConfiguration;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 
 import lombok.Getter;
 import org.apereo.inspektr.audit.AuditTrailManager;
+import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * This is {@link CasSupportJdbcAuditConfigurationTests}.
@@ -25,13 +26,14 @@ import org.springframework.test.context.TestPropertySource;
 @SpringBootTest(classes = {
     CasCoreAuditConfiguration.class,
     CasSupportJdbcAuditConfiguration.class,
+    CasHibernateJpaConfiguration.class,
     CasCoreUtilConfiguration.class,
     AopAutoConfiguration.class,
     RefreshAutoConfiguration.class
-})
+}, properties = "cas.audit.jdbc.asynchronous=false")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-@TestPropertySource(properties = "cas.audit.jdbc.asynchronous=false")
 @Getter
+@Tag("JDBC")
 public class CasSupportJdbcAuditConfigurationTests extends BaseAuditConfigurationTests {
 
     @Autowired

@@ -1,7 +1,9 @@
 package org.apereo.cas.services;
 
 import org.apereo.cas.ticket.TicketState;
+import org.apereo.cas.util.model.TriStateBoolean;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.EqualsAndHashCode;
@@ -10,7 +12,6 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 
 import java.util.ArrayList;
@@ -29,13 +30,12 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @EqualsAndHashCode
-@Slf4j
 @NoArgsConstructor
 @JsonIgnoreProperties("order")
 public class ChainingRegisteredServiceSingleSignOnParticipationPolicy implements RegisteredServiceSingleSignOnParticipationPolicy {
     private static final long serialVersionUID = -2923946898337761319L;
 
-    private List<RegisteredServiceSingleSignOnParticipationPolicy> policies = new ArrayList<>();
+    private List<RegisteredServiceSingleSignOnParticipationPolicy> policies = new ArrayList<>(0);
 
     /**
      * Add provider.
@@ -62,6 +62,12 @@ public class ChainingRegisteredServiceSingleSignOnParticipationPolicy implements
      */
     public void addPolicies(final @NonNull RegisteredServiceSingleSignOnParticipationPolicy... policy) {
         policies.addAll(Arrays.stream(policy).collect(Collectors.toList()));
+    }
+
+    @JsonIgnore
+    @Override
+    public TriStateBoolean isCreateCookieOnRenewedAuthentication() {
+        return TriStateBoolean.UNDEFINED;
     }
 
     @Override

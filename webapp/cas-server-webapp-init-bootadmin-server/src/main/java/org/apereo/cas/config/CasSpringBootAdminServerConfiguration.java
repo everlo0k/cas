@@ -9,6 +9,8 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 
+import java.time.Instant;
+
 /**
  * This is {@link CasSpringBootAdminServerConfiguration}.
  *
@@ -16,7 +18,7 @@ import org.springframework.context.event.EventListener;
  * @since 6.0.0
  */
 @Slf4j
-@Configuration("casSpringBootAdminServerConfiguration")
+@Configuration(value = "casSpringBootAdminServerConfiguration", proxyBeanMethods = false)
 public class CasSpringBootAdminServerConfiguration {
     /**
      * Handle application ready event.
@@ -25,7 +27,7 @@ public class CasSpringBootAdminServerConfiguration {
      */
     @EventListener
     public void handleApplicationReadyEvent(final ApplicationReadyEvent event) {
-        AsciiArtUtils.printAsciiArtInfo(LOGGER, "READY", StringUtils.EMPTY);
-        LOGGER.info("Ready to process requests @ [{}]", DateTimeUtils.zonedDateTimeOf(event.getTimestamp()));
+        AsciiArtUtils.printAsciiArtReady(LOGGER, StringUtils.EMPTY);
+        LOGGER.info("Ready to process requests @ [{}]", DateTimeUtils.zonedDateTimeOf(Instant.ofEpochMilli(event.getTimestamp())));
     }
 }

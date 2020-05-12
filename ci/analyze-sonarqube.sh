@@ -18,10 +18,10 @@ if [ "$runBuild" = false ]; then
     exit 0
 fi
 
-prepCommand="echo 'Running command...'; "
+
 gradle="./gradlew $@"
 gradleBuild=""
-gradleBuildOptions="--stacktrace --build-cache --configure-on-demand --no-daemon --parallel "
+gradleBuildOptions="--build-cache --configure-on-demand --no-daemon --parallel "
 
 echo -e "***********************************************"
 echo -e "Gradle build started at `date`"
@@ -29,7 +29,7 @@ echo -e "***********************************************"
 
 gradleBuild="$gradleBuild sonarqube -x javadoc -Dsonar.organization=apereo \
             -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${SONARCLOUD_TOKEN} \
-            -DskipGradleLint=true -DskipNestedConfigMetadataGen=true \
+            -DskipNestedConfigMetadataGen=true -Dsonar.verbose=true \
             --parallel "
 
 if [[ "${TRAVIS_COMMIT_MESSAGE}" == *"[show streams]"* ]]; then
@@ -49,7 +49,7 @@ if [ -z "$gradleBuild" ]; then
 else
     tasks="$gradle $gradleBuildOptions $gradleBuild"
     echo -e "***************************************************************************************"
-    echo $prepCommand
+
     echo $tasks
     echo -e "***************************************************************************************"
 
@@ -57,7 +57,7 @@ else
     eval $waitloop
     waitRetVal=$?
 
-    eval $prepCommand
+
     eval $tasks
     retVal=$?
 

@@ -11,8 +11,8 @@ import org.apereo.cas.authentication.DefaultAuthenticationServiceSelectionPlan;
 import org.apereo.cas.authentication.DefaultAuthenticationServiceSelectionStrategy;
 import org.apereo.cas.authentication.metadata.BasicCredentialMetaData;
 import org.apereo.cas.authentication.policy.AcceptAnyAuthenticationPolicyFactory;
-import org.apereo.cas.authentication.principal.DefaultPrincipalFactory;
 import org.apereo.cas.authentication.principal.DefaultServiceMatchingStrategy;
+import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.authentication.principal.WebApplicationServiceFactory;
 import org.apereo.cas.logout.LogoutManager;
@@ -57,7 +57,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -137,9 +136,9 @@ public class DefaultCentralAuthenticationServiceMockitoTests extends BaseCasCore
         val metadata = new BasicCredentialMetaData(RegisteredServiceTestUtils.getCredentialsWithSameUsernameAndPassword("principal"));
         val successes = new HashMap<String, AuthenticationHandlerExecutionResult>();
         successes.put("handler1", new DefaultAuthenticationHandlerExecutionResult(mock(AuthenticationHandler.class), metadata));
-        when(this.authentication.getCredentials()).thenReturn(Collections.singletonList(metadata));
+        when(this.authentication.getCredentials()).thenReturn(List.of(metadata));
         when(this.authentication.getSuccesses()).thenReturn(successes);
-        when(this.authentication.getPrincipal()).thenReturn(new DefaultPrincipalFactory().createPrincipal(PRINCIPAL));
+        when(this.authentication.getPrincipal()).thenReturn(PrincipalFactoryUtils.newPrincipalFactory().createPrincipal(PRINCIPAL));
 
         val tgtRootMock = createRootTicketGrantingTicket();
         val service1 = getService(SVC1_ID);
@@ -181,18 +180,17 @@ public class DefaultCentralAuthenticationServiceMockitoTests extends BaseCasCore
             factory,
             authenticationRequestServiceSelectionStrategies,
             new AcceptAnyAuthenticationPolicyFactory(),
-            new DefaultPrincipalFactory(),
+            PrincipalFactoryUtils.newPrincipalFactory(),
             CipherExecutor.noOpOfStringToString(),
             enforcer,
             new DefaultServiceMatchingStrategy(smMock));
-        this.cas.setApplicationEventPublisher(mock(ApplicationEventPublisher.class));
     }
 
     private static TicketFactory getTicketFactory() {
         val factory = new DefaultTicketFactory();
         factory.addTicketFactory(ProxyGrantingTicket.class,
             new DefaultProxyGrantingTicketFactory(null,
-                null, CipherExecutor.noOpOfStringToString()));
+                null, CipherExecutor.noOpOfStringToString(), mock(ServicesManager.class)));
         factory.addTicketFactory(TicketGrantingTicket.class,
             new DefaultTicketGrantingTicketFactory(null,
                 null, CipherExecutor.noOpOfSerializableToString()));

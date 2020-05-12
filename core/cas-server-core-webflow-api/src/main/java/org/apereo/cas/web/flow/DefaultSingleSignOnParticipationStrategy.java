@@ -2,8 +2,11 @@ package org.apereo.cas.web.flow;
 
 import org.apereo.cas.CasProtocolConstants;
 import org.apereo.cas.authentication.AuthenticationCredentialsThreadLocalBinder;
+import org.apereo.cas.authentication.AuthenticationServiceSelectionPlan;
+import org.apereo.cas.services.RegisteredService;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.ticket.registry.TicketRegistrySupport;
+import org.apereo.cas.util.model.TriStateBoolean;
 import org.apereo.cas.web.support.WebUtils;
 
 import lombok.Getter;
@@ -21,20 +24,20 @@ import org.springframework.webflow.execution.RequestContext;
  * @since 5.2.0
  */
 @Slf4j
+@Getter
 @RequiredArgsConstructor
+@Setter
 public class DefaultSingleSignOnParticipationStrategy implements SingleSignOnParticipationStrategy {
-    @Getter
     private final ServicesManager servicesManager;
 
     private final boolean createCookieOnRenewedAuthentication;
 
-    @Getter
     private final boolean renewEnabled;
 
     private final TicketRegistrySupport ticketRegistrySupport;
 
-    @Setter
-    @Getter
+    private final AuthenticationServiceSelectionPlan serviceSelectionStrategy;
+
     private int order = Ordered.LOWEST_PRECEDENCE;
 
     @Override
@@ -45,11 +48,7 @@ public class DefaultSingleSignOnParticipationStrategy implements SingleSignOnPar
             return false;
         }
 
-        val service = WebUtils.getService(requestContext);
-        if (service == null) {
-            return true;
-        }
-        val registeredService = this.servicesManager.findServiceBy(service);
+        val registeredService = determineRegisteredService(requestContext);
         if (registeredService == null) {
             return true;
         }
@@ -81,7 +80,27 @@ public class DefaultSingleSignOnParticipationStrategy implements SingleSignOnPar
     }
 
     @Override
-    public boolean isCreateCookieOnRenewedAuthentication(final RequestContext context) {
-        return this.createCookieOnRenewedAuthentication;
+    public TriStateBoolean isCreateCookieOnRenewedAuthentication(final RequestContext context) {
+        val registeredService = determineRegisteredService(context);
+        if (registeredService != null) {
+            val ssoPolicy = registeredService.getSingleSignOnParticipationPolicy();
+            if (ssoPolicy != null) {
+                return ssoPolicy.isCreateCookieOnRenewedAuthentication();
+            }
+        }
+        return TriStateBoolean.fromBoolean(this.createCookieOnRenewedAuthentication);
+    }
+
+    private RegisteredService determineRegisteredService(final RequestContext requestContext) {
+        val registeredService = WebUtils.getRegisteredService(requestContext);
+        if (registeredService != null) {
+            return registeredService;
+        }
+        val service = WebUtils.getService(requestContext);
+        val serviceToUse = serviceSelectionStrategy.resolveService(service);
+        if (serviceToUse != null) {
+            return this.servicesManager.findServiceBy(serviceToUse);
+        }
+        return null;
     }
 }

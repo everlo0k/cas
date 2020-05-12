@@ -26,7 +26,7 @@ public class DefaultChainingMultifactorAuthenticationBypassProvider implements C
     private static final long serialVersionUID = 2397239625822397286L;
 
     private final List<MultifactorAuthenticationProviderBypassEvaluator> multifactorAuthenticationProviderBypassEvaluators
-        = new ArrayList<>();
+        = new ArrayList<>(0);
 
     @Audit(action = "MFA_BYPASS",
         actionResolverName = "MFA_BYPASS_ACTION_RESOLVER",
@@ -85,6 +85,7 @@ public class DefaultChainingMultifactorAuthenticationBypassProvider implements C
      *
      * @param bypass - the bypass provider
      */
+    @Override
     public void addMultifactorAuthenticationProviderBypassEvaluator(final MultifactorAuthenticationProviderBypassEvaluator bypass) {
         if (!bypass.isEmpty()) {
             this.multifactorAuthenticationProviderBypassEvaluators.add(bypass);

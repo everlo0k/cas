@@ -4,6 +4,7 @@ import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.couchdb.core.CouchDbConnectorFactory;
 import org.apereo.cas.couchdb.events.EventCouchDbRepository;
 import org.apereo.cas.support.events.CasEventRepository;
+import org.apereo.cas.support.events.CasEventRepositoryFilter;
 import org.apereo.cas.support.events.CouchDbCasEventRepository;
 
 import lombok.val;
@@ -24,7 +25,7 @@ import org.springframework.context.annotation.Configuration;
  * @author Timur Duehr
  * @since 6.0.0
  */
-@Configuration("couchDbEventsConfiguration")
+@Configuration(value = "couchDbEventsConfiguration")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class CouchDbEventsConfiguration {
 
@@ -48,13 +49,19 @@ public class CouchDbEventsConfiguration {
     @Bean
     @RefreshScope
     public CouchDbConnectorFactory eventCouchDbFactory() {
-        return new CouchDbConnectorFactory(casProperties.getEvents().getCouchDb(), objectMapperFactory.getIfAvailable());
+        return new CouchDbConnectorFactory(casProperties.getEvents().getCouchDb(), objectMapperFactory.getObject());
     }
 
     @ConditionalOnMissingBean(name = "couchDbCasEventRepository")
     @Bean
     @RefreshScope
     public CasEventRepository casEventRepository(@Qualifier("couchDbEventRepository") final EventCouchDbRepository eventCouchDbRepository) {
-        return new CouchDbCasEventRepository(eventCouchDbRepository, casProperties.getEvents().getCouchDb().isAsynchronous());
+        return new CouchDbCasEventRepository(couchDbEventRepositoryFilter(), eventCouchDbRepository, casProperties.getEvents().getCouchDb().isAsynchronous());
+    }
+
+    @ConditionalOnMissingBean(name = "couchDbEventRepositoryFilter")
+    @Bean
+    public CasEventRepositoryFilter couchDbEventRepositoryFilter() {
+        return CasEventRepositoryFilter.noOp();
     }
 }

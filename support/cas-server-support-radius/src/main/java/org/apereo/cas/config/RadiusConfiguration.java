@@ -15,13 +15,13 @@ import org.apereo.cas.authentication.AuthenticationHandler;
 import org.apereo.cas.authentication.AuthenticationServiceSelectionPlan;
 import org.apereo.cas.authentication.AuthenticationSystemSupport;
 import org.apereo.cas.authentication.MultifactorAuthenticationProviderResolver;
-import org.apereo.cas.authentication.MultifactorAuthenticationProviderSelector;
 import org.apereo.cas.authentication.MultifactorAuthenticationTrigger;
 import org.apereo.cas.authentication.principal.PrincipalFactory;
 import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
 import org.apereo.cas.authentication.principal.PrincipalNameTransformerUtils;
+import org.apereo.cas.authentication.principal.PrincipalResolver;
 import org.apereo.cas.authentication.support.password.PasswordEncoderUtils;
-import org.apereo.cas.authentication.support.password.PasswordPolicyConfiguration;
+import org.apereo.cas.authentication.support.password.PasswordPolicyContext;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.configuration.model.support.radius.RadiusClientProperties;
 import org.apereo.cas.configuration.model.support.radius.RadiusServerProperties;
@@ -40,9 +40,9 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -62,6 +62,7 @@ import java.util.stream.Collectors;
 @Configuration("radiusConfiguration")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @Slf4j
+@ConditionalOnProperty(name = "cas.authn.radius.client.inet-address")
 public class RadiusConfiguration {
     @Autowired
     @Qualifier("registeredServiceAccessStrategyEnforcer")
@@ -82,9 +83,6 @@ public class RadiusConfiguration {
     private ConfigurableApplicationContext applicationContext;
 
     @Autowired
-    private ApplicationEventPublisher applicationEventPublisher;
-
-    @Autowired
     @Qualifier("servicesManager")
     private ObjectProvider<ServicesManager> servicesManager;
 
@@ -101,10 +99,6 @@ public class RadiusConfiguration {
     private ObjectProvider<TicketRegistrySupport> ticketRegistrySupport;
 
     @Autowired
-    @Qualifier("multifactorAuthenticationProviderSelector")
-    private ObjectProvider<MultifactorAuthenticationProviderSelector> multifactorAuthenticationProviderSelector;
-
-    @Autowired
     @Qualifier("authenticationServiceSelectionPlan")
     private ObjectProvider<AuthenticationServiceSelectionPlan> authenticationRequestServiceSelectionStrategies;
 
@@ -116,6 +110,9 @@ public class RadiusConfiguration {
     @Qualifier("initialAuthenticationAttemptWebflowEventResolver")
     private ObjectProvider<CasDelegatingWebflowEventResolver> initialAuthenticationAttemptWebflowEventResolver;
 
+    @Autowired
+    @Qualifier("defaultPrincipalResolver")
+    private ObjectProvider<PrincipalResolver> defaultPrincipalResolver;
 
     public static Set<String> getClientIps(final RadiusClientProperties client) {
         return StringUtils.commaDelimitedListToSet(StringUtils.trimAllWhitespace(client.getInetAddress()));
@@ -153,11 +150,11 @@ public class RadiusConfiguration {
     @Bean
     public AuthenticationHandler radiusAuthenticationHandler() {
         val radius = casProperties.getAuthn().getRadius();
-        val h = new RadiusAuthenticationHandler(radius.getName(), servicesManager.getIfAvailable(),
+        val h = new RadiusAuthenticationHandler(radius.getName(), servicesManager.getObject(),
             radiusPrincipalFactory(), radiusServers(),
             radius.isFailoverOnException(), radius.isFailoverOnAuthenticationFailure());
 
-        h.setPasswordEncoder(PasswordEncoderUtils.newPasswordEncoder(radius.getPasswordEncoder()));
+        h.setPasswordEncoder(PasswordEncoderUtils.newPasswordEncoder(radius.getPasswordEncoder(), applicationContext));
         h.setPrincipalNameTransformer(PrincipalNameTransformerUtils.newPrincipalNameTransformer(radius.getPrincipalTransformation()));
         h.setPasswordPolicyConfiguration(radiusPasswordPolicyConfiguration());
         return h;
@@ -169,7 +166,7 @@ public class RadiusConfiguration {
         return plan -> {
             val ips = getClientIps(casProperties.getAuthn().getRadius().getClient());
             if (!ips.isEmpty()) {
-                plan.registerAuthenticationHandler(radiusAuthenticationHandler());
+                plan.registerAuthenticationHandlerWithPrincipalResolver(radiusAuthenticationHandler(), defaultPrincipalResolver.getObject());
             } else {
                 LOGGER.warn("No RADIUS address is defined. RADIUS support will be disabled.");
             }
@@ -178,37 +175,36 @@ public class RadiusConfiguration {
 
     @ConditionalOnMissingBean(name = "radiusPasswordPolicyConfiguration")
     @Bean
-    public PasswordPolicyConfiguration radiusPasswordPolicyConfiguration() {
-        return new PasswordPolicyConfiguration();
+    public PasswordPolicyContext radiusPasswordPolicyConfiguration() {
+        return new PasswordPolicyContext();
     }
 
     @RefreshScope
     @Bean
     @ConditionalOnMissingBean(name = "radiusAccessChallengedMultifactorAuthenticationTrigger")
     public MultifactorAuthenticationTrigger radiusAccessChallengedMultifactorAuthenticationTrigger() {
-        return new RadiusAccessChallengedMultifactorAuthenticationTrigger(casProperties, multifactorAuthenticationProviderResolver.getIfAvailable());
+        return new RadiusAccessChallengedMultifactorAuthenticationTrigger(casProperties,
+            multifactorAuthenticationProviderResolver.getObject(), this.applicationContext);
     }
 
     @RefreshScope
     @Bean
     public CasWebflowEventResolver radiusAccessChallengedAuthenticationWebflowEventResolver() {
         val context = CasWebflowEventResolutionConfigurationContext.builder()
-            .authenticationSystemSupport(authenticationSystemSupport.getIfAvailable())
-            .centralAuthenticationService(centralAuthenticationService.getIfAvailable())
-            .servicesManager(servicesManager.getIfAvailable())
-            .ticketRegistrySupport(ticketRegistrySupport.getIfAvailable())
-            .warnCookieGenerator(warnCookieGenerator.getIfAvailable())
-            .authenticationRequestServiceSelectionStrategies(authenticationRequestServiceSelectionStrategies.getIfAvailable())
-            .registeredServiceAccessStrategyEnforcer(registeredServiceAccessStrategyEnforcer.getIfAvailable())
+            .authenticationSystemSupport(authenticationSystemSupport.getObject())
+            .centralAuthenticationService(centralAuthenticationService.getObject())
+            .servicesManager(servicesManager.getObject())
+            .ticketRegistrySupport(ticketRegistrySupport.getObject())
+            .warnCookieGenerator(warnCookieGenerator.getObject())
+            .authenticationRequestServiceSelectionStrategies(authenticationRequestServiceSelectionStrategies.getObject())
+            .registeredServiceAccessStrategyEnforcer(registeredServiceAccessStrategyEnforcer.getObject())
             .casProperties(casProperties)
-            .ticketRegistry(ticketRegistry.getIfAvailable())
-            .eventPublisher(applicationEventPublisher)
+            .ticketRegistry(ticketRegistry.getObject())
             .applicationContext(applicationContext)
             .build();
-        final CasWebflowEventResolver r = new DefaultMultifactorAuthenticationProviderWebflowEventResolver(context,
-            radiusAccessChallengedMultifactorAuthenticationTrigger());
+        val r = new DefaultMultifactorAuthenticationProviderWebflowEventResolver(context, radiusAccessChallengedMultifactorAuthenticationTrigger());
         LOGGER.debug("Activating MFA event resolver based on RADIUS...");
-        this.initialAuthenticationAttemptWebflowEventResolver.getIfAvailable().addDelegate(r);
+        this.initialAuthenticationAttemptWebflowEventResolver.getObject().addDelegate(r);
         return r;
     }
 

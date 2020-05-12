@@ -19,14 +19,10 @@ dependencies {
     implementation project(":support:cas-server-support-couchdb-core")
 
     implementation libraries.ektorp
-    implementation libraries.shibidp
-    implementation libraries.shibidpjavasupport
+    implementation libraries.shibutiljavasupport
     implementation libraries.pac4jcore
     implementation libraries.pac4jjwt
     implementation libraries.nimbus
-    
-
-    runtimeOnly libraries.groovy
 
     testImplementation project(":core:cas-server-core-cookie")
     testImplementation project(":core:cas-server-core-web")
@@ -40,6 +36,8 @@ dependencies {
     testImplementation project(":core:cas-server-core-validation")
     testImplementation project(":core:cas-server-core-validation-api")
     testImplementation project(":core:cas-server-core-webflow")
+
     testImplementation project(path: ":core:cas-server-core-authentication-api", configuration: "tests")
+    testImplementation project(path: ":core:cas-server-core-util-api", configuration: "tests")
     testImplementation project(path: ":core:cas-server-core-services", configuration: "tests")
 }

@@ -1,6 +1,5 @@
 package org.apereo.cas.authentication.credential;
 
-import org.apereo.cas.authentication.Credential;
 import org.apereo.cas.util.spring.ApplicationContextProvider;
 
 import lombok.AllArgsConstructor;
@@ -15,6 +14,7 @@ import org.springframework.binding.message.MessageBuilder;
 import org.springframework.binding.validation.ValidationContext;
 
 import javax.validation.constraints.Size;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -30,12 +30,14 @@ import java.util.Map;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode
-public class UsernamePasswordCredential implements Credential {
+@EqualsAndHashCode(callSuper = true)
+public class UsernamePasswordCredential extends AbstractCredential {
     /**
      * Authentication attribute name for password.
      **/
     public static final String AUTHENTICATION_ATTRIBUTE_PASSWORD = "credential";
+
+    private static final int MAP_SIZE = 8;
 
     private static final long serialVersionUID = -700605081472810939L;
 
@@ -45,7 +47,7 @@ public class UsernamePasswordCredential implements Credential {
 
     private String source;
 
-    private Map<String, Object> customFields = new LinkedHashMap<>();
+    private Map<String, Object> customFields = new LinkedHashMap<>(MAP_SIZE);
 
     public UsernamePasswordCredential(final String username, final String password) {
         this.username = username;
@@ -62,20 +64,23 @@ public class UsernamePasswordCredential implements Credential {
      *
      * @param context the context
      */
+    @Override
     public void validate(final ValidationContext context) {
-        if (!context.getUserEvent().equalsIgnoreCase("submit")) {
+        val messages = context.getMessageContext();
+        if (!context.getUserEvent().equalsIgnoreCase("submit") || messages.hasErrorMessages()) {
             return;
         }
 
-        val messages = context.getMessageContext();
         ApplicationContextProvider.getCasConfigurationProperties().ifPresent(props -> {
             if (StringUtils.isBlank(source) && props.getAuthn().getPolicy().isSourceSelectionEnabled()) {
                 messages.addMessage(new MessageBuilder()
                     .error()
                     .source("source")
+                    .defaultText("Required Source")
                     .code("source.required")
                     .build());
             }
         });
+        super.validate(context);
     }
 }

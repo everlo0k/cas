@@ -4,6 +4,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.LinkedHashMap;
@@ -18,6 +19,7 @@ import java.util.Map;
 @RequiresModule(name = "cas-server-webapp-tomcat")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class CasEmbeddedApacheTomcatHttpProxyProperties implements Serializable {
 
     private static final long serialVersionUID = 9129851352067677264L;
@@ -51,6 +53,11 @@ public class CasEmbeddedApacheTomcatHttpProxyProperties implements Serializable 
      * Proxy protocol to use.
      */
     private String protocol = "AJP/1.3";
+
+    /**
+     * Set the secret that must be included with every request.
+     */
+    private String secret;
 
     /**
      * Custom attributes to set on the proxy connector.

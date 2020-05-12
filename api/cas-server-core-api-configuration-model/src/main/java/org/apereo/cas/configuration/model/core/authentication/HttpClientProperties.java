@@ -4,6 +4,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.core.io.Resource;
 
 import java.io.Serializable;
@@ -17,6 +18,7 @@ import java.io.Serializable;
 @RequiresModule(name = "cas-server-core-authentication", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class HttpClientProperties implements Serializable {
 
     private static final long serialVersionUID = -7494946569869245770L;
@@ -59,13 +61,27 @@ public class HttpClientProperties implements Serializable {
     private String authorityValidationRegEx;
 
     /**
+     * Send requests via a proxy; define the hostname.
+     */
+    private String proxyHost;
+
+    /**
+     * Send requests via a proxy; define the proxy port.
+     * Negative/zero values should deactivate the proxy configuration
+     * for the http client.
+     */
+    private int proxyPort;
+
+    /**
      * Whether the regular expression specified with {@code authorityValidationRegEx} should be handled as case-sensitive
      * ({@code true}) or case-insensitive ({@code false}). If no {@code authorityValidationRegEx} is set, this value does not have any effect.
      */
     private boolean authorityValidationRegExCaseSensitive = true;
 
+    @RequiresModule(name = "cas-server-core-authentication", automated = true)
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Truststore implements Serializable {
 
         private static final long serialVersionUID = -1357168622083627654L;

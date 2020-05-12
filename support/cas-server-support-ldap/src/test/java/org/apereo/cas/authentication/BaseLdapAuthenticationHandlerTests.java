@@ -7,17 +7,19 @@ import org.apereo.cas.config.CasCoreAuthenticationMetadataConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationPolicyConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationPrincipalConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationSupportConfiguration;
+import org.apereo.cas.config.CasCoreConfiguration;
 import org.apereo.cas.config.CasCoreHttpConfiguration;
 import org.apereo.cas.config.CasCoreServicesAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
+import org.apereo.cas.config.CasCoreTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasCoreTicketsConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CasCoreWebConfiguration;
 import org.apereo.cas.config.CasPersonDirectoryConfiguration;
 import org.apereo.cas.config.LdapAuthenticationConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
+import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 
 import lombok.val;
 import org.jooq.lambda.Unchecked;
@@ -30,10 +32,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 
 import javax.security.auth.login.FailedLoginException;
+
 import java.util.Arrays;
 import java.util.Collection;
 
-import static org.apereo.cas.util.junit.Assertions.*;
+import static org.apereo.cas.util.junit.Assertions.assertThrowsWithRootCause;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -57,21 +60,22 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreTicketsConfiguration.class,
     CasPersonDirectoryConfiguration.class,
     CasCoreAuthenticationConfiguration.class,
+    CasCoreTicketIdGeneratorsConfiguration.class,
     CasCoreWebConfiguration.class,
-    CasWebApplicationServiceFactoryConfiguration.class,
     CasCoreServicesAuthenticationConfiguration.class,
     CasCoreServicesConfiguration.class,
+    CasCoreLogoutConfiguration.class,
+    CasCoreConfiguration.class,
     LdapAuthenticationConfiguration.class
 })
 @Tag("Ldap")
-@EnabledIfContinuousIntegration
 public abstract class BaseLdapAuthenticationHandlerTests {
     @Autowired
     @Qualifier("ldapAuthenticationHandlers")
     protected Collection<AuthenticationHandler> handler;
 
     @Test
-    public void verifyAuthenticateFailure() throws Throwable {
+    public void verifyAuthenticateFailure() {
         assertNotEquals(handler.size(), 0);
         assertThrowsWithRootCause(UncheckedException.class, FailedLoginException.class,
             () -> this.handler.forEach(Unchecked.consumer(h -> h.authenticate(new UsernamePasswordCredential(getUsername(), getFailurePassword())))));
@@ -92,7 +96,7 @@ public abstract class BaseLdapAuthenticationHandlerTests {
     }
 
     String[] getPrincipalAttributes() {
-        return new String[] {"cn", "description"};
+        return new String[]{"cn", "description"};
     }
 
     String getUsername() {

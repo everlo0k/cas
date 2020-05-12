@@ -2,13 +2,14 @@ package org.apereo.cas.ticket.expiration;
 
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.authentication.DefaultAuthenticationResultBuilder;
-import org.apereo.cas.authentication.DefaultPrincipalElectionStrategy;
 import org.apereo.cas.authentication.RememberMeCredential;
-import org.apereo.cas.authentication.principal.DefaultPrincipalFactory;
+import org.apereo.cas.authentication.principal.DefaultPrincipalElectionStrategy;
 import org.apereo.cas.authentication.principal.PrincipalFactory;
+import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
 import org.apereo.cas.ticket.TicketGrantingTicketImpl;
 import org.apereo.cas.util.CollectionUtils;
+import org.apereo.cas.util.serialization.SerializationUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.val;
@@ -40,7 +41,7 @@ public class RememberMeDelegatingExpirationPolicyTests {
     /**
      * Factory to create the principal type.
      **/
-    protected PrincipalFactory principalFactory = new DefaultPrincipalFactory();
+    protected PrincipalFactory principalFactory = PrincipalFactoryUtils.newPrincipalFactory();
 
     private RememberMeDelegatingExpirationPolicy expirationPolicy;
 
@@ -110,6 +111,13 @@ public class RememberMeDelegatingExpirationPolicyTests {
     public void verifySerializeATimeoutExpirationPolicyToJson() throws IOException {
         MAPPER.writeValue(JSON_FILE, expirationPolicy);
         val policyRead = MAPPER.readValue(JSON_FILE, RememberMeDelegatingExpirationPolicy.class);
+        assertEquals(expirationPolicy, policyRead);
+    }
+
+    @Test
+    public void verifySerialization() {
+        val result = SerializationUtils.serialize(expirationPolicy);
+        val policyRead = SerializationUtils.deserialize(result, RememberMeDelegatingExpirationPolicy.class);
         assertEquals(expirationPolicy, policyRead);
     }
 }

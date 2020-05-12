@@ -10,20 +10,25 @@ import org.apereo.cas.configuration.model.core.authentication.PasswordEncoderPro
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 
 import javax.security.auth.login.AccountNotFoundException;
 import javax.security.auth.login.FailedLoginException;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * @author Scott Battaglia
  * @since 3.0.0
  */
+@Tag("FileSystem")
 public class FileAuthenticationHandlerTests {
     private FileAuthenticationHandler authenticationHandler;
 
@@ -35,7 +40,7 @@ public class FileAuthenticationHandlerTests {
         p.setType(PasswordEncoderProperties.PasswordEncoderTypes.DEFAULT.name());
         p.setEncodingAlgorithm("MD5");
         p.setCharacterEncoding("UTF-8");
-        this.authenticationHandler.setPasswordEncoder(PasswordEncoderUtils.newPasswordEncoder(p));
+        this.authenticationHandler.setPasswordEncoder(PasswordEncoderUtils.newPasswordEncoder(p, mock(ApplicationContext.class)));
     }
 
     @Test
@@ -69,7 +74,7 @@ public class FileAuthenticationHandlerTests {
     }
 
     @Test
-    public void verifyFailsUserNotInFileWithDefaultSeparator() throws Exception {
+    public void verifyFailsUserNotInFileWithDefaultSeparator() {
         val c = new UsernamePasswordCredential();
 
         c.setUsername("fds");
@@ -81,7 +86,7 @@ public class FileAuthenticationHandlerTests {
     }
 
     @Test
-    public void verifyFailsNullUserName() throws Exception {
+    public void verifyFailsNullUserName() {
         val c = new UsernamePasswordCredential();
         c.setUsername(null);
         c.setPassword("user");
@@ -91,7 +96,7 @@ public class FileAuthenticationHandlerTests {
     }
 
     @Test
-    public void verifyFailsNullUserNameAndPassword() throws Exception {
+    public void verifyFailsNullUserNameAndPassword() {
         val c = new UsernamePasswordCredential();
         c.setUsername(null);
         c.setPassword(null);
@@ -101,7 +106,7 @@ public class FileAuthenticationHandlerTests {
     }
 
     @Test
-    public void verifyFailsNullPassword() throws Exception {
+    public void verifyFailsNullPassword() {
         val c = new UsernamePasswordCredential();
         c.setUsername("scott");
         c.setPassword(null);
@@ -120,7 +125,7 @@ public class FileAuthenticationHandlerTests {
     }
 
     @Test
-    public void verifyFailsUserNotInFileWithCommaSeparator() throws Exception {
+    public void verifyFailsUserNotInFileWithCommaSeparator() {
         val c = new UsernamePasswordCredential();
 
         this.authenticationHandler = new FileAuthenticationHandler(StringUtils.EMPTY, null, null,

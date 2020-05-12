@@ -1,11 +1,12 @@
 package org.apereo.cas.adaptors.cassandra.services;
 
 import org.apereo.cas.config.CasCoreServicesConfiguration;
+import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CassandraServiceRegistryConfiguration;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.services.AbstractServiceRegistryTests;
 import org.apereo.cas.services.ServiceRegistry;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.test.context.TestPropertySource;
 
 /**
  * This is {@link CassandraServiceRegistryTests}.
@@ -25,13 +25,14 @@ import org.springframework.test.context.TestPropertySource;
 @SpringBootTest(classes = {
     CassandraServiceRegistryConfiguration.class,
     CasCoreServicesConfiguration.class,
+    CasCoreUtilConfiguration.class,
     RefreshAutoConfiguration.class
-})
+},
+    properties = "cas.service-registry.cassandra.keyspace=cas")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @EnableScheduling
-@TestPropertySource(properties = "cas.serviceRegistry.cassandra.keyspace=cas")
 @Tag("Cassandra")
-@EnabledIfContinuousIntegration
+@EnabledIfPortOpen(port = 9042)
 public class CassandraServiceRegistryTests extends AbstractServiceRegistryTests {
     @Autowired
     @Qualifier("cassandraServiceRegistry")

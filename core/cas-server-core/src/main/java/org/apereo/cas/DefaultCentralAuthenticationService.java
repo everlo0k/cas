@@ -142,12 +142,12 @@ public class DefaultCentralAuthenticationService extends AbstractCentralAuthenti
         AuthenticationCredentialsThreadLocalBinder.bindCurrent(latestAuthentication);
         val principal = latestAuthentication.getPrincipal();
         val factory = (ServiceTicketFactory) this.ticketFactory.get(ServiceTicket.class);
-        val serviceTicket = factory.create(ticketGrantingTicket, service, credentialProvided, ServiceTicket.class);
+        val serviceTicket = factory.create(ticketGrantingTicket, selectedService, credentialProvided, ServiceTicket.class);
         this.ticketRegistry.updateTicket(ticketGrantingTicket);
         this.ticketRegistry.addTicket(serviceTicket);
 
         LOGGER.info("Granted service ticket [{}] for service [{}] and principal [{}]",
-            serviceTicket.getId(), DigestUtils.abbreviate(service.getId()), principal.getId());
+            serviceTicket.getId(), DigestUtils.abbreviate(selectedService.getId()), principal.getId());
         doPublishEvent(new CasServiceTicketGrantedEvent(this, ticketGrantingTicket, serviceTicket));
         return serviceTicket;
     }
@@ -196,7 +196,6 @@ public class DefaultCentralAuthenticationService extends AbstractCentralAuthenti
         action = "PROXY_GRANTING_TICKET",
         actionResolverName = "CREATE_PROXY_GRANTING_TICKET_RESOLVER",
         resourceResolverName = "CREATE_PROXY_GRANTING_TICKET_RESOURCE_RESOLVER")
-
     @Override
     public ProxyGrantingTicket createProxyGrantingTicket(final String serviceTicketId, final AuthenticationResult authenticationResult)
         throws AuthenticationException, AbstractTicketException {
@@ -256,6 +255,10 @@ public class DefaultCentralAuthenticationService extends AbstractCentralAuthenti
         }
 
         try {
+            val selectedService = resolveServiceFromAuthenticationRequest(serviceTicket.getService());
+            val resolvedService = resolveServiceFromAuthenticationRequest(service);
+            LOGGER.debug("Resolved service [{}] from the authentication request with service [{}] linked to service ticket [{}]",
+                resolvedService, selectedService, serviceTicket.getId());
             /*
              * Synchronization on ticket object in case of cache based registry doesn't serialize
              * access to critical section. The reason is that cache pulls serialized data and
@@ -267,17 +270,15 @@ public class DefaultCentralAuthenticationService extends AbstractCentralAuthenti
                     throw new InvalidTicketException(serviceTicketId);
                 }
 
-                if (!this.serviceMatchingStrategy.matches(serviceTicket.getService(), service)) {
+                if (!this.serviceMatchingStrategy.matches(selectedService, resolvedService)) {
                     LOGGER.error("Service ticket [{}] with service [{}] does not match supplied service [{}]",
-                        serviceTicketId, serviceTicket.getService().getId(), service.getId());
-                    throw new UnrecognizableServiceForServiceTicketValidationException(serviceTicket.getService());
+                        serviceTicketId, serviceTicket.getService().getId(), resolvedService.getId());
+                    throw new UnrecognizableServiceForServiceTicketValidationException(selectedService);
                 }
                 val ticketState = TicketState.class.cast(serviceTicket);
                 ticketState.update();
             }
 
-            val selectedService = resolveServiceFromAuthenticationRequest(serviceTicket.getService());
-            LOGGER.debug("Resolved service [{}] from the authentication request", selectedService);
 
             val registeredService = this.servicesManager.findServiceBy(selectedService);
             LOGGER.trace("Located registered service definition [{}] from [{}] to handle validation request", registeredService, selectedService);
@@ -307,8 +308,7 @@ public class DefaultCentralAuthenticationService extends AbstractCentralAuthenti
                     selectedService,
                     registeredService,
                     authentication);
-            LOGGER.debug("Principal determined for release to [{}] is [{}]",
-                registeredService.getServiceId(), principalId);
+            LOGGER.debug("Principal determined for release to [{}] is [{}]", registeredService.getServiceId(), principalId);
 
             val finalAuthentication = builder.build();
 

@@ -6,6 +6,8 @@ import org.apereo.cas.configuration.support.SpringResourceProperties;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
  * This is {@link AccepttoMultifactorProperties}.
@@ -16,6 +18,7 @@ import lombok.Setter;
 @RequiresModule(name = "cas-server-support-acceptto-mfa")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class AccepttoMultifactorProperties extends BaseMultifactorProviderProperties {
     /**
      * Provider id by default.
@@ -113,7 +116,8 @@ public class AccepttoMultifactorProperties extends BaseMultifactorProviderProper
      * that are produced as part of device pairing and registration.
      */
     @RequiredProperty
-    private SpringResourceProperties registrationApiPublicKey;
+    @NestedConfigurationProperty
+    private SpringResourceProperties registrationApiPublicKey = new SpringResourceProperties();
 
     public AccepttoMultifactorProperties() {
         setId(DEFAULT_IDENTIFIER);

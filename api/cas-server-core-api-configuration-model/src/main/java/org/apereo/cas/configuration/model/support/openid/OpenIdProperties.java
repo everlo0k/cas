@@ -5,6 +5,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
@@ -13,11 +14,14 @@ import java.io.Serializable;
  * This is {@link OpenIdProperties}.
  *
  * @author Misagh Moayyed
+ * @deprecated 6.2
  * @since 5.0.0
  */
 @RequiresModule(name = "cas-server-support-openid")
 @Getter
 @Setter
+@Deprecated(since = "6.2.0")
+@Accessors(chain = true)
 public class OpenIdProperties implements Serializable {
 
     private static final long serialVersionUID = -2935759289483632610L;

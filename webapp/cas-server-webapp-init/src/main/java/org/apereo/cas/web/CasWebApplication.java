@@ -10,13 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.WebApplicationType;
-import org.springframework.boot.actuate.autoconfigure.jdbc.DataSourceHealthIndicatorAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.cassandra.CassandraAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration;
 import org.springframework.boot.autoconfigure.groovy.template.GroovyTemplateAutoConfiguration;
+import org.springframework.boot.autoconfigure.gson.GsonAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.autoconfigure.jersey.JerseyAutoConfiguration;
@@ -33,6 +33,8 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+import java.time.Instant;
+
 /**
  * This is {@link CasWebApplication} that houses the main method.
  *
@@ -44,9 +46,9 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
     HibernateJpaAutoConfiguration.class,
     JerseyAutoConfiguration.class,
     GroovyTemplateAutoConfiguration.class,
+    GsonAutoConfiguration.class,
     JmxAutoConfiguration.class,
     DataSourceAutoConfiguration.class,
-    DataSourceHealthIndicatorAutoConfiguration.class,
     RedisAutoConfiguration.class,
     MongoAutoConfiguration.class,
     MongoDataAutoConfiguration.class,
@@ -56,7 +58,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 })
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @EnableAsync
-@EnableAspectJAutoProxy(proxyTargetClass=true)
+@EnableAspectJAutoProxy(proxyTargetClass = true)
 @EnableTransactionManagement(proxyTargetClass = true)
 @EnableScheduling
 @NoArgsConstructor
@@ -69,12 +71,10 @@ public class CasWebApplication {
      * @param args the args
      */
     public static void main(final String[] args) {
-        val properties = CasEmbeddedContainerUtils.getRuntimeProperties(Boolean.TRUE);
         val banner = CasEmbeddedContainerUtils.getCasBannerInstance();
         new SpringApplicationBuilder(CasWebApplication.class)
             .banner(banner)
             .web(WebApplicationType.SERVLET)
-            .properties(properties)
             .logStartupInfo(true)
             .contextClass(CasWebApplicationContext.class)
             .run(args);
@@ -87,7 +87,7 @@ public class CasWebApplication {
      */
     @EventListener
     public void handleApplicationReadyEvent(final ApplicationReadyEvent event) {
-        AsciiArtUtils.printAsciiArtInfo(LOGGER, "READY", StringUtils.EMPTY);
-        LOGGER.info("Ready to process requests @ [{}]", DateTimeUtils.zonedDateTimeOf(event.getTimestamp()));
+        AsciiArtUtils.printAsciiArtReady(LOGGER, StringUtils.EMPTY);
+        LOGGER.info("Ready to process requests @ [{}]", DateTimeUtils.zonedDateTimeOf(Instant.ofEpochMilli(event.getTimestamp())));
     }
 }

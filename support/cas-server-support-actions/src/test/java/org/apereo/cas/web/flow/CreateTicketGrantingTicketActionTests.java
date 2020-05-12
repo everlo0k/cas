@@ -14,7 +14,9 @@ import org.apereo.cas.web.support.WebUtils;
 
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -35,10 +37,11 @@ import static org.mockito.Mockito.*;
  * @author Misagh Moayyed
  * @since 5.3.0
  */
+@Tag("Webflow")
 public class CreateTicketGrantingTicketActionTests extends AbstractWebflowActionsTests {
     @Autowired
     @Qualifier("createTicketGrantingTicketAction")
-    private Action action;
+    private ObjectProvider<Action> action;
 
     private MockRequestContext context;
 
@@ -69,7 +72,7 @@ public class CreateTicketGrantingTicketActionTests extends AbstractWebflowAction
         when(tgt.getId()).thenReturn("TGT-123456");
         WebUtils.putTicketGrantingTicketInScopes(this.context, tgt);
 
-        assertEquals(CasWebflowConstants.TRANSITION_ID_SUCCESS, this.action.execute(this.context).getId());
+        assertEquals(CasWebflowConstants.TRANSITION_ID_SUCCESS, this.action.getObject().execute(this.context).getId());
 
         when(tgt.getId()).thenReturn("TGT-111111");
         val handlerResult = new DefaultAuthenticationHandlerExecutionResult();
@@ -78,7 +81,7 @@ public class CreateTicketGrantingTicketActionTests extends AbstractWebflowAction
         when(tgt.getAuthentication()).thenReturn(authentication);
         WebUtils.putTicketGrantingTicketInScopes(this.context, tgt);
 
-        assertEquals(CasWebflowConstants.TRANSITION_ID_SUCCESS_WITH_WARNINGS, this.action.execute(this.context).getId());
+        assertEquals(CasWebflowConstants.TRANSITION_ID_SUCCESS_WITH_WARNINGS, this.action.getObject().execute(this.context).getId());
     }
 
 }

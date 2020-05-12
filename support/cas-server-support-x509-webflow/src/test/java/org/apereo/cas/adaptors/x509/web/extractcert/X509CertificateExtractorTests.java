@@ -1,7 +1,6 @@
 package org.apereo.cas.adaptors.x509.web.extractcert;
 
-import org.apereo.cas.adaptors.x509.authentication.principal.AbstractX509CertificateTests;
-import org.apereo.cas.web.extractcert.RequestHeaderX509CertificateExtractor;
+import org.apereo.cas.adaptors.x509.authentication.RequestHeaderX509CertificateExtractor;
 
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -16,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Hal Deadman
  * @since 5.3.0
  */
-public class X509CertificateExtractorTests extends AbstractX509CertificateTests {
+public class X509CertificateExtractorTests {
 
     private static final String[] CERTIFICATE_LINES = new String[]{
         "-----BEGIN CERTIFICATE-----",

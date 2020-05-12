@@ -6,7 +6,7 @@ import org.apereo.cas.authentication.DefaultAuthenticationHandlerExecutionResult
 import org.apereo.cas.authentication.credential.UsernamePasswordCredential;
 import org.apereo.cas.authentication.metadata.BasicCredentialMetaData;
 import org.apereo.cas.authentication.principal.DefaultPrincipalAttributesRepository;
-import org.apereo.cas.authentication.principal.DefaultPrincipalFactory;
+import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
 import org.apereo.cas.mock.MockServiceTicket;
 import org.apereo.cas.mock.MockTicketGrantingTicket;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
@@ -16,15 +16,19 @@ import org.apereo.cas.ticket.expiration.HardTimeoutExpirationPolicy;
 import org.apereo.cas.ticket.expiration.MultiTimeUseOrTimeoutExpirationPolicy;
 import org.apereo.cas.ticket.expiration.NeverExpiresExpirationPolicy;
 import org.apereo.cas.util.CollectionUtils;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import com.esotericsoftware.kryo.KryoException;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import javax.security.auth.login.AccountNotFoundException;
+
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,15 +46,23 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 3.0.0
  */
 @Slf4j
+@Tag("Memcached")
+@EnabledIfPortOpen(port = 11211)
 public class CasKryoTranscoderTests {
     private static final String ST_ID = "ST-1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890ABCDEFGHIJK";
+
     private static final String TGT_ID = "TGT-1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890ABCDEFGHIJK-cas1";
+
     private static final String PGT_ID = "PGT-1234567";
+
     private static final String PT_ID = "PT-1234567";
 
     private static final String USERNAME = "handymanbob";
+
     private static final String PASSWORD = "foo";
+
     private static final String NICKNAME_KEY = "nickname";
+
     private static final String NICKNAME_VALUE = "bob";
 
     private final CasKryoTranscoder transcoder;
@@ -84,10 +96,10 @@ public class CasKryoTranscoderTests {
     @Test
     public void verifyEncodeDecodeTGTImpl() {
         val userPassCredential = new UsernamePasswordCredential(USERNAME, PASSWORD);
-        val bldr = new DefaultAuthenticationBuilder(new DefaultPrincipalFactory()
+        val bldr = new DefaultAuthenticationBuilder(PrincipalFactoryUtils.newPrincipalFactory()
             .createPrincipal("user", new HashMap<>(this.principalAttributes)));
         bldr.setAttributes(new HashMap<>(this.principalAttributes));
-        bldr.setAuthenticationDate(ZonedDateTime.now());
+        bldr.setAuthenticationDate(ZonedDateTime.now(ZoneId.systemDefault()));
         bldr.addCredential(new BasicCredentialMetaData(userPassCredential));
         bldr.addFailure("error", new AccountNotFoundException());
         bldr.addSuccess("authn", new DefaultAuthenticationHandlerExecutionResult(
@@ -208,7 +220,7 @@ public class CasKryoTranscoderTests {
     @Test
     public void verifyEncodeDecodeTGTWithSingleton() {
         val newAttributes = new HashMap<String, List<Object>>();
-        newAttributes.put(NICKNAME_KEY, Collections.singletonList(NICKNAME_VALUE));
+        newAttributes.put(NICKNAME_KEY, List.of(NICKNAME_VALUE));
         val userPassCredential = new UsernamePasswordCredential(USERNAME, PASSWORD);
         val expectedTGT = new MockTicketGrantingTicket(TGT_ID, userPassCredential, newAttributes);
         expectedTGT.grantServiceTicket(ST_ID, null, null, false, true);

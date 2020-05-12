@@ -33,7 +33,7 @@ public class DelegatedAuthenticationAccessStrategyHelper {
      *
      * @param client  the client
      * @param service the service
-     * @return the boolean
+     * @return true/false
      */
     public boolean isDelegatedClientAuthorizedForService(final Client client, final Service service) {
         return isDelegatedClientAuthorizedFor(client.getName(), service);
@@ -44,7 +44,7 @@ public class DelegatedAuthenticationAccessStrategyHelper {
      *
      * @param authentication the authentication
      * @param service        the service
-     * @return the boolean
+     * @return true/false
      */
     public boolean isDelegatedClientAuthorizedForAuthentication(final Authentication authentication,
                                                                 final Service service) {
@@ -60,7 +60,7 @@ public class DelegatedAuthenticationAccessStrategyHelper {
      */
     public static String getClientNameFromAuthentication(final Authentication authentication) {
         val clientNames = authentication.getAttributes()
-            .getOrDefault(ClientCredential.AUTHENTICATION_ATTRIBUTE_CLIENT_NAME, new ArrayList<>());
+            .getOrDefault(ClientCredential.AUTHENTICATION_ATTRIBUTE_CLIENT_NAME, new ArrayList<>(0));
         return CollectionUtils.firstElement(clientNames).map(Object::toString).orElse(StringUtils.EMPTY);
     }
 
@@ -69,7 +69,7 @@ public class DelegatedAuthenticationAccessStrategyHelper {
      *
      * @param clientName the client name
      * @param service    the service
-     * @return the boolean
+     * @return true/false
      */
     public boolean isDelegatedClientAuthorizedFor(final String clientName, final Service service) {
         if (service == null || StringUtils.isBlank(service.getId())) {

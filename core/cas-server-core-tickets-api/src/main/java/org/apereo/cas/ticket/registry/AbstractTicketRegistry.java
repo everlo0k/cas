@@ -64,12 +64,12 @@ public abstract class AbstractTicketRegistry implements TicketRegistry {
         if (!clazz.isAssignableFrom(ticket.getClass())) {
             throw new ClassCastException("Ticket [" + ticket.getId() + " is of type " + ticket.getClass() + " when we were expecting " + clazz);
         }
-        return (T) ticket;
+        return clazz.cast(ticket);
     }
 
     @Override
     public long sessionCount() {
-        try (val tgtStream = getTickets().stream().filter(TicketGrantingTicket.class::isInstance)) {
+        try (val tgtStream = getTicketsStream().filter(TicketGrantingTicket.class::isInstance)) {
             return tgtStream.count();
         } catch (final Exception t) {
             LOGGER.trace("sessionCount() operation is not implemented by the ticket registry instance [{}]. "
@@ -160,7 +160,7 @@ public abstract class AbstractTicketRegistry implements TicketRegistry {
     }
 
     /**
-     * Delete TGT's service tickets.
+     * Delete ticket-granting ticket's service tickets.
      *
      * @param ticket the ticket
      * @return the count of tickets that were removed including child tickets and zero if the ticket was not deleted
@@ -227,7 +227,8 @@ public abstract class AbstractTicketRegistry implements TicketRegistry {
         LOGGER.debug("Encoding ticket [{}]", ticket);
         val encodedTicketObject = SerializationUtils.serializeAndEncodeObject(this.cipherExecutor, ticket);
         val encodedTicketId = encodeTicketId(ticket.getId());
-        val encodedTicket = new EncodedTicket(encodedTicketId, ByteSource.wrap(encodedTicketObject).read());
+        val encodedTicket = new EncodedTicket(encodedTicketId,
+            ByteSource.wrap(encodedTicketObject).read(), ticket.getPrefix());
         LOGGER.debug("Created encoded ticket [{}]", encodedTicket);
         return encodedTicket;
     }

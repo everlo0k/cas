@@ -1,7 +1,10 @@
 package org.apereo.cas.influxdb;
 
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import lombok.val;
 import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
@@ -27,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest(classes = RefreshAutoConfiguration.class)
 @Tag("InfluxDb")
-@EnabledIfContinuousIntegration
+@EnabledIfPortOpen(port = 8086)
 public class InfluxDbConnectionFactoryTests {
     private static final String CAS_EVENTS_DATABASE = "casEventsDatabase";
 
@@ -60,6 +63,9 @@ public class InfluxDbConnectionFactoryTests {
     }
 
     @Measurement(name = "events")
+    @Getter
+    @Setter
+    @ToString
     public static class InfluxEvent {
         @Column(name = "time")
         private Instant time;

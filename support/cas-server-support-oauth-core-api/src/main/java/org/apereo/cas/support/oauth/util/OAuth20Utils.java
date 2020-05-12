@@ -9,12 +9,13 @@ import org.apereo.cas.support.oauth.OAuth20GrantTypes;
 import org.apereo.cas.support.oauth.OAuth20ResponseModeTypes;
 import org.apereo.cas.support.oauth.OAuth20ResponseTypes;
 import org.apereo.cas.support.oauth.services.OAuthRegisteredService;
-import org.apereo.cas.ticket.OAuthToken;
+import org.apereo.cas.ticket.OAuth20Token;
 import org.apereo.cas.util.CollectionUtils;
+import org.apereo.cas.util.crypto.CipherExecutor;
+import org.apereo.cas.web.flow.CasWebflowConstants;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
@@ -22,7 +23,10 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.hjson.JsonValue;
 import org.pac4j.core.context.JEEContext;
+import org.pac4j.core.context.WebContext;
+import org.pac4j.core.credentials.extractor.BasicAuthExtractor;
 import org.pac4j.core.profile.CommonProfile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.ModelAndView;
@@ -30,6 +34,8 @@ import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -83,7 +89,7 @@ public class OAuth20Utils {
         if (StringUtils.isBlank(clientId)) {
             return null;
         }
-        return getRegisteredOAuthServiceByPredicate(servicesManager, s -> s.getClientId().equals(clientId));
+        return getRegisteredOAuthServiceByPredicate(servicesManager, s -> s.getClientId().equalsIgnoreCase(clientId));
     }
 
     /**
@@ -101,7 +107,6 @@ public class OAuth20Utils {
         return getRegisteredOAuthServiceByPredicate(servicesManager, s -> s.matches(redirectUri));
     }
 
-    @SuppressFBWarnings("PRMC_POSSIBLY_REDUNDANT_METHOD_CALLS")
     private static OAuthRegisteredService getRegisteredOAuthServiceByPredicate(final ServicesManager servicesManager,
                                                                                final Predicate<OAuthRegisteredService> predicate) {
         val services = servicesManager.getAllServices();
@@ -127,7 +132,7 @@ public class OAuth20Utils {
             .filter(a -> StringUtils.isNotBlank(context.getParameter(a)))
             .map(m -> {
                 val values = context.getParameterValues(m);
-                val valuesSet = new LinkedHashSet<Object>();
+                val valuesSet = new LinkedHashSet<Object>(values.length);
                 if (values != null && values.length > 0) {
                     Arrays.stream(values).forEach(v -> valuesSet.addAll(Arrays.stream(v.split(" ")).collect(Collectors.toSet())));
                 }
@@ -176,7 +181,7 @@ public class OAuth20Utils {
      * @return the model and view
      */
     public static ModelAndView produceErrorView(final Exception e) {
-        return new ModelAndView(OAuth20Constants.ERROR_VIEW, CollectionUtils.wrap("rootCauseException", e));
+        return new ModelAndView(CasWebflowConstants.VIEW_ID_SERVICE_ERROR, CollectionUtils.wrap("rootCauseException", e));
     }
 
     /**
@@ -205,7 +210,7 @@ public class OAuth20Utils {
      *
      * @param registeredService the registered service
      * @param responseType      the response type
-     * @return the boolean
+     * @return true/false
      */
     public static boolean isResponseModeTypeFormPost(final OAuthRegisteredService registeredService, final OAuth20ResponseModeTypes responseType) {
         return responseType == OAuth20ResponseModeTypes.FORM_POST || StringUtils.equalsIgnoreCase("post", registeredService.getResponseType());
@@ -272,7 +277,7 @@ public class OAuth20Utils {
      *
      * @param type         the type
      * @param expectedType the expected type
-     * @return the boolean
+     * @return true/false
      */
     public static boolean isResponseModeType(final String type, final OAuth20ResponseModeTypes expectedType) {
         return expectedType.getType().equalsIgnoreCase(type);
@@ -283,12 +288,11 @@ public class OAuth20Utils {
      *
      * @param context           the context
      * @param registeredService the registered service
-     * @return the boolean
+     * @return true/false
      */
     public static boolean isAuthorizedResponseTypeForService(final JEEContext context, final OAuthRegisteredService registeredService) {
-        val responseType = context.getRequestParameter(OAuth20Constants.RESPONSE_TYPE).map(String::valueOf).orElse(StringUtils.EMPTY);
-
         if (registeredService.getSupportedResponseTypes() != null && !registeredService.getSupportedResponseTypes().isEmpty()) {
+            val responseType = context.getRequestParameter(OAuth20Constants.RESPONSE_TYPE).map(String::valueOf).orElse(StringUtils.EMPTY);
             LOGGER.debug("Checking response type [{}] against supported response types [{}]", responseType, registeredService.getSupportedResponseTypes());
             return registeredService.getSupportedResponseTypes().stream().anyMatch(s -> s.equalsIgnoreCase(responseType));
         }
@@ -399,15 +403,19 @@ public class OAuth20Utils {
      *
      * @param registeredService the registered service
      * @param clientSecret      the client secret
+     * @param cipherExecutor    the cipher executor
      * @return whether the secret is valid
      */
-    public static boolean checkClientSecret(final OAuthRegisteredService registeredService, final String clientSecret) {
+    public static boolean checkClientSecret(final OAuthRegisteredService registeredService, final String clientSecret,
+                                            final CipherExecutor<Serializable, String> cipherExecutor) {
         LOGGER.debug("Found: [{}] in secret check", registeredService);
-        if (StringUtils.isBlank(registeredService.getClientSecret())) {
+        var definedSecret = registeredService.getClientSecret();
+        if (StringUtils.isBlank(definedSecret)) {
             LOGGER.debug("The client secret is not defined for the registered service [{}]", registeredService.getName());
             return true;
         }
-        if (!StringUtils.equals(registeredService.getClientSecret(), clientSecret)) {
+        definedSecret = cipherExecutor.decode(definedSecret, new Object[] {registeredService});
+        if (!StringUtils.equals(definedSecret, clientSecret)) {
             LOGGER.error("Wrong client secret for service: [{}]", registeredService.getServiceId());
             return false;
         }
@@ -437,8 +445,11 @@ public class OAuth20Utils {
      * @return the client id from authenticated profile
      */
     public static String getClientIdFromAuthenticatedProfile(final CommonProfile profile) {
-        if (profile.containsAttribute(OAuth20Constants.CLIENT_ID)) {
-            val attribute = profile.getAttribute(OAuth20Constants.CLIENT_ID);
+        val attrs = new HashMap<>(profile.getAttributes());
+        attrs.putAll(profile.getAuthenticationAttributes());
+
+        if (attrs.containsKey(OAuth20Constants.CLIENT_ID)) {
+            val attribute = attrs.get(OAuth20Constants.CLIENT_ID);
             return CollectionUtils.toCollection(attribute, ArrayList.class).get(0).toString();
         }
         return null;
@@ -454,9 +465,9 @@ public class OAuth20Utils {
     public static Map<String, Map<String, Object>> parseRequestClaims(final JEEContext context) throws Exception {
         val claims = context.getRequestParameter(OAuth20Constants.CLAIMS).map(String::valueOf).orElse(StringUtils.EMPTY);
         if (StringUtils.isBlank(claims)) {
-            return new HashMap<>();
+            return new HashMap<>(0);
         }
-        return MAPPER.readValue(claims, Map.class);
+        return MAPPER.readValue(JsonValue.readHjson(claims).toString(), Map.class);
     }
 
     /**
@@ -465,8 +476,8 @@ public class OAuth20Utils {
      * @param token the token
      * @return the set
      */
-    public static Set<String> parseUserInfoRequestClaims(final OAuthToken token) {
-        return token.getClaims().getOrDefault("userinfo", new HashMap<>()).keySet();
+    public static Set<String> parseUserInfoRequestClaims(final OAuth20Token token) {
+        return token.getClaims().getOrDefault("userinfo", new HashMap<>(0)).keySet();
     }
 
     /**
@@ -478,6 +489,36 @@ public class OAuth20Utils {
      */
     public static Set<String> parseUserInfoRequestClaims(final JEEContext context) throws Exception {
         val requestedClaims = parseRequestClaims(context);
-        return requestedClaims.getOrDefault("userinfo", new HashMap<>()).keySet();
+        return requestedClaims.getOrDefault("userinfo", new HashMap<>(0)).keySet();
+    }
+
+    /**
+     * Gets client id and client secret.
+     *
+     * @param context the context
+     * @return the client id and client secret
+     */
+    public static Pair<String, String> getClientIdAndClientSecret(final WebContext context) {
+        val extractor = new BasicAuthExtractor();
+        val upcResult = extractor.extract(context);
+        if (upcResult.isPresent()) {
+            val upc = upcResult.get();
+            return Pair.of(upc.getUsername(), upc.getPassword());
+        }
+        val clientId = context.getRequestParameter(OAuth20Constants.CLIENT_ID)
+                .map(String::valueOf).orElse(StringUtils.EMPTY);
+        val clientSecret = context.getRequestParameter(OAuth20Constants.CLIENT_SECRET)
+                .map(String::valueOf).orElse(StringUtils.EMPTY);
+        return Pair.of(clientId, clientSecret);
+    }
+
+    /**
+     * Is the registered service need authentication?
+     *
+     * @param registeredService the registered service
+     * @return whether the service need authentication
+     */
+    public boolean doesServiceNeedAuthentication(final OAuthRegisteredService registeredService) {
+        return StringUtils.isNotBlank(registeredService.getClientSecret());
     }
 }

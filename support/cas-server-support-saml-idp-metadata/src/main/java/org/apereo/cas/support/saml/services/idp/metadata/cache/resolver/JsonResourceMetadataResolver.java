@@ -7,6 +7,7 @@ import org.apereo.cas.support.saml.services.SamlRegisteredService;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.ResourceUtils;
 import org.apereo.cas.util.io.FileWatcherService;
+import org.apereo.cas.util.spring.SpringExpressionLanguageValueResolver;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,6 +20,7 @@ import net.shibboleth.utilities.java.support.resolver.CriteriaSet;
 import org.apache.commons.io.IOUtils;
 import org.hjson.JsonValue;
 import org.opensaml.saml.metadata.resolver.MetadataResolver;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -39,26 +41,30 @@ import java.util.Map;
  * @since 6.1.0
  */
 @Slf4j
-public class JsonResourceMetadataResolver extends BaseSamlRegisteredServiceMetadataResolver {
+public class JsonResourceMetadataResolver extends BaseSamlRegisteredServiceMetadataResolver implements DisposableBean {
     private static final ObjectMapper MAPPER = new ObjectMapper().findAndRegisterModules();
+
+    private final String metadataTemplate;
+
+    private final Resource jsonResource;
 
     private Map<String, SamlServiceProviderMetadata> metadataMap;
 
-    private final String metadataTemplate;
-    private final Resource jsonResource;
+    private FileWatcherService watcherService;
 
     public JsonResourceMetadataResolver(final SamlIdPProperties samlIdPProperties,
                                         final OpenSamlConfigBean configBean) {
         super(samlIdPProperties, configBean);
-
         try {
-            this.metadataTemplate = IOUtils.toString(new ClassPathResource("metadata/sp-metadata-template.xml").getInputStream(), StandardCharsets.UTF_8);
+            val inputStream = new ClassPathResource("metadata/sp-metadata-template.xml").getInputStream();
+            this.metadataTemplate = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
             val md = samlIdPProperties.getMetadata();
-            this.jsonResource = new FileSystemResource(new File(md.getLocation().getFile(), "saml-sp-metadata.json"));
+            val location = SpringExpressionLanguageValueResolver.getInstance().resolve(md.getLocation());
+            this.jsonResource = new FileSystemResource(new File(location, "saml-sp-metadata.json"));
             if (this.jsonResource.exists()) {
                 this.metadataMap = readDecisionsFromJsonResource();
-                val watcher = new FileWatcherService(jsonResource.getFile(), file -> this.metadataMap = readDecisionsFromJsonResource());
-                watcher.start(getClass().getSimpleName());
+                this.watcherService = new FileWatcherService(jsonResource.getFile(), file -> this.metadataMap = readDecisionsFromJsonResource());
+                this.watcherService.start(getClass().getSimpleName());
             }
         } catch (final Exception e) {
             throw new IllegalArgumentException(e);
@@ -101,6 +107,13 @@ public class JsonResourceMetadataResolver extends BaseSamlRegisteredServiceMetad
         return ResourceUtils.doesResourceExist(this.jsonResource);
     }
 
+    @Override
+    public void destroy() {
+        if (this.watcherService != null) {
+            this.watcherService.close();
+        }
+    }
+
     @SneakyThrows
     private Map<String, SamlServiceProviderMetadata> readDecisionsFromJsonResource() {
         try (val reader = new InputStreamReader(jsonResource.getInputStream(), StandardCharsets.UTF_8)) {
@@ -109,7 +122,6 @@ public class JsonResourceMetadataResolver extends BaseSamlRegisteredServiceMetad
             return MAPPER.readValue(JsonValue.readHjson(reader).toString(), personList);
         }
     }
-
 
     /**
      * The Saml service provider metadata.
@@ -120,7 +132,9 @@ public class JsonResourceMetadataResolver extends BaseSamlRegisteredServiceMetad
         private static final long serialVersionUID = -7347473226470492601L;
 
         private String entityId;
+
         private String certificate;
+
         private String assertionConsumerServiceUrl;
     }
 }

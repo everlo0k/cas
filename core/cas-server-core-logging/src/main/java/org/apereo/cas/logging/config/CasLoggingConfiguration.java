@@ -36,7 +36,7 @@ import java.util.HashMap;
  * @author Misagh Moayyed
  * @since 5.0.0
  */
-@Configuration("casLoggingConfiguration")
+@Configuration(value = "casLoggingConfiguration", proxyBeanMethods = false)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class CasLoggingConfiguration {
 
@@ -49,11 +49,11 @@ public class CasLoggingConfiguration {
     private ObjectProvider<TicketRegistrySupport> ticketRegistrySupport;
 
     @ConditionalOnBean(value = TicketRegistry.class)
-    @ConditionalOnProperty(prefix = "cas.logging", name = "mdcEnabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "cas.logging", name = "mdc-enabled", havingValue = "true", matchIfMissing = true)
     @Bean
     public FilterRegistrationBean threadContextMDCServletFilter() {
-        val filter = new ThreadContextMDCServletFilter(ticketRegistrySupport.getIfAvailable(),
-            this.ticketGrantingTicketCookieGenerator.getIfAvailable());
+        val filter = new ThreadContextMDCServletFilter(ticketRegistrySupport.getObject(),
+            this.ticketGrantingTicketCookieGenerator.getObject());
         val initParams = new HashMap<String, String>();
         val bean = new FilterRegistrationBean<ThreadContextMDCServletFilter>();
         bean.setFilter(filter);
@@ -67,7 +67,7 @@ public class CasLoggingConfiguration {
     /**
      * Log4j configuration.
      */
-    @ConditionalOnClass(LoggerContext.class)
+    @ConditionalOnClass(value = LoggerContext.class)
     @Configuration("casLog4jConfiguration")
     public static class CasLog4jConfiguration {
         @Autowired

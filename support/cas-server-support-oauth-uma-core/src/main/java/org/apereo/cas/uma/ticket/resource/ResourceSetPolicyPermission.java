@@ -4,15 +4,13 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Lob;
 import javax.persistence.Table;
+
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -30,13 +28,12 @@ import java.util.LinkedHashMap;
 @EqualsAndHashCode(of = "id")
 @NoArgsConstructor
 public class ResourceSetPolicyPermission implements Serializable {
+    private static final int MAP_SIZE = 8;
 
     private static final long serialVersionUID = 1664113523427391736L;
 
     @org.springframework.data.annotation.Id
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "native")
-    @GenericGenerator(name = "native", strategy = "native")
     private long id;
 
     @Column
@@ -44,9 +41,9 @@ public class ResourceSetPolicyPermission implements Serializable {
 
     @Lob
     @Column(length = Integer.MAX_VALUE)
-    private HashSet<String> scopes = new HashSet<>();
+    private HashSet<String> scopes = new HashSet<>(MAP_SIZE);
 
     @Lob
     @Column(length = Integer.MAX_VALUE)
-    private LinkedHashMap<String, Object> claims = new LinkedHashMap<>();
+    private LinkedHashMap<String, Object> claims = new LinkedHashMap<>(MAP_SIZE);
 }

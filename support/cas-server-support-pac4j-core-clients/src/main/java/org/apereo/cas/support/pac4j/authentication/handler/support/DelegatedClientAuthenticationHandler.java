@@ -21,6 +21,7 @@ import org.pac4j.core.exception.http.HttpAction;
 import org.pac4j.core.profile.CommonProfile;
 
 import java.security.GeneralSecurityException;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -61,7 +62,6 @@ public class DelegatedClientAuthenticationHandler extends AbstractPac4jAuthentic
             val clientCredentials = (ClientCredential) credential;
             LOGGER.debug("Located client credentials as [{}]", clientCredentials);
 
-            val credentials = clientCredentials.getCredentials();
             LOGGER.trace("Client name: [{}]", clientCredentials.getClientName());
 
             val clientResult = clients.findClient(clientCredentials.getClientName());
@@ -73,10 +73,12 @@ public class DelegatedClientAuthenticationHandler extends AbstractPac4jAuthentic
             
             val request = WebUtils.getHttpServletRequestFromExternalWebflowContext();
             val response = WebUtils.getHttpServletResponseFromExternalWebflowContext();
-            val webContext = new JEEContext(request, response, this.sessionStore);
+            val webContext = new JEEContext(Objects.requireNonNull(request),
+                Objects.requireNonNull(response), this.sessionStore);
 
             var userProfileResult = Optional.ofNullable(clientCredentials.getUserProfile());
             if (userProfileResult.isEmpty()) {
+                val credentials = clientCredentials.getCredentials();
                 userProfileResult = client.getUserProfile(credentials, webContext);
             }
             if (userProfileResult.isEmpty()) {

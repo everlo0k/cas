@@ -4,12 +4,14 @@ import org.apereo.cas.authentication.adaptive.DefaultAdaptiveAuthenticationPolic
 import org.apereo.cas.authentication.adaptive.intel.BlackDotIPAddressIntelligenceServiceTests;
 import org.apereo.cas.authentication.adaptive.intel.GroovyIPAddressIntelligenceServiceTests;
 import org.apereo.cas.authentication.adaptive.intel.RestfulIPAddressIntelligenceServiceTests;
+import org.apereo.cas.authentication.attribute.DefaultAttributeDefinitionStoreTests;
 import org.apereo.cas.authentication.handler.ByCredentialSourceAuthenticationHandlerResolverTests;
 import org.apereo.cas.authentication.handler.ByCredentialTypeAuthenticationHandlerResolverTests;
 import org.apereo.cas.authentication.policy.GroovyScriptAuthenticationPolicyTests;
 import org.apereo.cas.authentication.principal.PrincipalNameTransformerUtilsTests;
 import org.apereo.cas.authentication.principal.resolvers.InternalGroovyScriptDaoTests;
 import org.apereo.cas.authentication.principal.resolvers.PersonDirectoryPrincipalResolverTests;
+import org.apereo.cas.authentication.principal.resolvers.ProxyingPrincipalResolverTests;
 import org.apereo.cas.authentication.support.password.DefaultPasswordPolicyHandlingStrategyTests;
 import org.apereo.cas.authentication.support.password.GroovyPasswordEncoderTests;
 import org.apereo.cas.authentication.support.password.PasswordExpiringWarningMessageDescriptorTests;
@@ -36,13 +38,19 @@ import org.junit.runner.RunWith;
     PrincipalNameTransformerUtilsTests.class,
     AuthenticationCredentialTypeMetaDataPopulatorTests.class,
     DefaultPrincipalFactoryTests.class,
+    DefaultAttributeDefinitionStoreTests.class,
     GroovyAuthenticationPreProcessorTests.class,
     GroovyPrincipalFactoryTests.class,
     GroovyPasswordEncoderTests.class,
+    DefaultAuthenticationBuilderTests.class,
+    RestfulPrincipalFactoryTests.class,
     DefaultPasswordPolicyHandlingStrategyTests.class,
     RejectResultCodePasswordPolicyHandlingStrategyTests.class,
     PasswordExpiringWarningMessageDescriptorTests.class,
     OneTimeTokenAccountTests.class,
+    ProxyingPrincipalResolverTests.class,
+    CredentialCustomFieldsAttributeMetaDataPopulatorTests.class,
+    AuthenticationDateAttributeMetaDataPopulatorTests.class,
     ByCredentialTypeAuthenticationHandlerResolverTests.class,
     ByCredentialSourceAuthenticationHandlerResolverTests.class,
     DefaultAuthenticationResultBuilderTests.class,

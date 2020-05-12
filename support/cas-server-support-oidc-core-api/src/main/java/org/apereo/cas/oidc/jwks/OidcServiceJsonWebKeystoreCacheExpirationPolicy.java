@@ -6,10 +6,9 @@ import org.apereo.cas.support.oauth.services.OAuthRegisteredService;
 
 import com.github.benmanes.caffeine.cache.Expiry;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
-import org.jose4j.jwk.RsaJsonWebKey;
+import org.jose4j.jwk.PublicJsonWebKey;
 
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -20,39 +19,43 @@ import java.util.concurrent.TimeUnit;
  * @author Misagh Moayyed
  * @since 6.1.0
  */
-@Slf4j
 @RequiredArgsConstructor
-public class OidcServiceJsonWebKeystoreCacheExpirationPolicy implements Expiry<OAuthRegisteredService, Optional<RsaJsonWebKey>> {
+public class OidcServiceJsonWebKeystoreCacheExpirationPolicy
+    implements Expiry<OAuthRegisteredService, Optional<PublicJsonWebKey>> {
     private final CasConfigurationProperties casProperties;
 
     @Override
-    public long expireAfterCreate(final OAuthRegisteredService oidcRegisteredService,
-                                  final Optional<RsaJsonWebKey> rsaJsonWebKey,
+    public long expireAfterCreate(final OAuthRegisteredService service,
+                                  final Optional<PublicJsonWebKey> rsaJsonWebKey,
                                   final long currentTime) {
-        return getExpiration(oidcRegisteredService, currentTime);
+        return getExpiration(service);
     }
 
     @Override
-    public long expireAfterUpdate(final OAuthRegisteredService oidcRegisteredService,
-                                  final Optional<RsaJsonWebKey> rsaJsonWebKey,
+    public long expireAfterUpdate(final OAuthRegisteredService service,
+                                  final Optional<PublicJsonWebKey> rsaJsonWebKey,
                                   final long currentTime, final long currentDuration) {
-        return getExpiration(oidcRegisteredService, currentDuration);
+        return getExpiration(service);
     }
 
     @Override
-    public long expireAfterRead(final OAuthRegisteredService oidcRegisteredService,
-                                final Optional<RsaJsonWebKey> rsaJsonWebKey,
+    public long expireAfterRead(final OAuthRegisteredService service,
+                                final Optional<PublicJsonWebKey> rsaJsonWebKey,
                                 final long currentTime,
                                 final long currentDuration) {
-        return getExpiration(oidcRegisteredService, currentDuration);
+        return getExpiration(service);
     }
 
-    private long getExpiration(final OAuthRegisteredService givenService, final long currentTime) {
-        val service = (OidcRegisteredService) givenService;
-        if (service.getJwksCacheDuration() > 0 && StringUtils.isNotBlank(service.getJwksCacheTimeUnit())) {
-            val timeUnit = TimeUnit.valueOf(service.getJwksCacheTimeUnit().trim().toUpperCase());
-            return timeUnit.toNanos(service.getJwksCacheDuration());
+    private long getExpiration(final OAuthRegisteredService givenService) {
+        if (givenService instanceof OidcRegisteredService) {
+            val service = (OidcRegisteredService) givenService;
+            if (service.getJwksCacheDuration() > 0 && StringUtils.isNotBlank(service.getJwksCacheTimeUnit())) {
+                val timeUnit = TimeUnit.valueOf(service.getJwksCacheTimeUnit().trim().toUpperCase());
+                return timeUnit.toNanos(service.getJwksCacheDuration());
+            }
+            val jwks = casProperties.getAuthn().getOidc().getJwks();
+            return TimeUnit.MINUTES.toNanos(jwks.getJwksCacheInMinutes());
         }
-        return TimeUnit.MINUTES.toNanos(casProperties.getAuthn().getOidc().getJwksCacheInMinutes());
+        return -1;
     }
 }

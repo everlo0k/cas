@@ -3,6 +3,7 @@ package org.apereo.cas.adaptors.radius;
 import org.apereo.cas.adaptors.radius.server.BlockingRadiusServer;
 
 import net.jradius.exception.TimeoutException;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,12 +15,13 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 5.2.0
  */
+@Tag("Radius")
 public class BlockingRadiusServerTests extends AbstractRadiusServerTests {
 
     public static final String XYZ = "xyz";
 
     @Test
-    public void verifyBadSecret() throws Exception {
+    public void verifyBadSecret() {
         assertThrows(TimeoutException.class,
             () -> new BlockingRadiusServer(RadiusProtocol.MSCHAPv2, new RadiusClientFactory(ACCOUNTING_PORT, AUTHENTICATION_PORT, 1, INET_ADDRESS, XYZ))
                 .authenticate(XYZ, XYZ));

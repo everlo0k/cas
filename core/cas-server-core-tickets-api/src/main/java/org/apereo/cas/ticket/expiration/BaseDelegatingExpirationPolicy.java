@@ -41,9 +41,11 @@ public abstract class BaseDelegatingExpirationPolicy extends AbstractCasExpirati
      */
     public static final String POLICY_NAME_DEFAULT = "DEFAULT";
 
+    private static final int MAP_SIZE = 8;
+
     private static final long serialVersionUID = 5927936344949518688L;
 
-    private final Map<String, ExpirationPolicy> policies = new LinkedHashMap<>();
+    private final Map<String, ExpirationPolicy> policies = new LinkedHashMap<>(MAP_SIZE);
 
     /**
      * Add policy.
@@ -64,17 +66,6 @@ public abstract class BaseDelegatingExpirationPolicy extends AbstractCasExpirati
     public void addPolicy(final String name, final ExpirationPolicy policy) {
         LOGGER.trace("Adding expiration policy [{}] with name [{}]", policy, name);
         this.policies.put(name, policy);
-    }
-
-    /**
-     * Add policy.
-     *
-     * @param name   the name
-     * @param policy the policy
-     */
-    public void addPolicy(final Enum name, final ExpirationPolicy policy) {
-        LOGGER.trace("Adding expiration policy [{}] with name [{}]", policy, name);
-        addPolicy(name.name(), policy);
     }
 
     @Override

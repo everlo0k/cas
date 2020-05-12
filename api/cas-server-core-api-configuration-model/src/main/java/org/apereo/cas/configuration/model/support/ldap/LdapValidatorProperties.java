@@ -4,12 +4,10 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * This is {@link LdapValidatorProperties}.
@@ -20,6 +18,7 @@ import java.util.stream.Stream;
 @RequiresModule(name = "cas-server-support-ldap")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class LdapValidatorProperties implements Serializable {
 
     private static final long serialVersionUID = 1150417354213235193L;
@@ -58,7 +57,7 @@ public class LdapValidatorProperties implements Serializable {
     /**
      * Attribute values to use for the compare validator.
      */
-    private List<String> attributeValues = Stream.of("top").collect(Collectors.toList());
+    private String attributeValue = "top";
 
     /**
      * DN to compare to use for the compare validator.

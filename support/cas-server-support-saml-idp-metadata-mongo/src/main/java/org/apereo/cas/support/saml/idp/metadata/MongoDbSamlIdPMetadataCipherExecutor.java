@@ -10,13 +10,16 @@ import org.apereo.cas.util.cipher.BaseStringCipherExecutor;
  */
 public class MongoDbSamlIdPMetadataCipherExecutor extends BaseStringCipherExecutor {
 
-    public MongoDbSamlIdPMetadataCipherExecutor(final String secretKeyEncryption, final String secretKeySigning, final String alg,
+    public MongoDbSamlIdPMetadataCipherExecutor(final String secretKeyEncryption,
+                                                final String secretKeySigning,
+                                                final String alg,
                                                 final int signingKeySize,
                                                 final int encryptionKeySize) {
         super(secretKeyEncryption, secretKeySigning, alg, signingKeySize, encryptionKeySize);
     }
 
-    public MongoDbSamlIdPMetadataCipherExecutor(final String secretKeyEncryption, final String secretKeySigning,
+    public MongoDbSamlIdPMetadataCipherExecutor(final String secretKeyEncryption,
+                                                final String secretKeySigning,
                                                 final int signingKeySize,
                                                 final int encryptionKeySize) {
         super(secretKeyEncryption, secretKeySigning, signingKeySize, encryptionKeySize);
@@ -29,11 +32,11 @@ public class MongoDbSamlIdPMetadataCipherExecutor extends BaseStringCipherExecut
 
     @Override
     protected String getEncryptionKeySetting() {
-        return "cas.authn.samlIdp.metadata.mongo.crypto.encryption.key";
+        return "cas.authn.saml-idp.metadata.mongo.crypto.encryption.key";
     }
 
     @Override
     protected String getSigningKeySetting() {
-        return "cas.authn.samlIdp.metadata.mongo.crypto.signing.key";
+        return "cas.authn.saml-idp.metadata.mongo.crypto.signing.key";
     }
 }
